@@ -84,7 +84,11 @@ for cls, path in jobs:
             x0, x1 = int(sub.shape[1] * j / 24), max(int(sub.shape[1] * (j + 1) / 24), int(sub.shape[1] * j / 24) + 1)
             col = np.flatnonzero(sub[:, x0:x1].any(1))
             tp.append(round(float(col[0] * s * K), 1) if len(col) else round(float(h * K), 1))
-        lst.append({'tp': tp, 'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(),
+        # tâm đầu theo chiều ngang (phần 30% trên cùng), tính từ điểm neo chân: mũ đi theo đầu ở từng khung
+        top = sub[:max(1, int(sub.shape[0] * .3))]
+        xs = np.nonzero(top)[1]
+        hc = round(float((xs.mean() if len(xs) else sub.shape[1] / 2) * s * K - fx * K), 1)
+        lst.append({'hc': hc, 'tp': tp, 'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(),
                     'w': round(float(w * K), 1), 'h': round(float(h * K), 1), 'ax': round(float(fx * K), 1)})
     res[cls] = lst
     print(cls, [(f['w'], f['h'], f['ax']) for f in lst])

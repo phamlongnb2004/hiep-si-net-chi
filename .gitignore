@@ -11,3 +11,4 @@ mobile/android/capacitor-cordova-android-plugins/
 out/
 public/
 .wrangler/
+tools/__pycache__/

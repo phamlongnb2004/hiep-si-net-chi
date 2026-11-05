@@ -4,7 +4,7 @@ try{
 const AF=window.HSNC_ANIM||{},LA=window.HSNC_LAYER||{};
 const img=u=>{const im=new Image();im.src=u;return im;};
 const FR={};
-for(const k in AF)FR[k]=AF[k].map(f=>({i:img(f.u),w:f.w,h:f.h,ax:f.ax,tp:f.tp}));
+for(const k in AF)FR[k]=AF[k].map(f=>({i:img(f.u),w:f.w,h:f.h,ax:f.ax,tp:f.tp,hc:f.hc}));
 const LY={};
 for(const c in LA)LY[c]={hat:(LA[c].hat||[]).map(f=>({i:img(f.u),w:f.w,h:f.h})),cape:(LA[c].cape||[]).map(f=>({i:img(f.u),w:f.w,h:f.h}))};
 const ok=f=>f&&f.i.complete&&f.i.naturalWidth;
@@ -54,10 +54,12 @@ drawHero=function(o){
   // mũ: đặt trên đỉnh tóc của đúng khung hình đang vẽ
   const ht=!legacy&&F&&L&&look.h>=0?L.hat[look.h]:null;
   if(ok(ht)&&q.tp){
-    const x0=F.hx-F.hw*.32,x1=F.hx+F.hw*.32,n=q.tp.length;let top=q.h;
+    // đầu lệch bao nhiêu so với khung đứng yên thì mũ lệch theo bấy nhiêu
+    const hx=F.hx+(q.hc!=null&&set[0].hc!=null?q.hc-set[0].hc:0);
+    const x0=hx-F.hw*.32,x1=hx+F.hw*.32,n=q.tp.length;let top=q.h;
     for(let j=0;j<n;j++){const cx=(j+.5)/n*q.w-q.ax;if(cx>=x0&&cx<=x1)top=Math.min(top,q.tp[j]);}
     const hw=F.hw,hh=hw*ht.h/ht.w,y=-q.h+top+hw*F.hb;
-    ctx.drawImage(ht.i,F.hx-hw/2,y-hh,hw,hh);
+    ctx.drawImage(ht.i,hx-hw/2,y-hh,hw,hh);
   }
   ctx.restore();
 };
