@@ -92,8 +92,8 @@ const hud=$('hud');
 /* chân dung */
 const sp=$('statPlate');sp.classList.remove('wob');
 const av=el('div','hpAv'),avI=el('i'),lvB=el('div','hpLv');av.append(avI);
-const box=el('div','hpBox');while(sp.firstChild)box.append(sp.firstChild);
-lvB.append($('hLv'));sp.append(av,lvB,box);
+const hLvE=$('hLv'),box=el('div','hpBox');while(sp.firstChild)box.append(sp.firstChild);
+lvB.append(hLvE);sp.append(av,lvB,box);
 let avCls='';
 const setAv=()=>{if(!P||P.cls===avCls)return;avCls=P.cls;const f=window.HSNC_ANIM&&HSNC_ANIM[P.cls];avI.style.backgroundImage=f?'url('+f[0].u+')':'';};
 
