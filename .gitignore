@@ -10,3 +10,4 @@ mobile/android/app/src/main/assets/public/
 mobile/android/capacitor-cordova-android-plugins/
 out/
 public/index.html
+.wrangler/
