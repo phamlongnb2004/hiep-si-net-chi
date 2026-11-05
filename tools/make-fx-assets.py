@@ -48,6 +48,35 @@ for cls in ['sword', 'mage', 'archer', 'fighter', 'mon']:   # mon = đòn đánh
     if os.path.exists(p):
         out[cls] = cut(p)
         print(cls, [(f['w'], f['h']) for f in out[cls]])
+# chuỗi khung hiệu ứng (6 khung theo thời gian): cắt mọi ô cùng một khung chung để các khung khớp vị trí
+def seq(path, maxs=220):
+    im = Image.open(path).convert('RGB')
+    L = np.array(im).max(2) > 40
+    rows = bands(L.sum(1) * (L.sum(1) > 3), 2)
+    cells = []
+    for y0, y1 in rows:
+        for x0, x1 in bands(L[y0:y1].sum(0) * (L[y0:y1].sum(0) > 3), 3):
+            cells.append((x0, y0, x1, y1))
+    cw = max(c[2] - c[0] for c in cells); chh = max(c[3] - c[1] for c in cells)
+    res = []
+    for x0, y0, x1, y1 in cells:
+        # căn theo mép trái + giữa theo chiều dọc (hơi thở luôn bắt đầu từ trái)
+        cy = (y0 + y1) // 2
+        box = (x0 - 4, cy - chh // 2 - 4, x0 + cw + 4, cy + chh // 2 + 4)
+        c = unblack(im.crop(box))
+        f = maxs / max(c.size)
+        c = c.resize((max(1, round(c.width * f)), max(1, round(c.height * f))), Image.LANCZOS)
+        buf = io.BytesIO(); c.save(buf, 'WEBP', quality=78, method=6)
+        res.append({'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(), 'w': c.width, 'h': c.height})
+    return res
+
+
+out['seq'] = {}
+for name in ['claw', 'bite', 'hit', 'fire', 'poison', 'ice']:
+    p = os.path.join(SRC, 'gear', f'mseq_{name}.webp')
+    if os.path.exists(p):
+        out['seq'][name] = seq(p)
+        print('seq', name, len(out['seq'][name]))
 with open(OUT, 'w') as f:
     json.dump(out, f, separators=(',', ':'))
 print('Đã tạo', OUT, round(os.path.getsize(OUT) / 1024), 'KB')

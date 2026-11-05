@@ -3,13 +3,32 @@
 try{
 const XA=window.HSNC_FX||{};
 const XI={};
-for(const c in XA)XI[c]=XA[c].map(f=>{const im=new Image();im.src=f.u;return{i:im,w:f.w,h:f.h};});
+const ld=f=>{const im=new Image();im.src=f.u;return{i:im,w:f.w,h:f.h};};
+for(const c in XA)if(Array.isArray(XA[c]))XI[c]=XA[c].map(ld);
+// chuỗi khung theo thời gian (đòn đánh của quái): {claw:[6 khung], bite, hit, fire, poison, ice}
+const XS={};for(const n in (XA.seq||{}))XS[n]=XA.seq[n].map(ld);
+const seqOk=n=>XS[n]&&XS[n].every(f=>f.i.complete&&f.i.naturalWidth);
+window.HSNC_SEQOK=seqOk;
 const X=(c,k)=>{const s=XI[c],f=s&&s[k];return f&&f.i.complete&&f.i.naturalWidth?f:null;};
 const ease=u=>1-Math.pow(1-u,3);
 
 /* --- một hiệu ứng ảnh: vị trí, kích thước, xoay, kiểu chuyển động --- */
 function sfx(o){o.k='spr';o.t=0;o.sd=Math.random()*999;G.fx.push(o);return o;}
+function drawSeq(f){
+  // phát lần lượt các khung, mỗi lần chuyển khung thì trộn mờ hai khung liền nhau cho mượt
+  const F=XS[f.seq],N=F.length,u=clamp(f.t/f.max,0,1),pos=Math.min(N-1.0001,u*N),i=Math.floor(pos),fr=pos-i;
+  let x=f.x,y=f.y;if(f.follow&&P){x=P.x+(f.ox||0);y=P.y+(f.oy||0);}
+  if(f.at&&!f.at.dead){x=f.at.x+(f.ox||0);y=f.at.y+(f.oy||0);}
+  const q=F[0],h=f.h,w=h*q.w/q.h,s=1+(f.grow||0)*u;
+  ctx.save();ctx.translate(x,y);if(f.flip)ctx.scale(-1,1);if(f.rot)ctx.rotate(f.rot);ctx.scale(s,s);
+  const px=f.px!=null?f.px:.5,py=f.py!=null?f.py:.5;
+  const draw=(k,al)=>{if(al<=.01)return;const g=F[Math.min(N-1,k)];ctx.globalAlpha=al*(f.al||1);ctx.drawImage(g.i,-w*px,-h*py,w,h);};
+  draw(i,1-fr);draw(i+1,fr);
+  if(f.glow){ctx.globalCompositeOperation='lighter';draw(i,(1-fr)*.3*f.glow);draw(i+1,fr*.3*f.glow);}
+  ctx.restore();
+}
 function drawSpr(f){
+  if(f.seq){if(seqOk(f.seq))drawSeq(f);return;}
   const im=X(f.c,f.n);if(!im)return;
   const u=clamp(f.t/f.max,0,1);let x=f.x,y=f.y,s=f.s||1,a=1,rot=f.rot||0;
   if(f.follow&&P){x=P.x+(f.ox||0);y=P.y+(f.oy||0);}
