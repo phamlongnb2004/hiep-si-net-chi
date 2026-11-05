@@ -2088,7 +2088,7 @@ function lighting(vw,vh){
     g.fillStyle=th==='lava'?'rgba(46,10,8,'+n*.62+')':'rgba(8,14,48,'+n*.68+')';g.fillRect(0,0,LC.width,LC.height);
     g.globalCompositeOperation='destination-out';
     const L=(x,y,rad,a)=>{const X=x*s+ox,Y=y*s+oy,R=rad*s;if(X<-R||Y<-R||X>LC.width+R||Y>LC.height+R)return;const gr=g.createRadialGradient(X,Y,R*.08,X,Y,R);gr.addColorStop(0,'rgba(0,0,0,'+a+')');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(X-R,Y-R,R*2,R*2);};
-    L(P.x,P.y-30,310+(P.buffs.length?60:0),1);
+    if(P)L(P.x,P.y-30,310+(P.buffs.length?60:0),1);
     for(const p of MAP.portals)L(p.x,p.y-30,170,.95);
     for(const d of DECOR)if(d.k==='house'||d.k==='fountain')L(d.x,d.y-30,d.k==='house'?170:130,.85);
     for(const d of G.drops)if(d.k==='stone'||(d.item&&d.item.r>=1))L(d.x,d.y-20,95,.85);
@@ -2096,8 +2096,8 @@ function lighting(vw,vh){
     for(const m of G.mons)if(!m.dead&&m.t.boss)L(m.x,m.y-60,260,.7);
     ctx.drawImage(LC,0,0,cv.width,cv.height);
     ctx.globalCompositeOperation='lighter';ctx.globalAlpha=Math.min(.5,n*.55);
-    const s2=rdpr*scale,gx=(P.x-G.cam.x)*s2,gy=(P.y-30-G.cam.y)*s2,R=190*s2;
-    const gr=ctx.createRadialGradient(gx,gy,0,gx,gy,R);gr.addColorStop(0,th==='lava'?'rgba(255,120,50,.55)':'rgba(255,214,140,.45)');gr.addColorStop(1,'rgba(255,200,120,0)');ctx.fillStyle=gr;ctx.fillRect(gx-R,gy-R,R*2,R*2);
+    if(P){const s2=rdpr*scale,gx=(P.x-G.cam.x)*s2,gy=(P.y-30-G.cam.y)*s2,R=190*s2;
+    const gr=ctx.createRadialGradient(gx,gy,0,gx,gy,R);gr.addColorStop(0,th==='lava'?'rgba(255,120,50,.55)':'rgba(255,214,140,.45)');gr.addColorStop(1,'rgba(255,200,120,0)');ctx.fillStyle=gr;ctx.fillRect(gx-R,gy-R,R*2,R*2);}
     ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
   }
   if(r>.02){

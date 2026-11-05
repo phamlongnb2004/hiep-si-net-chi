@@ -1,10 +1,13 @@
 # Cắt khung hoạt ảnh nhân vật từ tờ sprite ChatGPT vẽ (2 hàng x 3 cột, nền trong suốt)
 # Dùng: python3 tools/make-anim-assets.py <thư_mục_ảnh>   -> tools/anim-assets.json
-# Cần: walk_sword.webp, walk_archer.webp, walk_mage.webp, walk_fighter.webp
+# Cần: walk_sword.webp, walk_archer.webp, walk_mage.webp, walk_fighter.webp (diện mạo đồ thường)
+# và gear/walk_<phái>_<1..3>.webp (diện mạo bộ Hiếm, Sử Thi, Huyền Thoại) nếu có
 # Thứ tự khung: 0 đứng, 1-4 bước đi, 5 đánh
 import sys, os, io, json, base64
 import numpy as np
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from imgcut import load_rgba, bands
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else 'assets'
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'anim-assets.json')
@@ -27,22 +30,18 @@ def runs(mask, gap):
 
 
 def frames(path):
-    im = Image.open(path).convert('RGBA')
+    im = load_rgba(path)
     a = np.array(im)[:, :, 3] > 40
-    H, W = a.shape
-    rows = [r for r in runs(a.sum(1) > 2, H // 40) if r[1] - r[0] > H // 6]
-    if len(rows) != 2:
-        raise SystemExit(f'{path}: tìm thấy {len(rows)} hàng, cần 2')
+    core = np.array(im)[:, :, 3] > 160          # bỏ quầng sáng mờ khi tìm chỗ chia ô
+    rows = bands(core.sum(1) * (core.sum(1) > 2), 2)
     boxes = []
     for y0, y1 in rows:
-        cols = [c for c in runs(a[y0:y1].sum(0) > 1, W // 60) if c[1] - c[0] > W // 20]
-        if len(cols) != 3:
-            raise SystemExit(f'{path}: hàng {y0}-{y1} có {len(cols)} cột, cần 3')
+        cols = bands(core[y0:y1].sum(0) * (core[y0:y1].sum(0) > 1), 3)
         for x0, x1 in cols:
-            sub = a[y0:y1, x0:x1]
+            sub = core[y0:y1, x0:x1]
             ys = np.flatnonzero(sub.any(1))
             boxes.append((x0, y0 + ys[0], x1, y0 + ys[-1] + 1))
-    return im, a, boxes
+    return im, core, boxes
 
 
 def feet_x(a, b):
@@ -54,8 +53,18 @@ def feet_x(a, b):
 
 
 res = {}
+jobs = []
 for cls in ['sword', 'archer', 'mage', 'fighter']:
-    im, a, boxes = frames(os.path.join(SRC, f'walk_{cls}.webp'))
+    # tờ đi bộ cũ (có sẵn mũ/áo choàng) chỉ dùng khi chưa có thân tách lớp
+    if not os.path.exists(os.path.join(SRC, 'gear', f'body_{cls}_0.webp')):
+        jobs.append((cls, os.path.join(SRC, f'walk_{cls}.webp')))
+    # thân không mũ, không áo choàng (mũ và áo choàng ghép riêng theo từng món)
+    for t in (0, 1, 2, 3):
+        p = os.path.join(SRC, 'gear', f'body_{cls}_{t}.webp')
+        if os.path.exists(p):
+            jobs.append((f'body_{cls}_{t}', p))
+for cls, path in jobs:
+    im, a, boxes = frames(path)
     s = IDLE_H / (boxes[0][3] - boxes[0][1])
     # neo chân: lấy tâm chân của khung đứng, các khung đi bộ dùng tâm chân riêng
     lst = []
@@ -68,7 +77,14 @@ for cls in ['sword', 'archer', 'mage', 'fighter']:
         fx = feet_x(a, b) * s
         if i == 5:  # khung đánh: giữ thân ở chỗ cũ, đòn vươn về trước
             fx = min(fx, w * 0.42)
-        lst.append({'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(),
+        # đỉnh đầu theo cột (24 cột, đơn vị hiển thị) để đặt mũ đúng chỗ ở từng khung
+        sub = a[b[1]:b[3], b[0]:b[2]]
+        tp = []
+        for j in range(24):
+            x0, x1 = int(sub.shape[1] * j / 24), max(int(sub.shape[1] * (j + 1) / 24), int(sub.shape[1] * j / 24) + 1)
+            col = np.flatnonzero(sub[:, x0:x1].any(1))
+            tp.append(round(float(col[0] * s * K), 1) if len(col) else round(float(h * K), 1))
+        lst.append({'tp': tp, 'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(),
                     'w': round(float(w * K), 1), 'h': round(float(h * K), 1), 'ax': round(float(fx * K), 1)})
     res[cls] = lst
     print(cls, [(f['w'], f['h'], f['ax']) for f in lst])

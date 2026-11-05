@@ -80,6 +80,7 @@ const css=`
 #app #hud #bTalk img{width:32px;height:32px}
 #app #hud #hint{bottom:calc(4px + env(safe-area-inset-bottom,0px));font-size:12.5px;opacity:.6}
 #app #hud #chatBtn{position:relative;left:auto;top:auto;display:grid}
+#app #hud #netBadge{top:calc(42px + env(safe-area-inset-top,0px));font-size:11.5px;padding:3px 10px;opacity:.9}
 @media (max-height:420px){#app #hud{--hs:.86}#app #hud #mini{width:100px;height:66px}#hud .hpAv{width:56px;height:56px}#hud .hpLv{left:36px;top:38px}#app #hud .ib{width:40px;height:40px}#app #hud .ib img{width:28px;height:28px}#app #hud #joy{width:118px;height:118px}}
 @media (max-height:340px){#app #hud{--hs:.74}#hud .hcur{display:none}}
 @media (max-width:640px){#hud .hcur{top:auto;bottom:calc(4px + env(safe-area-inset-bottom,0px))}}
@@ -95,7 +96,7 @@ const av=el('div','hpAv'),avI=el('i'),lvB=el('div','hpLv');av.append(avI);
 const hLvE=$('hLv'),box=el('div','hpBox');while(sp.firstChild)box.append(sp.firstChild);
 lvB.append(hLvE);sp.append(av,lvB,box);
 let avCls='';
-const setAv=()=>{if(!P||P.cls===avCls)return;avCls=P.cls;const f=window.HSNC_ANIM&&HSNC_ANIM[P.cls];avI.style.backgroundImage=f?'url('+f[0].u+')':'';};
+const setAv=()=>{if(!P)return;const t=window.HSNC_TIER?HSNC_TIER(P.eq):0,A=window.HSNC_ANIM||{},k=A['body_'+P.cls+'_'+t]?'body_'+P.cls+'_'+t:t&&A[P.cls+'_'+t]?P.cls+'_'+t:P.cls;if(k===avCls)return;avCls=k;const f=window.HSNC_ANIM&&HSNC_ANIM[k];avI.style.backgroundImage=f?'url('+f[0].u+')':'';};
 
 /* tiền tệ */
 const ip=$('infoPlate');ip.classList.remove('wob');
@@ -135,5 +136,11 @@ updateHUD=function(){
   const pv=String(P.pots);if(pc._v!==pv){pc._v=pv;pc.textContent=pv;}
   for(let i=0;i<SB.length;i++){const q=SB[i],r=!!P.sk[i]&&P.cds[i]<=0;if(r&&q.rdy===false){q.e.classList.remove('rdy');void q.e.offsetWidth;q.e.classList.add('rdy');}q.rdy=r;}
 };
-if(/[?&]hsnctest\b/.test(location.search))window.__T={start:(c,n)=>{G.state='menu';startGame(c,n);},get P(){return P;},get G(){return G;}};
+/* --- chống đơ: một lỗi trong một khung hình không được làm dừng cả vòng lặp game --- */
+const _fr=frame;let fErr=0;
+frame=function(now){let done=false;try{_fr(now);done=true;}catch(e){if(fErr++<5)console.error('Lỗi khung hình:',e);}if(!done)requestAnimationFrame(frame);};
+// vào game là cập nhật bảng máu ngay, không đợi khung hình sau
+const _sg2=startGame;
+startGame=function(...a){_sg2(...a);try{if(P)updateHUD();}catch(e){}};
+if(/[?&]hsnctest\b/.test(location.search))window.__T={start:(c,n)=>{G.state='menu';startGame(c,n);},get P(){return P;},get G(){return G;},get scale(){return scale;}};
 }catch(err){console.error('Giao diện trong game lỗi:',err);}

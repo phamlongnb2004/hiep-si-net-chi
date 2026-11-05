@@ -6,6 +6,9 @@ import { DurableObject } from 'cloudflare:workers';
 const TICK_MS = 100;
 const MAX_SAVE = 300 * 1024;
 const ITER = 60000; // vòng lặp băm mật khẩu PBKDF2
+// danh sách máy chủ (cụm) trong game; mỗi tài khoản có một nhân vật riêng trên mỗi máy chủ
+const SERVERS = [{ id: 1, name: 'Server 1', tag: 'Mới' }];
+const srvOf = v => SERVERS.find(x => x.id === (v | 0)) || null;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +48,10 @@ export class World extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, uname TEXT UNIQUE NOT NULL, pass_hash TEXT NOT NULL, salt TEXT NOT NULL, created INTEGER)`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created INTEGER)`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS saves(user_id INTEGER PRIMARY KEY, data TEXT NOT NULL, lv INTEGER, kills INTEGER, name TEXT, cls TEXT, updated INTEGER)`);
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS chars(user_id INTEGER NOT NULL, srv INTEGER NOT NULL, data TEXT NOT NULL, lv INTEGER, kills INTEGER, name TEXT, cls TEXT, updated INTEGER, PRIMARY KEY(user_id, srv))`);
+    // nhân vật cũ (trước khi có chọn máy chủ) chuyển sang Server 1
+    this.sql.exec(`INSERT OR IGNORE INTO chars(user_id,srv,data,lv,kills,name,cls,updated) SELECT user_id,1,data,lv,kills,name,cls,updated FROM saves`);
+    this.sql.exec(`DELETE FROM saves`);
     this.clients = new Map();
     this.seq = 1;
     this.tries = new Map();
@@ -72,13 +79,24 @@ export class World extends DurableObject {
   async api(req, url) {
     if (url.pathname === '/api/health') return json(200, { ok: true, online: this.clients.size, store: 'cloudflare-sqlite' });
     if (url.pathname === '/api/top') {
-      const top = this.sql.exec('SELECT user_id id, name, cls, lv, kills FROM saves ORDER BY lv DESC, kills DESC LIMIT 20').toArray();
+      const srv = srvOf(url.searchParams.get('srv') || 1) ? (url.searchParams.get('srv') | 0 || 1) : 1;
+      const top = this.sql.exec('SELECT user_id id, name, cls, lv, kills FROM chars WHERE srv=? ORDER BY lv DESC, kills DESC LIMIT 20', srv).toArray();
       return json(200, { top });
     }
     if (req.method !== 'POST') return json(405, { error: 'Sai phương thức' });
     const ip = req.headers.get('CF-Connecting-IP') || '';
     if (this.limited(ip)) return json(429, { error: 'Thử lại sau một phút.' });
     let b; try { b = await req.json(); } catch (e) { return json(400, { error: 'Dữ liệu không hợp lệ' }); }
+    if (url.pathname === '/api/servers') {
+      const u = b.token && this.one('SELECT u.id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=?', String(b.token));
+      if (!u) return json(401, { error: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' });
+      const servers = SERVERS.map(x => {
+        const ch = this.one('SELECT name, cls, lv FROM chars WHERE user_id=? AND srv=?', u.id, x.id);
+        let online = 0; for (const c of this.clients.values()) if (c.srv === x.id) online++;
+        return { id: x.id, name: x.name, tag: x.tag, online, char: ch ? { name: ch.name, cls: ch.cls, lv: ch.lv | 0 } : null };
+      });
+      return json(200, { servers });
+    }
     const user = String(b.user || '').trim(), pass = String(b.pass || '');
     if (url.pathname === '/api/register') {
       if (!okName(user)) return json(400, { error: 'Tên tài khoản 3–16 ký tự, gồm chữ, số, dấu cách hoặc _' });
@@ -111,6 +129,12 @@ export class World extends DurableObject {
     ws.accept();
     const send = obj => { try { ws.send(JSON.stringify(obj)); } catch (e) {} };
     const token = String(url.searchParams.get('token') || '');
+    const srv = srvOf(url.searchParams.get('srv') || 1);
+    if (!srv) {
+      send({ t: 'err', code: 'srv', msg: 'Máy chủ này chưa mở.' });
+      ws.close(4003, 'srv');
+      return new Response(null, { status: 101, webSocket: client });
+    }
     const u = token && this.one('SELECT u.id, u.username FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=?', token);
     if (!u) {
       send({ t: 'err', code: 'auth', msg: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' });
@@ -118,11 +142,12 @@ export class World extends DurableObject {
       return new Response(null, { status: 101, webSocket: client });
     }
     for (const c of this.clients.values()) if (c.uid === u.id) { this.sendTo(c, { t: 'err', code: 'dup', msg: 'Tài khoản vừa đăng nhập ở nơi khác.' }); try { c.ws.close(4002, 'dup'); } catch (e) {} this.drop(c); }
-    const c = { id: this.seq++, uid: u.id, user: u.username, ws, map: -1, st: null, lastChat: 0, lastSave: 0, pending: null };
+    const c = { id: this.seq++, uid: u.id, user: u.username, srv: srv.id, ws, map: -1, st: null, lastChat: 0, lastSave: 0, pending: null, lock: null };
     this.clients.set(c.id, c);
-    const sv = this.one('SELECT data FROM saves WHERE user_id=?', u.id);
-    send({ t: 'welcome', id: c.id, user: u.username, save: sv ? JSON.parse(sv.data) : null, online: this.clients.size });
-    this.toAll({ t: 'count', online: this.clients.size });
+    const sv = this.one('SELECT data, name, cls FROM chars WHERE user_id=? AND srv=?', u.id, srv.id);
+    if (sv) c.lock = { name: sv.name, cls: sv.cls };
+    send({ t: 'welcome', id: c.id, user: u.username, srv: srv.id, srvName: srv.name, save: sv ? JSON.parse(sv.data) : null, online: this.count(srv.id) });
+    this.toSrv(srv.id, { t: 'count', online: this.count(srv.id) });
     ws.addEventListener('message', ev => this.onMessage(c, ev.data));
     const bye = () => this.drop(c);
     ws.addEventListener('close', bye);
@@ -135,19 +160,21 @@ export class World extends DurableObject {
     if (this.clients.get(c.id) !== c) return;
     if (c.pending) this.writeSave(c);
     this.clients.delete(c.id);
-    if (c.map >= 0) this.toMap(c.map, { t: 'gone', id: c.id });
-    this.toAll({ t: 'count', online: this.clients.size });
+    if (c.map >= 0) this.toMap(c, c.map, { t: 'gone', id: c.id });
+    this.toSrv(c.srv, { t: 'count', online: this.count(c.srv) });
     if (!this.clients.size && this.timer) { clearInterval(this.timer); this.timer = null; }
   }
 
   sendTo(c, obj) { try { c.ws.send(typeof obj === 'string' ? obj : JSON.stringify(obj)); } catch (e) {} }
-  toMap(map, obj, except) { const s = JSON.stringify(obj); for (const c of this.clients.values()) if (c.map === map && c !== except) this.sendTo(c, s); }
-  toAll(obj) { const s = JSON.stringify(obj); for (const c of this.clients.values()) this.sendTo(c, s); }
+  count(srv) { let n = 0; for (const c of this.clients.values()) if (c.srv === srv) n++; return n; }
+  // chỉ gửi cho người chơi cùng máy chủ (và cùng bản đồ)
+  toMap(from, map, obj, except) { const s = JSON.stringify(obj); for (const c of this.clients.values()) if (c.srv === from.srv && c.map === map && c !== except) this.sendTo(c, s); }
+  toSrv(srv, obj) { const s = JSON.stringify(obj); for (const c of this.clients.values()) if (c.srv === srv) this.sendTo(c, s); }
 
   writeSave(c) {
     const d = c.pending; c.pending = null; c.lastSave = Date.now();
-    this.sql.exec('INSERT INTO saves(user_id,data,lv,kills,name,cls,updated) VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data, lv=excluded.lv, kills=excluded.kills, name=excluded.name, cls=excluded.cls, updated=excluded.updated',
-      c.uid, JSON.stringify(d), d.lv | 0, d.kills | 0, clean(d.name, 16), clean(d.cls, 12), Date.now());
+    this.sql.exec('INSERT INTO chars(user_id,srv,data,lv,kills,name,cls,updated) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(user_id,srv) DO UPDATE SET data=excluded.data, lv=excluded.lv, kills=excluded.kills, updated=excluded.updated',
+      c.uid, c.srv, JSON.stringify(d), d.lv | 0, d.kills | 0, clean(d.name, 16), clean(d.cls, 12), Date.now());
   }
 
   onMessage(c, raw) {
@@ -155,19 +182,22 @@ export class World extends DurableObject {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'st') {
       const map = num(m.m, 0, 20) | 0;
-      if (map !== c.map) { if (c.map >= 0) this.toMap(c.map, { t: 'gone', id: c.id }, c); c.map = map; }
+      if (map !== c.map) { if (c.map >= 0) this.toMap(c, c.map, { t: 'gone', id: c.id }, c); c.map = map; }
       c.st = [c.id, Math.round(num(m.x, 0, 5000)), Math.round(num(m.y, 0, 5000)), m.f < 0 ? -1 : 1, m.mv ? 1 : 0, m.sw ? 1 : 0,
-        clean(m.c, 12), num(m.lv, 1, 999) | 0, clean(m.n, 16), num(m.hp, 0, 1), m.dead ? 1 : 0];
+        clean(m.c, 12), num(m.lv, 1, 999) | 0, clean(m.n, 16), num(m.hp, 0, 1), m.dead ? 1 : 0, num(m.g, 0, 99) | 0];
     } else if (m.t === 'chat') {
       const now = Date.now(), text = clean(m.text, 120).trim();
       if (!text || now - c.lastChat < 700) return;
       c.lastChat = now;
       const msg = { t: 'chat', id: c.id, n: (c.st && c.st[8]) || c.user, text, all: !!m.all };
-      if (m.all) this.toAll(msg); else this.toMap(c.map, msg);
+      if (m.all) this.toSrv(c.srv, msg); else this.toMap(c, c.map, msg);
     } else if (m.t === 'save') {
       const d = m.d;
       if (!d || typeof d !== 'object' || typeof d.cls !== 'string') return;
       if (JSON.stringify(d).length > MAX_SAVE) return this.sendTo(c, { t: 'err', code: 'save', msg: 'Bản lưu quá lớn.' });
+      // nhân vật đã tạo trên máy chủ này thì không đổi được phái hay tên
+      if (c.lock && (d.cls !== c.lock.cls || clean(d.name, 16) !== c.lock.name)) return this.sendTo(c, { t: 'err', code: 'lock', msg: 'Tài khoản đã có nhân vật ' + c.lock.name + ' trên máy chủ này.' });
+      if (!c.lock) c.lock = { name: clean(d.name, 16), cls: clean(d.cls, 12) };
       c.pending = d;
       // gộp bớt lượt ghi để nằm trong giới hạn miễn phí
       if (Date.now() - c.lastSave > 15000) this.writeSave(c);
@@ -178,10 +208,10 @@ export class World extends DurableObject {
     if (this.timer) return;
     this.timer = setInterval(() => {
       const byMap = new Map();
-      for (const c of this.clients.values()) if (c.st && c.map >= 0) { if (!byMap.has(c.map)) byMap.set(c.map, []); byMap.get(c.map).push(c.st); }
+      for (const c of this.clients.values()) if (c.st && c.map >= 0) { const k = c.srv * 100 + c.map; if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(c.st); }
       const now = Date.now();
       for (const c of this.clients.values()) {
-        if (c.map >= 0) this.sendTo(c, { t: 'ps', p: (byMap.get(c.map) || []).filter(s => s[0] !== c.id) });
+        if (c.map >= 0) this.sendTo(c, { t: 'ps', p: (byMap.get(c.srv * 100 + c.map) || []).filter(s => s[0] !== c.id) });
         if (c.pending && now - c.lastSave > 15000) this.writeSave(c);
       }
     }, TICK_MS);

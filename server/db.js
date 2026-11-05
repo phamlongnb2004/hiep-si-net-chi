@@ -29,10 +29,11 @@ function fileStore(file) {
     async addSession(token, userId) { data.sessions[token] = { userId, created: Date.now() }; dirty(); },
     async sessionUser(token) { const s = data.sessions[token]; return s ? this.userById(s.userId) : null; },
     async dropSession(token) { delete data.sessions[token]; dirty(); },
-    async getSave(userId) { return data.saves[userId] || null; },
-    async putSave(userId, save) { data.saves[userId] = save; dirty(); },
+    // Server 1 giữ khóa cũ (chỉ id) để bản lưu cũ vẫn dùng được
+    async getSave(userId, srv = 1) { return data.saves[srv === 1 ? userId : userId + ':' + srv] || null; },
+    async putSave(userId, save, srv = 1) { data.saves[srv === 1 ? userId : userId + ':' + srv] = save; dirty(); },
     async top(limit) {
-      return Object.entries(data.saves)
+      return Object.entries(data.saves).filter(([id]) => !String(id).includes(':'))
         .map(([id, s]) => ({ id: +id, name: s.name, cls: s.cls, lv: s.lv | 0, kills: s.kills | 0 }))
         .sort((a, b) => b.lv - a.lv || b.kills - a.kills).slice(0, limit);
     },
@@ -62,8 +63,9 @@ function pgStore(url) {
     async addSession(token, userId) { await q('INSERT INTO sessions(token,user_id) VALUES($1,$2)', [token, userId]); },
     async sessionUser(token) { return user(row(await q('SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=$1', [token]))); },
     async dropSession(token) { await q('DELETE FROM sessions WHERE token=$1', [token]); },
-    async getSave(userId) { const r = row(await q('SELECT data FROM saves WHERE user_id=$1', [userId])); return r ? r.data : null; },
-    async putSave(userId, save) { await q('INSERT INTO saves(user_id,data,updated) VALUES($1,$2,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data, updated=now()', [userId, save]); },
+    // bản Postgres chỉ hỗ trợ Server 1
+    async getSave(userId, srv = 1) { if (srv !== 1) return null; const r = row(await q('SELECT data FROM saves WHERE user_id=$1', [userId])); return r ? r.data : null; },
+    async putSave(userId, save, srv = 1) { if (srv !== 1) return; await q('INSERT INTO saves(user_id,data,updated) VALUES($1,$2,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data, updated=now()', [userId, save]); },
     async top(limit) {
       const r = await q(`SELECT user_id id, data->>'name' name, data->>'cls' cls, COALESCE((data->>'lv')::int,0) lv, COALESCE((data->>'kills')::int,0) kills FROM saves ORDER BY lv DESC, kills DESC LIMIT $1`, [limit]);
       return r.rows;

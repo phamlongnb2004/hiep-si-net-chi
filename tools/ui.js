@@ -26,8 +26,9 @@ const css=document.createElement('style');css.textContent=`
 @keyframes uiFly{from{transform:translate(-10vw,0)}50%{transform:translate(50vw,-4vh)}to{transform:translate(112vw,2vh)}}
 @keyframes uiFlap{from{transform:scaleY(1)}to{transform:scaleY(-.55)}}
 
-#netLogin,#start{z-index:20;background:transparent!important;font-family:var(--ui-body);color:var(--ui-ink)}
-#netLogin{z-index:30;display:block;padding:0}
+#netLogin,#netServers,#start{z-index:20;background:transparent!important;font-family:var(--ui-body);color:var(--ui-ink)}
+#netLogin,#netServers{z-index:30;display:block;padding:0}
+#netServers[hidden]{display:none}
 .ui-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2.4vh,22px);padding-block:max(18px,env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 /* Logo */
@@ -124,14 +125,14 @@ const css=document.createElement('style');css.textContent=`
 #start .note{font:700 13.5px var(--ui-body);color:var(--ui-muted);opacity:1}
 @media (max-width:640px){.ui-logo .l1{--sw:10px}.ui-logo .l2{--sw:9px}#start .startrow .big{flex:1 1 100%}}
 @media (max-height:560px){
-  #netLogin .ui-wrap{flex-direction:row;justify-content:center;align-items:center;gap:4vw}
-  #netLogin .ui-logo .l1{font-size:clamp(34px,7vw,64px)}#netLogin .ui-logo .l2{font-size:clamp(26px,5vw,46px)}
+  #netLogin .ui-wrap,#netServers .ui-wrap{flex-direction:row;justify-content:center;align-items:center;gap:4vw}
+  #netLogin .ui-logo .l1,#netServers .ui-logo .l1{font-size:clamp(34px,7vw,64px)}#netLogin .ui-logo .l2,#netServers .ui-logo .l2{font-size:clamp(26px,5vw,46px)}
   .ui-card{gap:7px;padding:10px 16px 10px;width:min(360px,100%)}
   .ui-hint{display:none}.ui-field{gap:2px}.ui-field input{padding:7px 12px;font-size:15.5px}
   .ui-btn{padding:10px 20px 9px;font-size:18px}.ui-tabs button{padding:5px 0 4px}
   #start .ui-wrap{gap:8px}#start .startsheet{padding:12px 16px}#start .tag{display:none}
 }
-@media (max-height:560px) and (max-width:520px){#netLogin .ui-logo{display:none}}
+@media (max-height:560px) and (max-width:520px){#netLogin .ui-logo,#netServers .ui-logo{display:none}}
 
 /* Chỉ chơi ngang: điện thoại cầm dọc thì che game và nhắc xoay */
 #uiRotate{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:24px max(24px,env(safe-area-inset-right,0px)) 24px max(24px,env(safe-area-inset-left,0px));background:radial-gradient(ellipse at 50% 35%,#7fd6ff,#3aa8ff 55%,#1f6fd1);color:#fff;font-family:var(--ui-body)}
@@ -173,7 +174,10 @@ const fit=()=>{D=Math.min(2,devicePixelRatio||1);W=scene.clientWidth;H=scene.cli
 const star=(x,y,r,a)=>{g2.globalAlpha=a;g2.beginPath();g2.moveTo(x,y-r);g2.quadraticCurveTo(x,y,x+r,y);g2.quadraticCurveTo(x,y,x,y+r);g2.quadraticCurveTo(x,y,x-r,y);g2.quadraticCurveTo(x,y,x,y-r);g2.fill();};
 function tick(t){
   const on=typeof G!=='undefined'&&G.state==='menu';
-  scene.classList.toggle('on',on);
+  // trong game: tắt hẳn cảnh đảo (mây, nền chuyển động, lấp lánh) để máy không phải vẽ lớp ẩn
+  if(on!==scene._on){scene._on=on;clearTimeout(scene._t);
+    if(on){scene.style.display='';requestAnimationFrame(()=>scene.classList.add('on'));}
+    else{scene.classList.remove('on');scene._t=setTimeout(()=>{if(!scene._on)scene.style.display='none';},650);}}
   if(on&&!reduce){
     if(W!==scene.clientWidth||H!==scene.clientHeight)fit();
     g2.setTransform(D,0,0,D,0,0);g2.clearRect(0,0,W,H);g2.fillStyle='#fff';

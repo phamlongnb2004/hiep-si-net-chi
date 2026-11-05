@@ -1,7 +1,7 @@
 
 /* ===== CHẾ ĐỘ ONLINE ===== */
 try{
-const NET={ws:null,token:null,user:null,id:0,on:false,offline:false,others:new Map(),online:0,lastSt:0,lastSave:0,saveQ:false,retry:0,server:''};
+const NET={ws:null,token:null,user:null,id:0,on:false,offline:false,others:new Map(),online:0,lastSt:0,lastSave:0,saveQ:false,retry:0,server:'',srv:1,srvName:'Server 1',leaving:false};
 window.__net=NET;
 const LS={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}};
 const defServer=()=>{const c=window.HSNC_CONFIG&&window.HSNC_CONFIG.server;if(c)return c;if(/^https?:$/.test(location.protocol)&&location.host)return location.origin;return '';};
@@ -18,6 +18,30 @@ const css=document.createElement('style');css.textContent=`
 #chatBar button{padding:8px 18px;border:3px solid #16224a;background:linear-gradient(#ffe066,#ffb703);border-radius:16px;box-shadow:0 4px 0 #16224a;font:800 16px 'Baloo 2',sans-serif;color:#16224a}
 #chatBtn{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:150px;pointer-events:auto;padding:6px 14px;border:3px solid #16224a;background:linear-gradient(#a8e6ff,#5cc8ff);border-radius:14px;box-shadow:0 4px 0 #16224a;font:800 15px 'Baloo 2',sans-serif;color:#16224a;display:none}
 .touch #chatBtn{display:block}
+#netServers .srv-card{width:min(440px,calc(100vw - 32px));padding:18px 18px 16px}
+.srv-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.srv-head b{font:800 22px/1.1 'Baloo 2',sans-serif;color:#16224a}
+.srv-head span{font:700 13px 'Nunito',sans-serif;color:#5a6788;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srv-list{display:flex;flex-direction:column;gap:10px;min-height:64px}
+.srv-item{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border:3px solid #16224a;border-radius:18px;background:linear-gradient(180deg,#fffbe9,#ffe9a8);box-shadow:0 4px 0 #16224a;text-align:left;cursor:pointer;font:inherit;color:#16224a}
+.srv-item:active{transform:translateY(3px);box-shadow:0 1px 0 #16224a}
+.srv-dot{flex:none;width:14px;height:14px;border-radius:50%;background:#3ccf91;box-shadow:0 0 0 3px #fff,0 0 10px #3ccf91}
+.srv-main{flex:1;min-width:0}
+.srv-main b{display:block;font:800 19px/1.15 'Baloo 2',sans-serif}
+.srv-main small{display:block;font:700 13px/1.3 'Nunito',sans-serif;color:#4a5878}
+.srv-tag{flex:none;padding:2px 10px;border-radius:999px;background:#ff6b6b;color:#fff;font:800 12px/1.6 'Nunito',sans-serif;border:2px solid #16224a}
+.srv-go{flex:none;font:800 22px/1 'Baloo 2',sans-serif}
+.srv-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.srv-foot button{background:none;border:0;font:800 14px 'Nunito',sans-serif;color:#5a6788;text-decoration:underline;cursor:pointer;padding:4px}
+.srv-skel{height:64px;border-radius:18px;background:linear-gradient(90deg,#f0e8cf,#fff7dd,#f0e8cf);background-size:200% 100%;animation:srvSk 1.1s linear infinite}
+@keyframes srvSk{to{background-position:-200% 0}}
+#netLoad{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(30,60,120,.55),rgba(8,14,34,.88))}
+#netLoad[hidden]{display:none}
+#netLoad .nl{display:flex;flex-direction:column;align-items:center;gap:16px;color:#fff;font:800 20px 'Baloo 2',sans-serif;text-shadow:0 2px 0 #16224a}
+#netLoad .ring{width:74px;height:74px;border-radius:50%;border:8px solid rgba(255,255,255,.22);border-top-color:#ffd23f;border-right-color:#ffb703;animation:nlSpin .8s linear infinite;box-shadow:0 0 24px rgba(255,210,63,.35)}
+#netLoad small{font:700 14px 'Nunito',sans-serif;opacity:.85;text-shadow:none}
+@keyframes nlSpin{to{transform:rotate(360deg)}}
+.st-back{margin-left:auto;padding:5px 14px;border:3px solid #16224a;border-radius:14px;background:#fff;box-shadow:0 3px 0 #16224a;font:800 14px 'Baloo 2',sans-serif;color:#16224a;cursor:pointer}
 `;document.head.append(css);
 
 const app=$('app');
@@ -41,6 +65,15 @@ box.innerHTML=`<div class="ui-wrap">
   <label class="ui-field"><span>Địa chỉ máy chủ</span><input id="netSrv" placeholder="https://..." inputmode="url" autocomplete="off"></label></details>
 </form></div>`;
 app.append(box);
+const sbox=document.createElement('section');sbox.id='netServers';sbox.className='overlay';sbox.hidden=true;
+sbox.innerHTML=`<div class="ui-wrap">
+<div class="ui-logo" aria-hidden="true"><span class="l1"><b class="o">Hiệp Sĩ</b><b class="f">Hiệp Sĩ</b></span><span class="l2"><b class="o">Nét Chì</b><b class="f">Nét Chì</b></span><span class="ribbon">ONLINE</span></div>
+<div class="ui-card srv-card"><div class="srv-head"><b>Chọn máy chủ</b><span id="srvUser"></span></div>
+<div class="srv-list" id="srvList"></div><div class="ui-msg" id="srvMsg" role="status" aria-live="polite"></div>
+<div class="srv-foot"><button type="button" id="srvOut">Đăng xuất</button><button type="button" id="srvRe">Tải lại</button></div></div></div>`;
+app.append(sbox);
+const load=document.createElement('div');load.id='netLoad';load.hidden=true;load.innerHTML='<div class="nl"><div class="ring" aria-hidden="true"></div><span id="nlTxt">Đang vào máy chủ…</span><small id="nlSub"></small></div>';app.append(load);
+const loading=(t,sub)=>{load.hidden=!t;if(t){$('nlTxt').textContent=t;$('nlSub').textContent=sub||'';}};
 const badge=document.createElement('div');badge.id='netBadge';badge.hidden=true;$('hud').append(badge);
 const chatBar=document.createElement('form');chatBar.id='chatBar';chatBar.hidden=true;chatBar.innerHTML='<input id="chatIn" maxlength="120" placeholder="Nhập tin nhắn, Enter để gửi" autocomplete="off"><button type="submit">Gửi</button>';app.append(chatBar);
 const chatBtn=document.createElement('button');chatBtn.id='chatBtn';chatBtn.type='button';chatBtn.textContent='Chat';$('hud').append(chatBtn);
@@ -80,8 +113,8 @@ async function auth(kind){
     const d=await r.json().catch(()=>({}));
     if(!r.ok){busy(false);msg(d.error||'Máy chủ báo lỗi '+r.status);return;}
     NET.token=d.token;NET.user=d.user;LS.set('hsnc-token',d.token);LS.set('hsnc-user',d.user);$('netPass').value='';$('netPass2').value='';
-    msg(kind==='register'?'Tạo tài khoản thành công!':'Đăng nhập thành công!',true);
-    connect();
+    msg(kind==='register'?'Tạo tài khoản thành công!':'Đăng nhập thành công!',true);busy(false);
+    showServers();
   }catch(e){busy(false);msg('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');}
 }
 $('netForm').addEventListener('submit',e=>{e.preventDefault();auth(MODE);});
@@ -90,7 +123,7 @@ NET.logout=()=>{const t=NET.token;NET.token=null;LS.set('hsnc-token',null);if(t&
 /* --- kết nối --- */
 function connect(){
   if(!NET.token||!NET.server)return;
-  const u=NET.server.replace(/^http/,'ws')+'/ws?token='+encodeURIComponent(NET.token);
+  const u=NET.server.replace(/^http/,'ws')+'/ws?token='+encodeURIComponent(NET.token)+'&srv='+NET.srv;
   if(NET.ws&&NET.ws.readyState<2){NET.ws.onclose=null;try{NET.ws.close();}catch(e){}}
   let ws;try{ws=new WebSocket(u);}catch(e){busy(false);msg('Địa chỉ máy chủ không hợp lệ.');return;}
   NET.ws=ws;
@@ -98,23 +131,25 @@ function connect(){
   ws.onclose=ev=>{
     if(ws!==NET.ws)return;
     const was=NET.on;NET.on=false;NET.others.clear();showBadge();
-    if(ev.code===4001){NET.token=null;LS.set('hsnc-token',null);box.hidden=false;$('start').hidden=true;busy(false);msg('Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.');return;}
-    if(ev.code===4002){box.hidden=false;$('start').hidden=true;busy(false);msg('Tài khoản vừa đăng nhập ở nơi khác.');return;}
-    if(!was&&!NET.gotSave){busy(false);box.hidden=false;msg('Không kết nối được máy chủ, đang thử lại…');}
+    if(ev.code===4001){NET.token=null;LS.set('hsnc-token',null);loading(null);sbox.hidden=true;box.hidden=false;$('start').hidden=true;busy(false);msg('Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.');return;}
+    if(ev.code===4002){loading(null);sbox.hidden=true;box.hidden=false;$('start').hidden=true;busy(false);msg('Tài khoản vừa đăng nhập ở nơi khác.');return;}
+    if(ev.code===4003){loading(null);showServers('Máy chủ này chưa mở.');return;}
+    if(!was&&!NET.gotSave){loading('Đang kết nối lại…','Máy chủ chưa phản hồi, đang thử lại');}
     NET.retry=Math.min(NET.retry+1,6);setTimeout(connect,1000*NET.retry*NET.retry);
   };
 }
 function onMsg(m){
   if(m.t==='welcome'){
     NET.on=true;NET.id=m.id;NET.online=m.online;NET.retry=0;showBadge();
-    const first=!NET.gotSave;NET.gotSave=true;busy(false);box.hidden=true;if(G.state==='menu'){$('start').hidden=false;window.__ui&&window.__ui.enterStart();}
-    if(first&&G.state==='menu')applySave(m.save);
-    else if(P&&G.state!=='menu')log('Đã kết nối lại máy chủ.','#9be05a');
+    const first=!NET.gotSave;NET.gotSave=true;busy(false);box.hidden=true;sbox.hidden=true;
+    if(m.srvName)NET.srvName=m.srvName;
+    if(first&&G.state==='menu')enterWith(m.save);
+    else if(P&&G.state!=='menu'){loading(null);log('Đã kết nối lại máy chủ.','#9be05a');}
   }else if(m.t==='ps'){
     const now=performance.now(),seen=new Set();
     for(const s of m.p){const id=s[0];seen.add(id);let o=NET.others.get(id);
       if(!o){o={id,x:s[1],y:s[2],tx:s[1],ty:s[2],bubble:null};NET.others.set(id,o);}
-      o.tx=s[1];o.ty=s[2];o.face=s[3];o.mv=s[4];o.sw=s[5];o.cls=s[6];o.lv=s[7];o.n=s[8];o.hp=s[9];o.dead=s[10];o.at=now;
+      o.tx=s[1];o.ty=s[2];o.face=s[3];o.mv=s[4];o.sw=s[5];o.cls=s[6];o.lv=s[7];o.n=s[8];o.hp=s[9];o.dead=s[10];o.g=s[11]|0;o.at=now;
       if(o.sw&&!o.swing)o.swing=1;}
     for(const id of NET.others.keys())if(!seen.has(id))NET.others.delete(id);
   }else if(m.t==='gone')NET.others.delete(m.id);
@@ -133,14 +168,64 @@ function showBadge(){
 
 /* --- bản lưu trên máy chủ --- */
 let SRV=null;
-function applySave(sv){
+// có nhân vật trên máy chủ này: vào thẳng game; chưa có: mở màn tạo nhân vật (tạo xong là khóa, không đổi được nữa)
+function enterWith(sv){
   SRV=sv&&CLS[sv.cls]?sv:null;
-  const bc=$('btnContinue');
-  if(SRV){bc.hidden=false;bc.textContent='Tiếp tục: '+String(SRV.name).slice(0,14)+' · '+CLS[SRV.cls].n+' Lv.'+(SRV.lv|0);bc.onclick=()=>startGame(SRV.cls,SRV.name,SRV);}
-  else bc.hidden=true;
+  $('btnContinue').hidden=true;
+  window.__ui&&window.__ui.setUser(NET.user);
+  if(SRV){
+    loading('Đang vào '+NET.srvName+'…',String(SRV.name).slice(0,14)+' · '+CLS[SRV.cls].n+' Lv.'+(SRV.lv|0));
+    // nhường một khung hình cho vòng xoay hiện ra rồi mới dựng bản đồ
+    setTimeout(()=>{try{startGame(SRV.cls,SRV.name,SRV);}finally{setTimeout(()=>loading(null),250);}},60);
+    return;
+  }
+  loading(null);
   $('nameIn').value=String(NET.user||'Hiệp Sĩ').slice(0,14);
-  $('start').querySelector('.note').textContent='Nhân vật tự lưu lên máy chủ. Trong game bấm Enter để chat.';window.__ui&&window.__ui.setUser(NET.user);
+  $('start').querySelector('.note').textContent='Mỗi tài khoản chỉ có MỘT nhân vật trên '+NET.srvName+'. Chọn kỹ nhé, tạo rồi không đổi được!';
+  $('start').hidden=false;window.__ui&&window.__ui.enterStart();
 }
+/* --- chọn máy chủ --- */
+const CLSN=c=>(CLS[c]&&CLS[c].n)||'';
+async function showServers(note){
+  try{if(NET.ws){NET.ws.onclose=null;NET.ws.close();}}catch(e){}
+  NET.ws=null;NET.on=false;NET.gotSave=false;NET.others.clear();showBadge();
+  loading(null);box.hidden=true;$('start').hidden=true;sbox.hidden=false;
+  $('srvUser').textContent=NET.user?'Tài khoản: '+NET.user:'';
+  const list=$('srvList'),sm=$('srvMsg');sm.textContent=note||'';sm.className='ui-msg'+(note?' bad':'');
+  list.innerHTML='<div class="srv-skel"></div>';
+  let d;
+  try{const r=await fetch(NET.server+'/api/servers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:NET.token})});
+    d=await r.json().catch(()=>({}));
+    if(r.status===401){NET.token=null;LS.set('hsnc-token',null);sbox.hidden=true;box.hidden=false;msg(d.error||'Hãy đăng nhập lại.');return;}
+    if(!r.ok)throw new Error(d.error||r.status);
+  }catch(e){list.innerHTML='';sm.textContent='Không tải được danh sách máy chủ. Bấm Tải lại.';sm.className='ui-msg bad';return;}
+  list.replaceChildren();
+  for(const x of d.servers||[]){
+    const b=document.createElement('button');b.type='button';b.className='srv-item';
+    const ch=x.char,info=ch?'Nhân vật: '+ch.name+' · '+CLSN(ch.cls)+' Lv.'+ch.lv:'Chưa có nhân vật · bấm để tạo';
+    b.innerHTML='<i class="srv-dot"></i><span class="srv-main"><b></b><small></small><small></small></span>'+(x.tag?'<span class="srv-tag"></span>':'')+'<span class="srv-go">›</span>';
+    b.querySelector('b').textContent=x.name;const sm2=b.querySelectorAll('small');sm2[0].textContent=info;sm2[1].textContent=x.online+' người đang chơi';
+    if(x.tag)b.querySelector('.srv-tag').textContent=x.tag;
+    b.addEventListener('click',()=>enterServer(x));list.append(b);
+  }
+}
+function enterServer(x){
+  NET.srv=x.id;NET.srvName=x.name;LS.set('hsnc-srv',String(x.id));
+  sbox.hidden=true;loading('Đang vào '+x.name+'…',x.char?x.char.name+' · '+CLSN(x.char.cls)+' Lv.'+x.char.lv:'Đang chuẩn bị màn tạo nhân vật');
+  NET.retry=0;NET.gotSave=false;connect();
+}
+$('srvOut').addEventListener('click',()=>NET.logout());
+$('srvRe').addEventListener('click',()=>showServers());
+// màn tạo nhân vật có nút quay lại danh sách máy chủ
+setTimeout(()=>{const bk=document.createElement('button');bk.type='button';bk.className='st-back';bk.textContent='‹ Máy chủ';bk.addEventListener('click',()=>showServers());const us=$('start').querySelector('.ui-user');if(us)us.parentNode.insertBefore(bk,us);else $('start').append(bk);},0);
+// thoát ra menu trong game: lưu rồi quay về danh sách máy chủ
+const _tm=toMenu;
+toMenu=function(){
+  if(P&&NET.on)try{NET.ws.send(JSON.stringify({t:'save',d:snap()}));}catch(e){}
+  _tm();$('btnContinue').hidden=true;
+  if(NET.token)setTimeout(()=>showServers(),120);
+};
+$('menuBtn').onclick=()=>toMenu();
 const snap=()=>({cls:P.cls,name:P.name,lv:P.lv,exp:P.exp,gold:P.gold,pots:P.pots,kills:P.kills,inv:P.inv,eq:P.eq,map:MAPI,mv:2,stones:P.stones,sk:P.sk,books:P.books});
 const _save=save;
 save=function(){
@@ -159,7 +244,7 @@ update=function(dt){
   _upd(dt);
   const now=performance.now();
   if(NET.on&&P&&now-NET.lastSt>100){NET.lastSt=now;
-    try{NET.ws.send(JSON.stringify({t:'st',m:MAPI,x:P.x,y:P.y,f:P.face,mv:P.moving?1:0,sw:P.swing>0?1:0,c:P.cls,lv:P.lv,n:P.name,hp:P.hp/P.maxHp,dead:P.dead>0?1:0}));}catch(e){}}
+    try{NET.ws.send(JSON.stringify({t:'st',m:MAPI,x:P.x,y:P.y,f:P.face,mv:P.moving?1:0,sw:P.swing>0?1:0,c:P.cls,lv:P.lv,n:P.name,hp:P.hp/P.maxHp,dead:P.dead>0?1:0,g:window.HSNC_LOOKN?HSNC_LOOKN(P.eq):0}));}catch(e){}}
   if(NET.saveQ&&now-NET.lastSave>4000)save();
   const k=Math.min(1,dt*12);
   for(const o of NET.others.values()){
@@ -182,7 +267,7 @@ playerDraw=function(){
   const draw=o=>{
     if(!CLS[o.cls])return;
     ctx.save();ctx.translate(o.x,o.y);
-    drawHero({cls:o.cls,face:o.face||1,t:o.mv?G.time+o.id:G.time+o.id*.7,moving:!!o.mv,swing:o.swing||0,eq:null,alpha:o.dead?.35:null});
+    drawHero({cls:o.cls,face:o.face||1,t:o.mv?G.time+o.id:G.time+o.id*.7,moving:!!o.mv,swing:o.swing||0,eq:null,look:o.g|0,alpha:o.dead?.35:null});
     ctx.restore();
     ctx.font='16px "Patrick Hand",sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle=PAPER;const lab=o.n+' · Lv.'+o.lv;
     ctx.strokeText(lab,o.x,o.y-104);ctx.fillStyle='#1f7a3a';ctx.fillText(lab,o.x,o.y-104);
@@ -206,7 +291,6 @@ window.addEventListener('keydown',e=>{if((e.code==='Enter'||e.code==='NumpadEnte
 chatBtn.addEventListener('click',openChat);
 
 /* --- khởi động --- */
-if(NET.token&&NET.server){busy(true);msg('Đang vào lại tài khoản '+(NET.user||'')+'…',true);connect();
-  setTimeout(()=>{if(!NET.on&&!NET.gotSave){busy(false);msg('Chưa kết nối được máy chủ, đang thử lại. Bạn cũng có thể đăng nhập lại.');}},9000);}
+if(NET.token&&NET.server)showServers();
 showBadge();
 }catch(err){console.error('Online lỗi:',err);}
