@@ -148,7 +148,7 @@ const css=document.createElement('style');css.textContent=`
 
 /* --- cảnh đảo --- */
 const app=$('app');
-const scene=document.createElement('div');scene.id='uiScene';scene.setAttribute('aria-hidden','true');
+const scene=document.createElement('div');scene.id='uiScene';scene.className='on';scene.setAttribute('aria-hidden','true');
 const bg=document.createElement('div');bg.className='bg';
 if(UA.bgSmall)bg.style.backgroundImage=`url(${UA.bgSmall})`;
 if(UA.bg){const im=new Image();im.onload=()=>{bg.style.backgroundImage=`url(${UA.bg})`;};im.src=UA.bg;}
