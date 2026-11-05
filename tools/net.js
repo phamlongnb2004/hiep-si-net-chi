@@ -149,7 +149,7 @@ function onMsg(m){
     const now=performance.now(),seen=new Set();
     for(const s of m.p){const id=s[0];seen.add(id);let o=NET.others.get(id);
       if(!o){o={id,x:s[1],y:s[2],tx:s[1],ty:s[2],bubble:null};NET.others.set(id,o);}
-      o.tx=s[1];o.ty=s[2];o.face=s[3];o.mv=s[4];o.sw=s[5];o.cls=s[6];o.lv=s[7];o.n=s[8];o.hp=s[9];o.dead=s[10];o.g=s[11]|0;o.at=now;
+      o.tx=s[1];o.ty=s[2];o.face=s[3];o.mv=s[4];o.sw=s[5];o.cls=s[6];o.lv=s[7];o.n=s[8];o.hp=s[9];o.dead=s[10];o.g=s[11]|0;o.air=s[12]|0;o.at=now;
       if(o.sw&&!o.swing)o.swing=1;}
     for(const id of NET.others.keys())if(!seen.has(id))NET.others.delete(id);
   }else if(m.t==='gone')NET.others.delete(m.id);
@@ -244,7 +244,7 @@ update=function(dt){
   _upd(dt);
   const now=performance.now();
   if(NET.on&&P&&now-NET.lastSt>100){NET.lastSt=now;
-    try{NET.ws.send(JSON.stringify({t:'st',m:MAPI,x:P.x,y:P.y,f:P.face,mv:P.moving?1:0,sw:P.swing>0?1:0,c:P.cls,lv:P.lv,n:P.name,hp:P.hp/P.maxHp,dead:P.dead>0?1:0,g:window.HSNC_LOOKN?HSNC_LOOKN(P.eq):0}));}catch(e){}}
+    try{NET.ws.send(JSON.stringify({t:'st',m:MAPI,x:P.x,y:P.y,f:P.face,mv:P.moving?1:0,sw:P.swing>0?1:0,c:P.cls,lv:P.lv,n:P.name,hp:P.hp/P.maxHp,dead:P.dead>0?1:0,air:P.air?1:0,g:window.HSNC_LOOKN?HSNC_LOOKN(P.eq):0}));}catch(e){}}
   if(NET.saveQ&&now-NET.lastSave>4000)save();
   const k=Math.min(1,dt*12);
   for(const o of NET.others.values()){
@@ -267,16 +267,16 @@ playerDraw=function(){
   const draw=o=>{
     if(!CLS[o.cls])return;
     ctx.save();ctx.translate(o.x,o.y);
-    drawHero({cls:o.cls,face:o.face||1,t:o.mv?G.time+o.id:G.time+o.id*.7,moving:!!o.mv,swing:o.swing||0,eq:null,look:o.g|0,alpha:o.dead?.35:null});
+    drawHero({cls:o.cls,face:o.face||1,t:o.mv?G.time+o.id:G.time+o.id*.7,moving:!!o.mv,swing:o.swing||0,eq:null,look:o.g|0,air:o.air,alpha:o.dead?.35:null});
     ctx.restore();
     ctx.font='16px "Patrick Hand",sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle=PAPER;const lab=o.n+' · Lv.'+o.lv;
-    ctx.strokeText(lab,o.x,o.y-104);ctx.fillStyle='#1f7a3a';ctx.fillText(lab,o.x,o.y-104);
-    ctx.fillStyle='#0f1422';ctx.fillRect(o.x-21,o.y-99,42,6);ctx.fillStyle='#3fa66b';ctx.fillRect(o.x-20,o.y-98,40*(o.hp||0),4);
-    if(o.bubble)bubble(o.x,o.y-114,o.bubble.text);
+    ctx.strokeText(lab,o.x,o.y-86);ctx.fillStyle='#1f7a3a';ctx.fillText(lab,o.x,o.y-86);
+    ctx.fillStyle='#0f1422';ctx.fillRect(o.x-21,o.y-81,42,6);ctx.fillStyle='#3fa66b';ctx.fillRect(o.x-20,o.y-80,40*(o.hp||0),4);
+    if(o.bubble)bubble(o.x,o.y-96,o.bubble.text);
   };
   for(const o of L)if(o.y<=P.y)draw(o);
   _pd();
-  if(NET.myBubble)bubble(P.x,P.y-114,NET.myBubble.text);
+  if(NET.myBubble)bubble(P.x,P.y-96,NET.myBubble.text);
   for(const o of L)if(o.y>P.y)draw(o);
 };
 

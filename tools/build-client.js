@@ -17,7 +17,7 @@ const hudJs = fs.readFileSync(path.join(root, 'tools', 'hud.js'), 'utf8');
 const hudAssets = fs.readFileSync(path.join(root, 'tools', 'hud-assets.json'), 'utf8');
 // tài nguyên không bắt buộc (chưa có thì để trống)
 const opt = f => { try { return fs.readFileSync(path.join(root, 'tools', f), 'utf8'); } catch (e) { return '{}'; } };
-const gearAssets = opt('gear-assets.json'), layerAssets = opt('layer-assets.json'), fxAssets = opt('fx-assets.json'), sideAssets = opt('side-assets.json');
+const gearAssets = opt('gear-assets.json'), layerAssets = opt('layer-assets.json'), fxAssets = opt('fx-assets.json'), sideAssets = opt('side-assets.json'), monAssets = opt('mon-assets.json');
 const sideJs = fs.readFileSync(path.join(root, 'tools', 'side.js'), 'utf8');
 const gearJs = fs.readFileSync(path.join(root, 'tools', 'gear.js'), 'utf8');
 const vfxJs = fs.readFileSync(path.join(root, 'tools', 'vfx.js'), 'utf8');
@@ -31,7 +31,7 @@ html = html.replace('<title>Hiệp Sĩ Nét Chì</title>', '<title>Hiệp Sĩ N�
 const anchor = "\nnew ResizeObserver(resize).observe($('app'));";
 if (html.split(anchor).length !== 2) throw new Error('Không tìm thấy điểm chèn');
 const inject = '\nwindow.HSNC_UI=' + uiAssets + ';\nwindow.HSNC_ANIM=' + animAssets + ';\nwindow.HSNC_HUD=' + hudAssets
-  + ';\nwindow.HSNC_SIDE=' + sideAssets + ';\nwindow.HSNC_GEAR=' + gearAssets + ';\nwindow.HSNC_LAYER=' + layerAssets + ';\nwindow.HSNC_FX=' + fxAssets + ';\n'
+  + ';\nwindow.HSNC_SIDE=' + sideAssets + ';\nwindow.HSNC_MON=' + monAssets + ';\nwindow.HSNC_GEAR=' + gearAssets + ';\nwindow.HSNC_LAYER=' + layerAssets + ';\nwindow.HSNC_FX=' + fxAssets + ';\n'
   + sideJs + '\n' + gearJs + '\n' + animJs + '\n' + vfxJs + '\n' + net + '\n' + uiJs + '\n' + hudJs + anchor;
 html = html.replace(anchor, () => inject);
 html = html.replace('Bản này chơi một mình và lưu tiến trình ngay trên trình duyệt. Chế độ nhiều người chơi cần thêm máy chủ riêng.', 'Đang kết nối máy chủ…');

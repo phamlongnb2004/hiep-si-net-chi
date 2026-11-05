@@ -10,7 +10,9 @@ for(const c in LA)LY[c]={hat:(LA[c].hat||[]).map(f=>({i:img(f.u),w:f.w,h:f.h})),
 const ok=f=>f&&f.i.complete&&f.i.naturalWidth;
 const ready=k=>FR[k]&&FR[k].every(ok);
 // thân không mũ, không áo choàng: "body_<phái>_<bộ>"; nếu chưa có thì dùng tờ đi bộ cũ (đã có sẵn mũ/áo choàng)
-const bodyKey=(c,t)=>ready('body_'+c+'_'+t)?'body_'+c+'_'+t:ready('body_'+c+'_0')?'body_'+c+'_0':null;
+// t = -1: không mặc áo -> quần áo vải thô (body_<phái>_b)
+const bodyKey=(c,t)=>{const k='body_'+c+'_'+(t<0?'b':t);return ready(k)?k:ready('body_'+c+'_0')?'body_'+c+'_0':null;};
+const HS=.8;                       // nhân vật nhỏ lại cho hợp góc nhìn ngang
 // vị trí ghép theo phái (đơn vị hiển thị, gốc = giữa hai chân, chiều x là hướng mặt)
 // hx: tâm đầu, hw: bề rộng mũ, hb: mũ lún xuống dưới đỉnh tóc (tính theo hw), cx/cy: điểm treo áo choàng ở vai sau, ch: chiều cao áo choàng
 const FIT={
@@ -19,23 +21,25 @@ const FIT={
   mage:{hx:2,hw:52,hb:.42,cx:-2,cy:.48,ch:46},
   fighter:{hx:3,hw:44,hb:.74,cx:-1,cy:.47,ch:44}};
 window.HSNC_FIT=FIT;
-const decode=n=>({a:n%4,h:Math.floor(n/4)%5-1,c:Math.floor(n/20)-1});
+const decode=n=>({a:n%5-1,h:Math.floor(n/5)%5-1,c:Math.floor(n/25)-1});
 const BOB=[0,2.2,0,2.2];          // khung chân dang (1,3) thấp, khung chân lướt qua (2,4) nảy lên
 const _dh2=drawHero;
 drawHero=function(o){
-  const look=o.look!=null?decode(o.look|0):(window.HSNC_LOOK?HSNC_LOOK(o.eq):{a:0,h:-1,c:-1});
+  const look=o.look!=null?decode(o.look|0):(window.HSNC_LOOK?HSNC_LOOK(o.eq):{a:-1,h:-1,c:-1});
   const bk=bodyKey(o.cls,look.a);
   // chưa có thân tách lớp: dùng tờ đi bộ theo bộ áo (kiểu cũ)
-  const legacy=!bk,tk=look.a?o.cls+'_'+look.a:o.cls,key=bk||(ready(tk)?tk:o.cls),set=FR[key];
+  const legacy=!bk,tk=look.a>0?o.cls+'_'+look.a:o.cls,key=bk||(ready(tk)?tk:o.cls),set=FR[key];
   if(!set||!ready(key))return _dh2(o);
   const t=o.t||0,mv=!!o.moving,sw=o.swing||0,face=o.face||1;
   const ph=t*8.5,fi=Math.floor(ph)%4,fr=ph-Math.floor(ph);
   let q=set[0];
-  if(sw>0)q=set[5];else if(mv)q=set[1+fi];
-  ctx.save();
+  // đang nhảy/rơi: giữ một tư thế bước dài, không nhún (người chơi mình: P.air; người khác: air gửi qua mạng)
+  const air=o.air!=null?!!o.air:!!(P&&o.eq&&o.eq===P.eq&&P.air);
+  if(sw>0)q=set[5];else if(air)q=set[1];else if(mv)q=set[1+fi];
+  ctx.save();ctx.scale(HS,HS);
   let al=o.alpha!=null?o.alpha:1;if(o.flash>0&&Math.floor(G.time*30)%2)al*=.5;ctx.globalAlpha=al;
   if(o.aura){const g=ctx.createRadialGradient(0,-42,5,0,-42,70);g.addColorStop(0,o.aura+'88');g.addColorStop(1,o.aura+'00');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,-42,70,0,TAU);ctx.fill();}
-  const up=mv&&sw<=0?BOB[fi]+(BOB[(fi+1)%4]-BOB[fi])*fr:0;
+  const up=mv&&sw<=0&&!air?BOB[fi]+(BOB[(fi+1)%4]-BOB[fi])*fr:0;
   const sk=1-up*.05;
   ctx.drawImage(shadowSpr(),-28*sk,-8,56*sk,19);
   if(mv&&sw<=0){const d=(fi%2===0)?fr:1;if(d<1){ctx.fillStyle='rgba(225,212,182,.75)';for(let i=0;i<3;i++){const u=d;ctx.globalAlpha=al*(1-u)*.8;ctx.beginPath();ctx.arc(-face*(6+i*7+u*10),-2-u*5-i,2+u*3.5,0,TAU);ctx.fill();}ctx.globalAlpha=al;}}

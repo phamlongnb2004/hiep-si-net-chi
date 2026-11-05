@@ -12,3 +12,5 @@ out/
 public/
 .wrangler/
 tools/__pycache__/
+tools/.anim-cache/
+tools/.mon-cache/

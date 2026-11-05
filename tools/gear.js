@@ -46,10 +46,10 @@ startGame=function(...a){
 };
 // diện mạo ghép từng món: thân theo bộ của áo, mũ và áo choàng là lớp riêng theo bộ của chính món đó (-1 = không mặc)
 const tierOf=it=>it&&(!P||it.cls===P.cls)?clamp(it.tier|0,0,3):-1;
-window.HSNC_TIER=eq=>Math.max(0,tierOf(eq&&eq.armor));
-window.HSNC_LOOK=eq=>({a:Math.max(0,tierOf(eq&&eq.armor)),h:tierOf(eq&&eq.hat),c:tierOf(eq&&eq.cape)});
+window.HSNC_TIER=eq=>tierOf(eq&&eq.armor);   // -1 = chưa mặc áo (quần áo vải thô)
+window.HSNC_LOOK=eq=>({a:tierOf(eq&&eq.armor),h:tierOf(eq&&eq.hat),c:tierOf(eq&&eq.cape)});
 // gói gọn để gửi qua mạng: một số 0..99
-window.HSNC_LOOKN=eq=>{const l=HSNC_LOOK(eq);return l.a+4*(l.h+1)+20*(l.c+1);};
+window.HSNC_LOOKN=eq=>{const l=HSNC_LOOK(eq);return (l.a+1)+5*(l.h+1)+25*(l.c+1);};
 
 /* --- vẽ icon --- */
 const _dia2=drawItemArt;

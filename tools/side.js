@@ -186,8 +186,8 @@ updateMons=function(dt){
         if(m.hold&&adx>m.t.range*1.05)m.hold=false;else if(!m.hold&&adx<m.t.range*.75)m.hold=true;
         if(!m.hold)want=Math.sign(dx)*spd;
         if(Math.abs(dx)>2)m.face=dx>=0?1:-1;
-        if(Math.hypot(dx,P.y-m.y)<=m.t.range+14&&m.cd<=0){m.cd=m.t.cd;m.lunge=.25;hurtPlayer(m.atk);}
-        if(m.t.boss&&m.shoot<=0&&Math.abs(dx)<560&&Math.abs(dx)>110){m.shoot=2.6;m.breath=.6;const a=Math.atan2(P.y-30-(m.y-m.t.h*.5),P.x-m.x);for(let k=-1;k<=1;k++)shoot('efire',a+k*.22,300,m.atk*.7,12,640,false,0,true,m.x,m.y-m.t.h*.35);G.projs.slice(-3).forEach(q=>{q.fc=m.t.fire;});}
+        if(Math.hypot(dx,P.y-m.y)<=m.t.range+14&&m.cd<=0){m.cd=m.t.cd;m.lunge=.25;hurtPlayer(m.atk);monHitFx(m);}
+        if(m.t.boss&&m.shoot<=0&&Math.abs(dx)<560&&Math.abs(dx)>110){m.shoot=2.6;m.breath=.6;const a=Math.atan2(P.y-30-(m.y-m.t.h*.5),P.x-m.x);for(let k=-1;k<=1;k++)shoot('efire',a+k*.22,300,m.atk*.7,12,640,false,0,true,m.x,m.y-m.t.h*.35);G.projs.slice(-3).forEach(q=>{q.fc=m.t.fire;});breathFx(m);}
       }
     }else{
       const d=m.sx-m.x;want=Math.sign(d)*spd*1.2;m.hp=Math.min(m.hpMax,m.hp+m.hpMax*.25*dt);
@@ -203,18 +203,40 @@ updateMons=function(dt){
   }
 };
 
+/* --- hiệu ứng đòn đánh của quái (ảnh riêng, không vẽ dính vào quái) --- */
+const MONFX={boar:2,wolf:1,bear:0,dragon:0};
+function monHitFx(m){const f=window.HSNC_SFX;if(!f||!(window.HSNC_FXOK&&HSNC_FXOK('mon',0)))return;
+  const n=MONFX[m.t.kind]??2,dir=P.x>=m.x?1:-1;
+  f({c:'mon',n,x:P.x-dir*10,y:P.y-34,h:n===2?70:64,max:.32,a:'pop',flip:dir<0,rot:n===0?(dir>0?-.2:.2):0});}
+function breathFx(m){const f=window.HSNC_SFX;const n={dragon:3,dragon2:4,dragon3:5}[m.type]??3;if(!f||!(window.HSNC_FXOK&&HSNC_FXOK('mon',n)))return;
+  const H=(m.t.h||200)/.94*MS,hover=(-70-Math.sin(G.time*2.2+m.id)*12)*MS,face=P.x>=m.x?1:-1;m.face=face;
+  const mx=m.x+face*H*.72,my=m.y+hover-H*.58,a=Math.atan2(P.y-30-my,(P.x-mx)*face);
+  f({c:'mon',n,x:mx,y:my,h:90,max:.65,a:'pop',flip:face<0,rot:clamp(a,-.7,.7),px:.04,py:.5,glow:.6});}
+
 /* --- vẽ quái: thân nhún, chân bước (lắc dải chân), rồng bay lơ lửng --- */
-const _dm=drawMon;
+const _dm=drawMon,MS=.76;          // quái nhỏ lại cho cân với nhân vật
+// khung hoạt ảnh quái (ChatGPT vẽ): 0 đứng, 1-4 bước chạy / vỗ cánh, 5 đánh
+const MF={};
+for(const k in (window.HSNC_MON||{}))MF[k]=HSNC_MON[k].map(f=>{const im=new Image();im.src=f.u;return {i:im,hr:f.hr,ar:f.ar,cx:f.cx};});
+const mReady=k=>MF[k]&&MF[k].every(f=>f.i.complete&&f.i.naturalWidth);
 drawMon=function(m){
   const sp=monSprite(m);if(!sp||!sp.c)return _dm(m);
   const t=G.time,r=m.t.r,k=m.t.k||1,fly=m.t.kind==='dragon',mv=m.mv||0;
   const hover=fly?-70-Math.sin(t*2.2+m.id)*12:0,ph=m.walk*(fly?3:9);
-  ctx.save();ctx.translate(m.x,m.y);
+  ctx.save();ctx.translate(m.x,m.y);ctx.scale(MS,MS);
   ctx.globalAlpha=fly?.5:1;ctx.drawImage(shadowSpr(),-m.t.sw*1.3*(fly?.8:1),r*.12-r*.5,m.t.sw*2.6*(fly?.8:1),r);ctx.globalAlpha=1;
   if(m.flash>0&&Math.floor(t*30)%2)ctx.globalAlpha=.55;
   ctx.translate(0,hover);ctx.scale(m.face,1);ctx.translate(m.lunge>0?Math.sin(m.lunge/.25*Math.PI)*10*k:0,0);
   const W=sp.w,H=sp.h,X=sp.x,Y=-H*.97,img=sp.c,iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
-  if(fly){const fl=Math.sin(ph)*.04;ctx.scale(1,1+fl);ctx.drawImage(img,X,Y,W,H);}
+  if(mReady(m.type)){
+    // vẽ theo khung: H là chiều cao khung đứng; neo giữa thân để đổi khung không bị trượt
+    const F=MF[m.type],fi=Math.floor(fly?G.time*7+m.id:m.walk*5.5)%4;
+    // rồng: luôn vỗ cánh (hơi thở là hiệu ứng riêng); thú: khung vồ khi đánh
+    const q=fly?F[1+fi]:m.lunge>0?F[5]:mv>.06?F[1+fi]:F[0];
+    const fh=H*q.hr,fw=fh*q.ar,breathe=!fly&&mv<.06&&m.lunge<=0?Math.sin(t*2+m.id)*.015:0;
+    ctx.save();ctx.scale(1,1+breathe);ctx.drawImage(q.i,-q.cx*H,-fh,fw,fh);ctx.restore();
+  }
+  else if(fly){const fl=Math.sin(ph)*.04;ctx.scale(1,1+fl);ctx.drawImage(img,X,Y,W,H);}
   else{
     const step=Math.sin(ph),bob=-Math.abs(Math.cos(ph))*3*Math.min(1,mv*1.2),breathe=m.state==='idle'&&mv<.05?Math.sin(t*2+m.id)*.012:0;
     const cut=.64;                                      // phần trên = thân, phần dưới = chân
@@ -226,7 +248,7 @@ drawMon=function(m){
   }
   ctx.restore();
   // các nhãn trạng thái, máu, tên: dùng lại phần vẽ cũ nhưng không vẽ lại thân
-  const y0=m.y;m.y=m.y+hover;
+  const y0=m.y;m.y=m.y+hover*MS+m.t.h*(1-MS);
   if(m.stun>0){ctx.font='22px sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle=INK;const sx=m.x+Math.sin(t*9)*8;ctx.strokeText('★ ★',sx,m.y-m.t.h-22);ctx.fillStyle='#ffd23f';ctx.fillText('★ ★',sx,m.y-m.t.h-22);}
   if(m.slow>0||m.pois){ctx.lineWidth=3;ctx.strokeStyle=m.pois?'#6fcf3f':'#6fb8ff';ctx.beginPath();ctx.ellipse(m.x,y0+r*.12,m.t.sw+4,r*.4+2,0,0,TAU);ctx.stroke();}
   const ly=m.y-m.t.h-8,near=P&&Math.abs(m.x-P.x)<430;
@@ -238,15 +260,20 @@ drawMon=function(m){
   m.y=y0;
 };
 
-/* --- camera gần hơn: thấy khoảng 520 đơn vị chiều cao, mặt đất ở ~3/4 màn hình --- */
+/* --- camera xa như game cuộn ngang: thấy khoảng 700 đơn vị chiều cao, nhân vật nhỏ, thấy rộng --- */
 const _rs=resize;
-resize=function(){_rs();scale=clamp(H/520,.7,1.25);};
+resize=function(){_rs();scale=clamp(H/700,.5,1.1);};
 {const st=document.createElement('style');st.textContent=`
 #app #hud #log#log{left:max(12px,env(safe-area-inset-left,0px));right:auto;transform:none;top:calc(96px + env(safe-area-inset-top,0px));bottom:auto;width:min(330px,40vw);min-width:0;align-items:flex-start}
 #app #hud #log#log div{font-size:12px;padding:3px 9px}
 #app #boss{top:calc(48px + env(safe-area-inset-top,0px))}
 #app #hud #buffs{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px))}
-@media (max-height:420px){#app #hud #log#log{top:calc(78px + env(safe-area-inset-top,0px));width:min(300px,36vw)}}`;document.head.append(st);}
+@media (max-height:420px){#app #hud #log#log{top:calc(72px + env(safe-area-inset-top,0px));width:min(280px,34vw)}#app #hud #log#log div{font-size:11px}
+ #app #hud#hud{--hs:.72}#hud#hud .hpAv{width:48px;height:48px}#hud#hud .hpLv{left:30px;top:32px;transform:scale(.85);transform-origin:0 0}
+ #hud#hud .hpBox{width:clamp(140px,21vw,190px);padding:4px 10px 5px 18px}#app #hud#hud #statPlate .who{font-size:13px}
+ #app #hud#hud .ib{width:34px;height:34px}#app #hud#hud .ib img{width:24px;height:24px}#app #hud#hud #mini{width:92px;height:58px}#app #hud#hud #zoneName{font-size:10px}
+ #app #hud#hud #joy{width:104px;height:104px}#app #hud#hud #knob{width:46px;height:46px;margin:-23px 0 0 -23px}
+ #hud#hud .hcur div{height:22px;font-size:12px}#hud#hud .hcur img{width:20px;height:20px}}`;document.head.append(st);}
 /* --- nút nhảy trên điện thoại --- */
 {const b=document.createElement('button');b.type='button';b.id='bJump';b.className='rbtn sm';b.setAttribute('aria-label','Nhảy (W)');
   b.innerHTML='<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 3l7 8h-4.5v6h-5v-6H5z" fill="#fff" stroke="#16224a" stroke-width="1.8" stroke-linejoin="round"/><rect x="7" y="19" width="10" height="2.4" rx="1.2" fill="#16224a"/></svg>';

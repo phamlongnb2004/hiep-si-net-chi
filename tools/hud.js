@@ -96,7 +96,7 @@ const av=el('div','hpAv'),avI=el('i'),lvB=el('div','hpLv');av.append(avI);
 const hLvE=$('hLv'),box=el('div','hpBox');while(sp.firstChild)box.append(sp.firstChild);
 lvB.append(hLvE);sp.append(av,lvB,box);
 let avCls='';
-const setAv=()=>{if(!P)return;const t=window.HSNC_TIER?HSNC_TIER(P.eq):0,A=window.HSNC_ANIM||{},k=A['body_'+P.cls+'_'+t]?'body_'+P.cls+'_'+t:t&&A[P.cls+'_'+t]?P.cls+'_'+t:P.cls;if(k===avCls)return;avCls=k;const f=window.HSNC_ANIM&&HSNC_ANIM[k];avI.style.backgroundImage=f?'url('+f[0].u+')':'';};
+const setAv=()=>{if(!P)return;const t=window.HSNC_TIER?HSNC_TIER(P.eq):0,A=window.HSNC_ANIM||{},bk='body_'+P.cls+'_'+(t<0?'b':t),k=A[bk]?bk:A['body_'+P.cls+'_0']?'body_'+P.cls+'_0':P.cls;if(k===avCls)return;avCls=k;const f=window.HSNC_ANIM&&HSNC_ANIM[k];avI.style.backgroundImage=f?'url('+f[0].u+')':'';};
 
 /* tiền tệ */
 const ip=$('infoPlate');ip.classList.remove('wob');

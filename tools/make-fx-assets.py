@@ -43,7 +43,7 @@ def cut(path):
 
 
 out = {}
-for cls in ['sword', 'mage', 'archer', 'fighter']:
+for cls in ['sword', 'mage', 'archer', 'fighter', 'mon']:   # mon = đòn đánh của quái
     p = os.path.join(SRC, 'gear', f'fx_{cls}.webp')
     if os.path.exists(p):
         out[cls] = cut(p)

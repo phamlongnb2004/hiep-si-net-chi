@@ -152,7 +152,7 @@ wss.on('connection', async (ws, req) => {
       const map = num(m.m, 0, 20) | 0;
       if (map !== c.map) { if (c.map >= 0) toMap(c, c.map, { t: 'gone', id: c.id }, c); c.map = map; }
       c.st = [c.id, Math.round(num(m.x, 0, 5000)), Math.round(num(m.y, 0, 5000)), m.f < 0 ? -1 : 1, m.mv ? 1 : 0, m.sw ? 1 : 0,
-        clean(m.c, 12), num(m.lv, 1, 999) | 0, clean(m.n, 16), num(m.hp, 0, 1), m.dead ? 1 : 0, num(m.g, 0, 99) | 0];
+        clean(m.c, 12), num(m.lv, 1, 999) | 0, clean(m.n, 16), num(m.hp, 0, 1), m.dead ? 1 : 0, num(m.g, 0, 255) | 0, m.air ? 1 : 0];
     } else if (m.t === 'chat') {
       const now = Date.now(), text = clean(m.text, 120).trim();
       if (!text || now - c.lastChat < 700) return;

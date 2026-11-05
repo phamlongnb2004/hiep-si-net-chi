@@ -1644,7 +1644,7 @@ function playerDraw(){
   drawHero({cls:P.cls,face:P.face,t:P.walk>0&&P.moving?P.walk:G.time,moving:P.moving,swing:P.swing,eq:P.eq,aura:auraOf(),alpha:P.dead>0?.35:null,flash:P.flash});
   ctx.restore();
   ctx.font='16px "Patrick Hand",sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle=PAPER;const lab=P.name+' · Lv.'+P.lv;
-  ctx.strokeText(lab,P.x,P.y-104);ctx.fillStyle='#1b3a8a';ctx.fillText(lab,P.x,P.y-104);
+  ctx.strokeText(lab,P.x,P.y-86);ctx.fillStyle='#1b3a8a';ctx.fillText(lab,P.x,P.y-86);
 }
 let GRADE=null,GK='',SHSPR=null;
 function shadowSpr(){if(SHSPR)return SHSPR;const c=document.createElement('canvas');c.width=128;c.height=48;const g=c.getContext('2d');g.translate(64,24);g.scale(1,.375);const gr=g.createRadialGradient(0,0,2,0,0,62);gr.addColorStop(0,'rgba(20,24,40,.5)');gr.addColorStop(.6,'rgba(20,24,40,.26)');gr.addColorStop(1,'rgba(20,24,40,0)');g.fillStyle=gr;g.fillRect(-64,-64,128,128);return SHSPR=c;}

@@ -59,11 +59,19 @@ for cls in ['sword', 'archer', 'mage', 'fighter']:
     if not os.path.exists(os.path.join(SRC, 'gear', f'body_{cls}_0.webp')):
         jobs.append((cls, os.path.join(SRC, f'walk_{cls}.webp')))
     # thân không mũ, không áo choàng (mũ và áo choàng ghép riêng theo từng món)
-    for t in (0, 1, 2, 3):
+    for t in ('b', 0, 1, 2, 3):   # b = quần áo vải thô khi chưa mặc áo
         p = os.path.join(SRC, 'gear', f'body_{cls}_{t}.webp')
         if os.path.exists(p):
             jobs.append((f'body_{cls}_{t}', p))
+# bộ nhớ đệm từng tờ (theo thời gian sửa + dung lượng file nguồn): chạy lại chỉ cắt tờ mới/đổi
+CACHE = os.path.join(os.path.dirname(OUT), '.anim-cache')
+os.makedirs(CACHE, exist_ok=True)
 for cls, path in jobs:
+    st_ = os.stat(path)
+    ck = os.path.join(CACHE, f'{cls}-{int(st_.st_mtime)}-{st_.st_size}.json')
+    if os.path.exists(ck):
+        res[cls] = json.load(open(ck))
+        continue
     im, a, boxes = frames(path)
     s = IDLE_H / (boxes[0][3] - boxes[0][1])
     # neo chân: lấy tâm chân của khung đứng, các khung đi bộ dùng tâm chân riêng
@@ -91,6 +99,7 @@ for cls, path in jobs:
         lst.append({'hc': hc, 'tp': tp, 'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(),
                     'w': round(float(w * K), 1), 'h': round(float(h * K), 1), 'ax': round(float(fx * K), 1)})
     res[cls] = lst
+    json.dump(lst, open(ck, 'w'))
     print(cls, [(f['w'], f['h'], f['ax']) for f in lst])
 
 with open(OUT, 'w') as f:

@@ -97,6 +97,7 @@ const SP={
     ()=>sfx({c:'fighter',n:4,x:P.x,y:P.y-6,h:240,max:.7,a:'grow'}),
     ()=>sfx({c:'fighter',n:5,follow:1,oy:-40,h:190,max:1.5,a:'aura',al:.9})]
 };
+window.HSNC_SFX=sfx;window.HSNC_FXOK=X;
 const _cs=castSkill;
 castSkill=function(i){
   const before=P&&P.cds?P.cds[i]:1,n0=G.projs.length;
