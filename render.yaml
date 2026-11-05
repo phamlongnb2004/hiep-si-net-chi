@@ -1,0 +1,16 @@
+# Cấu hình triển khai máy chủ lên Render (gói miễn phí).
+# Render → New → Blueprint → chọn kho GitHub này. Khi được hỏi DATABASE_URL, dán chuỗi kết nối Postgres của Neon.
+services:
+  - type: web
+    name: hiep-si-net-chi
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install && node tools/build-client.js
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: NODE_VERSION
+        value: "20"

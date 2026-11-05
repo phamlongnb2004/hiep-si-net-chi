@@ -1,0 +1,12 @@
+node_modules/
+data/
+desktop/dist/
+desktop/game/
+mobile/www/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/android/app/src/main/assets/public/
+mobile/android/capacitor-cordova-android-plugins/
+out/
+public/index.html

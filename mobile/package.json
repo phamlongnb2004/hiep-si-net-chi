@@ -1,0 +1,17 @@
+{
+  "name": "hiep-si-net-chi-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bản Android của Hiệp Sĩ Nét Chì (Capacitor)",
+  "scripts": {
+    "prepare-web": "node -e \"require('fs').mkdirSync('www',{recursive:true});require('fs').copyFileSync('../public/index.html','www/index.html')\""
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.0",
+    "@capacitor/core": "6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "6.2.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "appId": "vn.hiepsinetchi.game",
+  "appName": "Hiệp Sĩ Nét Chì",
+  "webDir": "www",
+  "android": { "allowMixedContent": true, "backgroundColor": "#10152a" },
+  "server": { "androidScheme": "https" }
+}

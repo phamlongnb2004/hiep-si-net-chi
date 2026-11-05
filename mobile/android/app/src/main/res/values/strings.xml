@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hiệp Sĩ Nét Chì</string>
+    <string name="title_activity_main">Hiệp Sĩ Nét Chì</string>
+    <string name="package_name">vn.hiepsinetchi.game</string>
+    <string name="custom_url_scheme">vn.hiepsinetchi.game</string>
+</resources>
