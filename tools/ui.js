@@ -132,7 +132,18 @@ const css=document.createElement('style');css.textContent=`
   #start .ui-wrap{gap:8px}#start .startsheet{padding:12px 16px}#start .tag{display:none}
 }
 @media (max-height:560px) and (max-width:520px){#netLogin .ui-logo{display:none}}
-@media (prefers-reduced-motion:reduce){#uiScene *,.ui-logo,.ui-btn::after,#start .big::after,#start #btnStart{animation:none!important}}
+
+/* Chỉ chơi ngang: điện thoại cầm dọc thì che game và nhắc xoay */
+#uiRotate{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:24px max(24px,env(safe-area-inset-right,0px)) 24px max(24px,env(safe-area-inset-left,0px));background:radial-gradient(ellipse at 50% 35%,#7fd6ff,#3aa8ff 55%,#1f6fd1);color:#fff;font-family:var(--ui-body)}
+@media (orientation:portrait) and (pointer:coarse){#uiRotate{display:flex}}
+#uiRotate .ph{width:92px;height:150px;border:6px solid var(--ui-ink);border-radius:22px;background:linear-gradient(#fffaf0,#ffe9a3);box-shadow:0 8px 0 var(--ui-ink);position:relative;animation:uiTurn 2.4s cubic-bezier(.5,0,.3,1) infinite}
+#uiRotate .ph::before{content:"";position:absolute;left:50%;top:9px;width:26px;height:6px;margin-left:-13px;border-radius:6px;background:var(--ui-ink)}
+#uiRotate .ph::after{content:"⟳";position:absolute;inset:0;display:grid;place-items:center;font:800 46px/1 var(--ui-disp);color:var(--ui-sun2)}
+@keyframes uiTurn{0%,20%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+#uiRotate h2{margin:0;font:800 30px/1.1 var(--ui-disp);color:#fff;text-shadow:0 3px 0 var(--ui-ink),0 0 14px rgba(0,0,0,.25);-webkit-text-stroke:2px var(--ui-ink);paint-order:stroke fill}
+#uiRotate p{margin:0;max-width:300px;font:700 16px/1.45 var(--ui-body);color:#eaf7ff}
+#uiRotate .ui-btn{font-size:18px}
+@media (prefers-reduced-motion:reduce){#uiScene *,#uiRotate .ph,.ui-logo,.ui-btn::after,#start .big::after,#start #btnStart{animation:none!important}}
 `;document.head.append(css);
 
 /* --- cảnh đảo --- */
@@ -185,6 +196,18 @@ document.addEventListener('pointerdown',e=>{
     s.style.left=(e.clientX-7)+'px';s.style.top=(e.clientY-7)+'px';s.style.setProperty('--c',COLORS[i%COLORS.length]);
     s.style.setProperty('--dx',Math.cos(a)*d+'px');s.style.setProperty('--dy',Math.sin(a)*d+'px');document.body.append(s);setTimeout(()=>s.remove(),750);}
 },true);
+
+
+/* --- chỉ chơi ngang --- */
+const rot=document.createElement('div');rot.id='uiRotate';rot.setAttribute('role','alert');
+rot.innerHTML='<div class="ph" aria-hidden="true"></div><h2>Xoay ngang để chơi</h2><p>Hiệp Sĩ Nét Chì chỉ chơi được khi cầm điện thoại nằm ngang. Hãy xoay máy lại nhé!</p><button type="button" class="ui-btn" id="uiRotBtn"><span>Chơi toàn màn hình ngang</span></button>';
+document.body.append(rot);
+const lockLand=async()=>{try{const el=document.documentElement;if(!document.fullscreenElement&&el.requestFullscreen)await el.requestFullscreen({navigationUI:'hide'});}catch(e){}
+  try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape');}catch(e){}};
+$('uiRotBtn').addEventListener('click',lockLand);
+if(!(document.documentElement.requestFullscreen&&screen.orientation&&screen.orientation.lock))$('uiRotBtn').hidden=true;
+// lần chạm đầu tiên trên điện thoại: xin khóa ngang (Android hỗ trợ khi toàn màn hình)
+if(matchMedia('(pointer:coarse)').matches)document.addEventListener('pointerup',function once(){document.removeEventListener('pointerup',once,true);if(!matchMedia('(display-mode: fullscreen)').matches)lockLand();},true);
 
 /* --- màn chọn nhân vật --- */
 const st=$('start'),sheet=st.querySelector('.startsheet');
