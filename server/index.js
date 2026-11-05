@@ -175,7 +175,7 @@ setInterval(() => {
 db.init().then(() => {
   server.listen(PORT, () => {
     console.log(`Hiệp Sĩ Nét Chì online: cổng ${PORT}, lưu trữ: ${db.kind}`);
-    if (db.kind === 'file' && process.env.RENDER) console.warn('CẢNH BÁO: chưa đặt DATABASE_URL. Trên Render, dữ liệu trong file sẽ mất mỗi lần máy chủ khởi động lại.');
+    if (db.kind === 'file' && (process.env.RENDER || process.env.SPACE_ID)) console.warn('CẢNH BÁO: chưa đặt DATABASE_URL. Trên Render/Hugging Face, dữ liệu trong file sẽ mất mỗi lần máy chủ khởi động lại.');
   });
 }).catch(e => { console.error('Không kết nối được cơ sở dữ liệu:', e.message); process.exit(1); });
 const stop = () => { db.close().finally(() => process.exit(0)); };
