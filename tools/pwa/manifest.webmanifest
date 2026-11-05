@@ -1,0 +1,19 @@
+{
+  "name": "Hiệp Sĩ Nét Chì",
+  "short_name": "Hiệp Sĩ",
+  "description": "Game nhập vai chibi chơi online cùng bạn bè",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#10152a",
+  "theme_color": "#10152a",
+  "lang": "vi",
+  "categories": ["games"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

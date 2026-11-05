@@ -21,7 +21,12 @@ if (html.split(anchor).length !== 2) throw new Error('Không tìm thấy điểm
 html = html.replace(anchor, '\n' + net + anchor);
 html = html.replace('Bản này chơi một mình và lưu tiến trình ngay trên trình duyệt. Chế độ nhiều người chơi cần thêm máy chủ riêng.', 'Đang kết nối máy chủ…');
 
+// thông tin ứng dụng web (cài lên màn hình chính, đóng gói APK bằng PWABuilder)
+const pwa = '<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon-192.png">\n<link rel="apple-touch-icon" href="icon-192.png">\n<meta name="theme-color" content="#10152a">\n'
+  + '<script>if("serviceWorker" in navigator&&/^https:$/.test(location.protocol))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>';
+html = html.replace('<title>Hiệp Sĩ Nét Chì</title>', '<title>Hiệp Sĩ Nét Chì</title>\n' + pwa);
 const out = path.join(root, 'public', 'index.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
+for (const f of fs.readdirSync(path.join(root, 'tools', 'pwa'))) fs.copyFileSync(path.join(root, 'tools', 'pwa', f), path.join(root, 'public', f));
 console.log('Đã tạo', path.relative(root, out), (html.length / 1048576).toFixed(2) + ' MB', 'máy chủ:', server || '(cùng địa chỉ trang)');

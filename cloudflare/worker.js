@@ -28,6 +28,8 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+    // xác minh ứng dụng Android (TWA) để chạy toàn màn hình, không hiện thanh địa chỉ
+    if (url.pathname === '/.well-known/assetlinks.json') return new Response(env.ASSETLINKS || '[]', { headers: { 'Content-Type': 'application/json' } });
     if (url.pathname.startsWith('/api/') || url.pathname === '/ws') {
       const world = env.WORLD.get(env.WORLD.idFromName('world'));
       return world.fetch(req);
