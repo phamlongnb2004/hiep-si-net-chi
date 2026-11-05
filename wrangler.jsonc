@@ -13,5 +13,6 @@
     "bindings": [{ "name": "WORLD", "class_name": "World" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["World"] }],
+  "vars": { "ASSETLINKS": "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"android_app\",\"package_name\":\"vn.hiepsinetchi.game\",\"sha256_cert_fingerprints\":[\"22:18:40:AE:DC:20:68:11:6B:DB:06:EF:D4:0E:76:C7:62:33:F0:54:D0:BF:3E:03:02:B2:07:46:6A:D6:35:8A\"]}}]" },
   "observability": { "enabled": true }
 }
