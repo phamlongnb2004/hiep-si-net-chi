@@ -1,37 +1,41 @@
 {
  "app": {
-  "version": "2.0.0",
-  "min": "2.0.0",
+  "version": "2.1.0",
+  "min": "2.1.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "60c3a94cc04367f22b738f2b774ebe7f6f4002cc4f5f73551d95001c9fa10b9c",
-   "size": 54083985
+   "sha256": "2418774ae0a29b213f020fbd17e0120bf86b11513dd920fdea00da29cc54e030",
+   "size": 54109952
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "b5ccc30d2bc3011f1e028a11539fd3a4df4ff062806dd2446e35b92c376a13ec",
-   "size": 81790925
+   "sha256": "840d90d8f14d34907c5ea82a4a3a3b7e2b0458dbeb3603912b82128e7d67267b",
+   "size": 81820189
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "b525165f65b569ad78b1c6a4c9de4528d60ca1b930108587d392423c1f5baa66",
-   "size": 56270029
+   "sha256": "146e6c3d4cdb37eb0a8cba9a26565aa963e3f49353dad36f4f68cb3f7cebb914",
+   "size": 56297998
   }
  },
  "assets": {
-  "version": 1,
-  "min_app": "2.0.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-1.pck",
-  "sha256": "4de44fecc0c75fb3a5e5f1951542f360db646af2a9276b811a3d16a25b0d2df0",
-  "size": 29165192
+  "version": 2,
+  "min_app": "2.1.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-2.pck",
+  "sha256": "c490b9cd2a471539d632856eef367de09fe891f20f2e84bca7d375884355d4ee",
+  "size": 29165352
  },
  "changelog": [
-  "Thêm bản Linux (64-bit)",
-  "Ứng dụng gốc mới cho Windows và Android: mượt hơn, không cần trình duyệt",
-  "Máy chủ tự tính sát thương, rơi đồ, vàng, kinh nghiệm: công bằng cho mọi người",
-  "Quái trên bản đồ dùng chung: nhiều người cùng đánh một con",
-  "Tự tải hình ảnh và dữ liệu mới khi mở game",
-  "Mất mạng thì tự kết nối lại"
+  "Đánh đòn cuối mới nhận thưởng (kinh nghiệm, vàng, đồ)",
+  "Cấp tối đa 100, càng lên cao càng khó",
+  "NPC mới Thương Nhân Giáp bán trang bị mọi phái; đồ rơi từ quái có thể yếu hơn hoặc mạnh hơn",
+  "Giao dịch giữa người chơi; đồ rơi có thể bị khóa (không giao dịch được)",
+  "Kết bạn (tối đa 100), nhắn riêng bạn bè; nhắn cả máy chủ tốn 5.000 vàng",
+  "Quái tinh anh thỉnh thoảng xuất hiện: mạnh hơn, dễ rơi đồ ngon",
+  "Đồ cường hóa có ánh sáng chạy quanh ô, cấp càng cao càng đẹp",
+  "Hiệu ứng chiêu đẹp và mượt hơn; quái trúng đòn ửng đỏ, chết nhấp nháy rồi biến mất",
+  "Bình máu có thời gian hồi 3 giây; bỏ nút bán nhanh",
+  "Cây cối, nhà, biển hiệu không còn lơ lửng"
  ],
- "updated": "2026-11-06T11:56:15.806Z"
+ "updated": "2026-11-06T12:32:03.090Z"
 }
