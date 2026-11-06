@@ -265,7 +265,7 @@ const VIEWS = {
     for (const [k, m] of Object.entries(r.mons)) {
       const o = t.mon[k] || {}; M[k] = {};
       const cells = ['hp', 'atk', 'def', 'exp', 'gold', 'drop'].map(f => { const i = num(o[f] || 1, { min: .1, max: 20 }); i.style.width = '76px'; M[k][f] = i; return h('td', null, i); });
-      tb.append(h('tr', null, h('td', null, h('b', null, m.n), m.boss ? h('span', { class: 'pill warn' }, ' Trùm') : '', h('div', { class: 'note' }, 'Máu ' + m.hp + ' · Công ' + m.atk + ' · KN ' + m.exp + ' · Rơi ' + Math.round(m.drop * 100) + '%')), cells));
+      tb.append(h('tr', null, h('td', null, h('b', null, m.n), m.boss ? h('span', { class: 'pill warn' }, ' Trùm') : '', h('div', { class: 'note' }, (m.boss ? 'Máu ' + m.hp + ' · Công ' + m.atk + ' · KN ' + m.exp : 'Máu, công, KN theo cấp quái') + ' · Rơi ' + Math.round(m.drop * 100) + '%')), cells));
     }
     body.append(card(['sword', 'c-red', 'Từng loại quái (hệ số nhân)'], h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Quái'), ...['Máu', 'Công', 'Thủ', 'Kinh nghiệm', 'Vàng', 'Rơi đồ'].map(x => h('th', null, x)))), tb))));
     if (!ro) body.append(h('div', { class: 'row' },

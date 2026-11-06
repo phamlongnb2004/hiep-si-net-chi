@@ -80,6 +80,10 @@ Mỗi bản đồ chia nhiều khu giống Ngọc Rồng Online. Mỗi khu tối
 - Giao dịch chỉ với người cùng khu. GM dịch chuyển/kéo người chơi thì vào đúng khu của người đó, kể cả khi khu đầy.
 - Đổi số người tối đa: **Vận hành → Khu trong bản đồ** (chỉ Chủ).
 
+## Sức mạnh quái
+
+Quái thường mạnh theo **cấp**, không theo loài: cùng cấp thì máu, công, thủ, kinh nghiệm như nhau, và cấp cao hơn luôn mạnh hơn. Bảng mốc `MON_LV` trong `shared/rules.js` (cấp 1, 5, 9, 12, 15, 19, 24, 30, 60, 100); cấp ở giữa nội suy. Rồng (trùm) giữ chỉ số riêng. Hệ số từng loại quái trong Admin → Cân bằng vẫn nhân thêm lên trên.
+
 ## Cân bằng
 
 Các tham số trong `shared/rules.js` → `TUNE`:

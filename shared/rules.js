@@ -137,11 +137,28 @@ export function forgeInfo(it) {
 }
 
 /* ---------- quái ---------- */
+// Quái thường: sức mạnh chỉ theo CẤP (bảng mốc, nội suy theo log); loài khác nhau ở tốc độ, cách đánh, hình dáng
+// -> quái cấp cao hơn luôn mạnh hơn quái cấp thấp hơn, kể cả khác loài. Trùm (rồng) giữ công thức riêng.
+const MON_LV = [ // cấp, máu, công, thủ, kinh nghiệm
+  [1, 30, 7, .5, 12], [5, 120, 17, 4, 70], [9, 330, 33, 8, 230], [12, 430, 40, 9.5, 380], [15, 650, 55, 12, 600],
+  [19, 1000, 75, 15, 1000], [24, 1400, 100, 19, 1450], [30, 2000, 130, 24, 2200], [60, 5200, 300, 50, 17600], [100, 11000, 560, 90, 283000]];
+const MON_FAM = {}; // có thể thêm chênh lệch theo loài, vd { bear: { hp: 1.02, atk: 1, def: 1 } } (giữ nhỏ để cấp cao vẫn mạnh hơn)
+export function monCurve(lv, i) {
+  const T = MON_LV; lv = Math.max(1, lv);
+  let a = T[0], b = T[1];
+  for (let k = 1; k < T.length; k++) { a = T[k - 1]; b = T[k]; if (lv <= b[0]) break; }
+  const f = (lv - a[0]) / (b[0] - a[0]); // sau mốc cuối: kéo dài theo độ dốc đoạn cuối
+  return Math.exp(Math.log(a[i]) + (Math.log(b[i]) - Math.log(a[i])) * f);
+}
+const famOf = type => MON_FAM[type.replace(/\d+$/, '')] || { hp: 1, atk: 1, def: 1 };
 export function monStats(type, lv, elite) {
   const t = D.mons[type], e = elite ? ELITE : { hp: 1, atk: 1, def: 1 };
-  return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp * mt(type, 'hp')), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk * mt(type, 'atk'), def: (t.def + lv * .5) * e.def * mt(type, 'def') };
+  if (t.boss) return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp * mt(type, 'hp')), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk * mt(type, 'atk'), def: (t.def + lv * .5) * e.def * mt(type, 'def') };
+  const F = famOf(type);
+  return { hpMax: Math.round(monCurve(lv, 1) * F.hp * e.hp * mt(type, 'hp')), atk: monCurve(lv, 2) * F.atk * e.atk * mt(type, 'atk'), def: monCurve(lv, 3) * F.def * e.def * mt(type, 'def') };
 }
-export const monExp = (type, lv, elite) => Math.round(D.mons[type].exp * (1 + .45 * (lv - 1)) * (elite ? ELITE.exp : 1) * TUNE.exp * mt(type, 'exp') * (evOn() ? TUNE.ev.exp : 1));
+const monExpBase = (type, lv) => D.mons[type].boss ? D.mons[type].exp * (1 + .45 * (lv - 1)) : monCurve(lv, 4);
+export const monExp = (type, lv, elite) => Math.round(monExpBase(type, lv) * (elite ? ELITE.exp : 1) * TUNE.exp * mt(type, 'exp') * (evOn() ? TUNE.ev.exp : 1));
 export const monGold = (rng, type, lv, elite) => { const g = D.mons[type].gold; return Math.round(ri(rng, g[0], g[1]) * (1 + Math.floor(lv / 3)) * (elite ? ELITE.gold : 1) * TUNE.gold * mt(type, 'gold') * (evOn() ? TUNE.ev.gold : 1)); };
 export const respawnTime = (rng, type) => D.mons[type].boss ? 90 : 9 + rng() * 5;
 export const rollElite = (rng, type) => !D.mons[type].boss && rng() < TUNE.eliteChance;
