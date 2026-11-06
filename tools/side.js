@@ -6,7 +6,7 @@ const GY=600,WH=720;                 // y của mặt đất (chân nhân vật)
 const GRAV=2100,JUMP=760;            // trọng lực, lực nhảy (nhảy cao ~135)
 window.HSNC_GY=GY;
 const SI={};
-for(const k in SA){const im=new Image();im.src=SA[k].u;SI[k]={i:im,w:SA[k].w,h:SA[k].h,top:SA[k].top||0};}
+for(const k in SA){const im=new Image();im.src=SA[k].u;SI[k]={i:im,w:SA[k].w,h:SA[k].h,top:SA[k].top||0,wall:SA[k].wall||0};}
 const S=k=>{const a=SI[k];return a&&a.i.complete&&a.i.naturalWidth?a:null;};
 
 /* --- bản đồ dạng dải ngang --- */
@@ -16,7 +16,7 @@ const plats=(spots)=>{const a=[];spots.forEach((s,i)=>{a.push({x:s.x+s.w*.18,y:G
 const M0={name:'Làng Hiệp Sĩ',lv:'Khu an toàn',w:2600,h:WH,theme:'grass',base:'#5c9e3f',village:true,spawn:{x:1300,y:GY},
   safes:[Object.assign(R(0,2600),{name:'Làng Hiệp Sĩ'})],spots:[],
   npcs:[{id:'shop',x:880,y:GY,name:'Thương Nhân Bảo',role:'Cửa hàng · Sách kỹ năng'},{id:'smith',x:1720,y:GY,name:'Thợ Rèn Cương',role:'Lò rèn · Cường hóa đồ'}],
-  houses:[[230,0],[520,1],[2080,2],[2370,3]],fountain:1300,platforms:[{x:330,y:GY-130,w:220},{x:2160,y:GY-130,w:220}],
+  houses:[[230,0],[520,1],[2080,2],[2370,3]],fountain:1300,platforms:[],
   portals:[{x:2540,y:GY,to:1,tx:200,ty:GY,label:'Đồng Bằng Khởi Nguyên',lv:'Cấp 1-11',col:'#9be05a'}]};
 const sp1=spotsRow(700,[
   {n:'Bãi Heo Rừng',mon:'boar',lv:[1,3],cnt:6,col:'#c6e3a0'},
@@ -73,10 +73,7 @@ function terrBuild(M,seed){
   }
   const L=pts[pts.length-1];if(L[0]<M.w)pts.push([M.w,L[1]]);
   M.terr=pts;
-  // khối đất nổi kiểu Ninja School trên mỗi khu (thay bậc đá cũ): một tầng thấp, một tầng cao
-  if(M.spots.length){M.platforms=[];M.spots.forEach((s,i)=>{const g=gYm(M,s.x+s.w/2);
-    M.platforms.push({x:s.x+s.w*.12,y:GY-(GY-g)-105,w:200});
-    M.platforms.push({x:s.x+s.w*.55,y:GY-(GY-g)-(i%2?105:205),w:180});});}
+  M.platforms=[];   // không còn khối nổi lơ lửng: độ cao đến từ các tầng đất
 }
 function gYm(M,x){const t=M&&M.terr;if(!t)return GY;if(x<=t[0][0])return t[0][1];
   let lo=0,hi=t.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(t[m][0]<=x)lo=m;else hi=m;}
@@ -86,7 +83,7 @@ window.HSNC_gY=x=>gY(x);
 MAPS.forEach((M,i)=>terrBuild(M,977+i*53));
 // đặt lại mọi thứ đứng trên mặt đất theo địa hình
 MAPS.forEach(M=>{
-  if(M.village)for(const p of M.platforms||[]){const off=GY-p.y;p.y=Math.min(gYm(M,p.x),gYm(M,p.x+p.w/2),gYm(M,p.x+p.w))-off;}
+  for(const p of M.platforms||[]){const off=GY-p.y;p.y=Math.min(gYm(M,p.x),gYm(M,p.x+p.w/2),gYm(M,p.x+p.w))-off;}
   for(const n of M.npcs||[])n.y=gYm(M,n.x);
   for(const p of M.portals){p.y=gYm(M,p.x);const D=MAPS[p.to];if(D)p.ty=gYm(D,p.tx);}
   M.spawn.y=gYm(M,M.spawn.x);
@@ -106,7 +103,7 @@ genDecor=function(){
   (M.houses||[]).forEach(h=>add({k:'house',x:h[0],v:h[1]},GY-4));
   if(M.fountain)add({k:'fountain',x:M.fountain},GY-2);
   for(const n of M.npcs||[])add({k:'npc',x:n.x,n},GY);
-  for(const s of M.spots)add({k:'sign',x:s.x+50,txt:s.n+' · Cấp '+s.lv[0]+(s.lv[1]>s.lv[0]?'-'+s.lv[1]:'')},GY-1);
+  for(const s of M.spots){let sx=s.x+60;while(sx<s.x+s.w/2&&Math.abs(gYm(M,sx-50)-gYm(M,sx+50))>1)sx+=10;add({k:'sign',x:sx,txt:s.n+' · Cấp '+s.lv[0]+(s.lv[1]>s.lv[0]?'-'+s.lv[1]:'')},GY-1);}
   for(const p of M.portals)add({k:'portal',x:p.x,p},GY);
 };
 const _ddi=drawDecorItem;
@@ -130,6 +127,7 @@ bakeMini=function(){
 };
 
 /* --- nền: trời + núi xa + lớp giữa (cuộn chậm), mặt đất, bậc đá --- */
+const CAPW=118;   // bề ngang mảnh mép khối (đơn vị thế giới), cùng tỉ lệ với dải mặt đất
 const SKY={grass:['#7cc8ff','#d9f1ff'],snow:['#a9cbe6','#eef6fb'],lava:['#3a1414','#a2462a']};
 function tileX(im,x0,y,h,vw){const w=h*im.w/im.h;let x=Math.floor(x0/w)*w;for(;x<x0+vw+w;x+=w)ctx.drawImage(im.i,x,y,w+1,h);}
 drawGround=function(vw,vh){
@@ -155,9 +153,12 @@ drawGround=function(vw,vh){
   // vách khối đất (kiểu Ninja School): mặt vách tối dần, mép cỏ chìa ra, bóng đổ xuống nền thấp
   for(let i=0;i<T.length-1;i++){const [x0,y0]=T[i],[x1,y1]=T[i+1];if(x1!==x0||Math.abs(y1-y0)<2||x0<cx-60||x0>cx+vw+60)continue;
     const top=Math.min(y0,y1),bot=Math.max(y0,y1),dir=y1<y0?1:-1;   // dir: khối cao nằm bên phải (1) hay trái (-1)
+    const cap=S((dir>0?'capL_':'capR_')+th);
     ctx.save();
     // bóng đổ trên nền thấp, sát chân vách
     const sh=ctx.createRadialGradient(x0-dir*6,bot,2,x0-dir*6,bot,46);sh.addColorStop(0,'rgba(0,0,0,.28)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(x0-dir*14,bot+2,48,9,0,0,TAU);ctx.fill();
+    // mép khối đất vẽ sẵn (vách + cỏ chìa ra), mặt trên khớp đúng mặt đất của khối cao
+    if(cap){const wc=CAPW,Hc=wc*cap.h/cap.w,dx=x0-cap.wall*wc+(dir>0?-3:3);ctx.drawImage(cap.i,dx,top-cap.top*Hc,wc,Hc);ctx.restore();continue;}
     // mặt vách: dải tối ở mép khối cao
     const g=ctx.createLinearGradient(x0,0,x0+dir*22,0);g.addColorStop(0,'rgba(20,12,6,.55)');g.addColorStop(1,'rgba(20,12,6,0)');
     ctx.fillStyle=g;ctx.fillRect(dir>0?x0:x0-22,top+10,22,bot-top+30);
