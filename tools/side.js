@@ -219,77 +219,85 @@ function breathFx(m){const f=window.HSNC_SFX;if(!f)return;const sq={dragon:'fire
 
 /* --- RỒNG KHẠC: lấy hơi (sáng dần ở miệng, hút tia vào) -> há mồm khạc luồng dài tới người chơi
        -> giữ, rung lửa -> tan; hạt bay dọc luồng, mặt đất bị cháy/đóng băng/nhiễm độc; sát thương theo luồng --- */
-const BR_T=1.6,BR_C=.45,BR_E=1.3;               // tổng thời gian, hết lấy hơi, bắt đầu tắt
-const BRK={dragon:{seq:'fire',c1:'255,190,60',c2:'255,90,20',p:['#ffd36b','#ff8a1e','#ff5a1a'],g:'rgba(40,10,0,'},
-  dragon2:{seq:'poison',c1:'190,255,90',c2:'90,200,40',p:['#c8ff6a','#7fe03a','#4fae2a'],g:'rgba(40,90,20,'},
-  dragon3:{seq:'ice',c1:'210,245,255',c2:'110,200,255',p:['#ffffff','#bfeaff','#7fc8ff'],g:'rgba(200,235,255,'}};
-// khung rồng theo thời gian khạc: 0 lấy hơi, 1 bắt đầu há, 2-4 há rộng (vỗ cánh), 5 ngậm lại
-function brFrame(t){if(t<BR_C*.75)return 0;if(t<BR_C)return 1;if(t>BR_E+.12)return 5;return 2+Math.floor((t-BR_C)*7)%3;}
-function startBreath(m){const k=BRK[m.type]||BRK.dragon;m.br={t:0,k,parts:[],hit:0,ground:null};m.face=P.x>=m.x?1:-1;G.fx.push({k:'dbr',m,t:0,max:BR_T+.9});}
+const BR_T=1.75,BR_C=.5,BR_E=1.35;              // tổng thời gian, hết lấy hơi, ngừng phun
+// màu theo tuổi hạt (0 mới phun -> 1 tan): lõi sáng -> màu chính -> khói
+const BRK={dragon:{n:'fire',col:[[255,250,220],[255,214,90],[255,140,30],[230,70,20],[90,40,30]],core:'255,240,190',c1:'255,190,60',c2:'255,90,20',g:'rgba(40,10,0,',rise:-70,smoke:'60,40,35'},
+  dragon2:{n:'poison',col:[[235,255,190],[190,250,90],[120,215,50],[70,160,40],[60,80,40]],core:'225,255,170',c1:'190,255,90',c2:'90,200,40',g:'rgba(40,90,20,',rise:-25,smoke:'50,70,35'},
+  dragon3:{n:'ice',col:[[225,248,255],[150,215,255],[90,175,245],[60,130,220],[190,220,250]],core:'215,245,255',c1:'140,210,255',c2:'60,140,230',g:'rgba(200,235,255,',rise:25,smoke:'200,225,245'}};
+// đốm mềm dựng sẵn cho từng màu (vẽ nhanh, không nhấp nháy)
+const BRS={};
+function brSprite(kn,i){const key=kn+i;if(BRS[key])return BRS[key];const c=BRK[kn].col[i],cv=document.createElement('canvas');cv.width=cv.height=64;const x=cv.getContext('2d'),e=x.createRadialGradient(32,32,0,32,32,32);
+  e.addColorStop(0,`rgba(${c},1)`);e.addColorStop(.45,`rgba(${c},.55)`);e.addColorStop(1,`rgba(${c},0)`);x.fillStyle=e;x.fillRect(0,0,64,64);return BRS[key]=cv;}
+// khung rồng theo thời gian khạc: 0 lấy hơi, 1 bắt đầu há, 2-4 há rộng (vỗ cánh qua lại, không giật), 5 ngậm lại
+function brFrame(t){if(t<BR_C*.7)return 0;if(t<BR_C)return 1;if(t>BR_E+.1)return 5;return [2,3,4,3][Math.floor((t-BR_C)*6)%4];}
+function startBreath(m){const kn=BRK[m.type]?m.type:'dragon';m.br={t:0,kn,k:BRK[kn],parts:[],hit:0,ground:null,reach:0,em:0};m.face=P.x>=m.x?1:-1;G.fx.push({k:'dbr',m,t:0,max:BR_T+.9});}
 function breathGeo(m){
   const mo=m.mouth||{x:m.x+m.face*80,y:m.y-120},tx=P.x,ty=P.y-28,face=m.face;
   let a=Math.atan2(ty-mo.y,(tx-mo.x)*face);a=clamp(a,-.15,1.05);   // chĩa xuống phía người chơi
-  const L=clamp(Math.hypot(tx-mo.x,ty-mo.y)+70,240,600);
+  const L=clamp(Math.hypot(tx-mo.x,ty-mo.y)+80,260,620);
   return {mo,a,L,face,dx:Math.cos(a)*face,dy:Math.sin(a)};
 }
-// cập nhật: thời gian, hạt, sát thương
 function updBreath(m,dt){
-  const b=m.br;b.t+=dt;const g=breathGeo(m),k=b.k,on=b.t>BR_C&&b.t<BR_E;
-  if(b.t<BR_C){ // hút tia sáng vào miệng
-    if(Math.random()<dt*40){const r=rand(60,120),aa=rand(0,TAU);b.parts.push({x:g.mo.x+Math.cos(aa)*r,y:g.mo.y+Math.sin(aa)*r*.7,vx:0,vy:0,life:.35,max:.35,s:rand(2,4),c:pick(k.p),pull:1});}
+  const b=m.br;b.t+=dt;const g=breathGeo(m),k=b.k,on=b.t>BR_C&&b.t<BR_E;b.g=g;
+  // độ vươn của luồng: phun ra nhanh, giữ, khi tắt thì đuôi luồng rời miệng bay đi
+  b.reach=on?Math.min(g.L,b.reach+dt*g.L*3.2):b.reach;
+  if(b.t<BR_C){ // lấy hơi: tia sáng bị hút vào miệng
+    if(Math.random()<dt*34){const r=rand(55,110),aa=rand(0,TAU);b.parts.push({x:g.mo.x+Math.cos(aa)*r,y:g.mo.y+Math.sin(aa)*r*.7,vx:0,vy:0,life:.32,max:.32,s:rand(5,9),pull:1});}
   }else if(on){
-    const len=g.L*Math.min(1,(b.t-BR_C)/.22);
-    for(let i=0;i<Math.ceil(dt*90);i++){const u=Math.random(),d=len*(.15+.85*u),sp=(rand(-1,1))*d*.16;
-      b.parts.push({x:g.mo.x+g.dx*d-g.dy*g.face*sp,y:g.mo.y+g.dy*d+g.dx*g.face*sp*.6,vx:g.dx*rand(60,160),vy:k.seq==='ice'?rand(30,90):k.seq==='fire'?rand(-90,-30):rand(-40,10),life:rand(.4,.9),max:.9,s:rand(2,5)*(k.seq==='poison'?1.4:1),c:pick(k.p)});}
+    // phun liên tục ~260 hạt/giây từ miệng, bay theo hướng luồng, nở to dần
+    b.em+=dt*150;const sp=g.L/.5;                     // tới cuối luồng trong ~0,5 giây
+    while(b.em>=1){b.em-=1;const da=rand(-.13,.13),ca=Math.cos(da),sa=Math.sin(da),dx=g.dx*ca-g.dy*sa*g.face,dy=g.dy*ca+g.dx*sa*g.face,v=sp*rand(.85,1.08),l=rand(.42,.56),o=rand(0,dt);
+      b.parts.push({x:g.mo.x+dx*v*o,y:g.mo.y+dy*v*o,vx:dx*v,vy:dy*v,life:l,max:l,s:rand(.8,1.2),spin:rand(0,TAU)});}
     // chỗ luồng chạm đất
-    const hy=GY-8;if(g.dy>.05){const d=(hy-g.mo.y)/g.dy;if(d>0&&d<=len)b.ground={x:g.mo.x+g.dx*d,y:hy,t:0};}
-    else b.ground={x:g.mo.x+g.dx*len,y:hy,t:0};
+    const hy=GY-8;if(g.dy>.05){const d=(hy-g.mo.y)/g.dy;b.ground=d>0&&d<=b.reach?{x:g.mo.x+g.dx*d,y:hy,t:b.ground?b.ground.t:0}:b.ground;}
     // sát thương theo luồng (4 lần/giây)
     b.hit-=dt;
     if(b.hit<=0&&P.dead<=0&&!inSafe(P)){
       const px=P.x-g.mo.x,py=P.y-30-g.mo.y,along=px*g.dx+py*g.dy,across=Math.abs(-px*g.dy+py*g.dx);
-      if(along>0&&along<len+20&&across<26+along*.2){b.hit=.25;hurtPlayer(m.atk*.42);}
+      if(along>0&&along<b.reach+20&&across<24+along*.16){b.hit=.25;hurtPlayer(m.atk*.42);}
     }
   }
   if(b.ground)b.ground.t+=dt;
   for(let i=b.parts.length-1;i>=0;i--){const q=b.parts[i];q.life-=dt;
     if(q.pull){q.x+=(g.mo.x-q.x)*Math.min(1,dt*9);q.y+=(g.mo.y-q.y)*Math.min(1,dt*9);}
-    else{q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=Math.pow(.3,dt);if(k.seq==='ice')q.vy+=160*dt;}
+    else{q.x+=q.vx*dt;q.y+=q.vy*dt;const dr=Math.pow(.35,dt);q.vx*=dr;q.vy=q.vy*dr+k.rise*dt*2.2+Math.sin(G.time*13+q.spin*6)*dt*90;
+      if(q.y>GY-6){q.y=GY-6;q.vy=-Math.abs(q.vy)*.15;q.vx*=1.02;}}   // chạm đất thì loang ra
     if(q.life<=0)b.parts.splice(i,1);}
   if(b.t>=BR_T+.9){m.br=null;}
 }
 const _um2=updateMons;
 updateMons=function(dt){_um2(dt);for(const m of G.mons)if(m.br){if(m.dead||m.stun>0&&m.br.t<BR_C){m.br=null;continue;}updBreath(m,dt);}};
 function drawBreath(f){
-  const m=f.m,b=m&&m.br;if(!b||m.dead)return;
-  const g=breathGeo(m),k=b.k,t=b.t,SEQ=window.HSNC_SEQ&&HSNC_SEQ[k.seq];
-  // vết trên mặt đất
+  const m=f.m,b=m&&m.br;if(!b||m.dead||!b.g)return;
+  const g=b.g,k=b.k,t=b.t,kn=b.kn,fade=t<BR_E?1:Math.max(0,1-(t-BR_E)/.35);
+  // vết trên mặt đất (cháy / độc / băng), sáng dịu, không chớp
   if(b.ground){const gr=b.ground,a=Math.min(1,gr.t*3)*(t>BR_E?Math.max(0,1-(t-BR_E)/.9):1);
-    ctx.save();ctx.globalAlpha=a*.75;const e=ctx.createRadialGradient(gr.x,gr.y,4,gr.x,gr.y,90);e.addColorStop(0,k.g+'.75)');e.addColorStop(1,k.g+'0)');
-    ctx.fillStyle=e;ctx.beginPath();ctx.ellipse(gr.x,gr.y,95,22,0,0,TAU);ctx.fill();
-    ctx.globalCompositeOperation='lighter';ctx.globalAlpha=a*.5*(.8+Math.sin(G.time*20)*.2);const e2=ctx.createRadialGradient(gr.x,gr.y,2,gr.x,gr.y,70);e2.addColorStop(0,'rgba('+k.c1+',.9)');e2.addColorStop(1,'rgba('+k.c2+',0)');
-    ctx.fillStyle=e2;ctx.beginPath();ctx.ellipse(gr.x,gr.y-4,70,16,0,0,TAU);ctx.fill();ctx.restore();}
-  ctx.save();ctx.globalCompositeOperation='lighter';
-  // ánh sáng ở miệng: mạnh dần khi lấy hơi, chớp khi khạc
-  const glow=t<BR_C?t/BR_C:t<BR_E?1:Math.max(0,1-(t-BR_E)/.3);
-  if(glow>0){const R=26+glow*34+Math.sin(G.time*30)*4,e=ctx.createRadialGradient(g.mo.x,g.mo.y,0,g.mo.x,g.mo.y,R);e.addColorStop(0,'rgba(255,255,255,'+(.9*glow)+')');e.addColorStop(.35,'rgba('+k.c1+','+(.75*glow)+')');e.addColorStop(1,'rgba('+k.c2+',0)');ctx.fillStyle=e;ctx.beginPath();ctx.arc(g.mo.x,g.mo.y,R,0,TAU);ctx.fill();}
+    ctx.save();ctx.globalAlpha=a*.7;const e=ctx.createRadialGradient(gr.x,gr.y,4,gr.x,gr.y,90);e.addColorStop(0,k.g+'.75)');e.addColorStop(1,k.g+'0)');
+    ctx.fillStyle=e;ctx.beginPath();ctx.ellipse(gr.x,gr.y,95,20,0,0,TAU);ctx.fill();
+    ctx.globalCompositeOperation='lighter';ctx.globalAlpha=a*.45*(.92+Math.sin(G.time*6)*.08);const e2=ctx.createRadialGradient(gr.x,gr.y,2,gr.x,gr.y,70);e2.addColorStop(0,'rgba('+k.c1+',.9)');e2.addColorStop(1,'rgba('+k.c2+',0)');
+    ctx.fillStyle=e2;ctx.beginPath();ctx.ellipse(gr.x,gr.y-4,70,15,0,0,TAU);ctx.fill();ctx.restore();}
+  // khói/khí (vẽ thường, không cộng sáng) cho phần hạt già: làm luồng có khối
+  ctx.save();
+  for(const q of b.parts){if(q.pull)continue;const u=1-q.life/q.max;if(u<.45)continue;
+    const r=(10+u*44)*q.s;ctx.globalAlpha=(kn==='dragon3'?.16:.22)*Math.sin((u-.45)/.55*Math.PI);ctx.drawImage(brSprite(kn,4),q.x-r,q.y-r,r*2,r*2);}
+  for(const q of b.parts){if(q.pull)continue;const u=1-q.life/q.max;if(u<.12||u>.85)continue;
+    const r=(8+u*40)*q.s*.8;ctx.globalAlpha=.3*Math.sin((u-.12)/.73*Math.PI);ctx.drawImage(brSprite(kn,u<.45?2:3),q.x-r,q.y-r,r*2,r*2);}
   ctx.restore();
-  // luồng khạc: chuỗi 6 khung kéo dài theo độ dài luồng; giữ ở khung mạnh và rung
-  if(SEQ&&t>BR_C&&t<BR_E+.32&&SEQ.every(q=>q.i.complete&&q.i.naturalWidth)){
-    const u=t-BR_C,N=SEQ.length;let pos;
-    if(u<.22)pos=u/.22*3;else if(t<BR_E)pos=2.5+Math.sin(u*14)*.5;else pos=3+(t-BR_E)/.32*2.99;
-    const i=Math.min(N-1,Math.floor(pos)),fr=pos-i,q0=SEQ[0],L=g.L*(u<.22?.55+.45*u/.22:1),H=L*q0.h/q0.w*1.25;
-    const fl=1+Math.sin(G.time*38)*.035;
-    ctx.save();ctx.translate(g.mo.x,g.mo.y);if(g.face<0)ctx.scale(-1,1);ctx.rotate(g.a);ctx.scale(1,fl);
-    const dr=(k2,al,add)=>{if(al<=.01)return;const im=SEQ[Math.min(N-1,k2)];ctx.globalAlpha=al;ctx.globalCompositeOperation=add?'lighter':'source-over';ctx.drawImage(im.i,-L*.03,-H/2,L,H);};
-    dr(i,1-fr);dr(i+1,fr);dr(i,(1-fr)*.45,1);dr(i+1,fr*.45,1);
-    ctx.restore();
-  }
-  // hạt
   ctx.save();ctx.globalCompositeOperation='lighter';
-  for(const q of b.parts){const a=Math.max(0,q.life/q.max);ctx.globalAlpha=a;ctx.fillStyle=q.c;
-    if(k.seq==='ice'&&!q.pull){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.x*.05);ctx.fillRect(-q.s,-q.s*.35,q.s*2,q.s*.7);ctx.fillRect(-q.s*.35,-q.s,q.s*.7,q.s*2);ctx.restore();}
-    else{ctx.beginPath();ctx.arc(q.x,q.y,q.s*(k.seq==='poison'?(1.2-a*.4):a),0,TAU);ctx.fill();}}
+  // lõi luồng: dải sáng liền mạch từ miệng tới đầu luồng (thon dần), làm luồng không bị rời rạc
+  if(b.reach>4&&fade>0){const R=b.reach;
+    ctx.save();ctx.translate(g.mo.x,g.mo.y);if(g.face<0)ctx.scale(-1,1);ctx.rotate(g.a);
+    const lg=ctx.createLinearGradient(0,0,R,0);lg.addColorStop(0,'rgba('+k.core+','+(.55*fade)+')');lg.addColorStop(.5,'rgba('+k.c1+','+(.22*fade)+')');lg.addColorStop(1,'rgba('+k.c2+',0)');
+    ctx.fillStyle=lg;ctx.beginPath();ctx.moveTo(0,-7);ctx.quadraticCurveTo(R*.5,-7-R*.07,R,-R*.1);ctx.lineTo(R,R*.1);ctx.quadraticCurveTo(R*.5,7+R*.07,0,7);ctx.closePath();ctx.fill();ctx.restore();}
+  // hạt: lửa/khí nở to dần, đổi màu theo tuổi
+  for(const q of b.parts){
+    if(q.pull){const a=q.life/q.max;ctx.globalAlpha=.9*(1-a)+.1;const r=q.s*(.6+a);ctx.drawImage(brSprite(kn,1),q.x-r,q.y-r,r*2,r*2);continue;}
+    const u=1-q.life/q.max,ci=Math.min(3,Math.floor(u*4.6)),r=(8+u*40)*q.s;
+    ctx.globalAlpha=Math.min(1,(1-u)*1.6)*(kn==='dragon3'?.2:.28);ctx.drawImage(brSprite(kn,ci),q.x-r,q.y-r,r*2,r*2);
+    if(kn==='dragon3'&&u>.25&&(q.spin*10|0)%3===0){ctx.globalAlpha=(1-u);ctx.fillStyle='#fff';const s=2.2;ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.spin+u*4);ctx.fillRect(-s*2,-s*.3,s*4,s*.6);ctx.fillRect(-s*.3,-s*2,s*.6,s*4);ctx.restore();}}
+  // ánh sáng ở miệng: mạnh dần khi lấy hơi, giữ đều khi khạc
+  const glow=t<BR_C?t/BR_C:fade;
+  if(glow>0){const R=24+glow*30+Math.sin(G.time*9)*2,e=ctx.createRadialGradient(g.mo.x,g.mo.y,0,g.mo.x,g.mo.y,R);e.addColorStop(0,'rgba(255,255,255,'+(.85*glow)+')');e.addColorStop(.35,'rgba('+k.c1+','+(.6*glow)+')');e.addColorStop(1,'rgba('+k.c2+',0)');ctx.globalAlpha=1;ctx.fillStyle=e;ctx.beginPath();ctx.arc(g.mo.x,g.mo.y,R,0,TAU);ctx.fill();}
   ctx.restore();
 }
 const _dfx=drawFx;
@@ -299,7 +307,7 @@ drawFx=function(f){if(f.k==='dbr')return drawBreath(f);return _dfx(f);};
 const _dm=drawMon,MS=.76;          // quái nhỏ lại cho cân với nhân vật
 // khung hoạt ảnh quái (ChatGPT vẽ): 0 đứng, 1-4 bước chạy / vỗ cánh, 5 đánh
 const MF={};
-for(const k in (window.HSNC_MON||{}))MF[k]=HSNC_MON[k].map(f=>{const im=new Image();im.src=f.u;return {i:im,hr:f.hr,ar:f.ar,cx:f.cx,mx:f.mx,my:f.my};});
+for(const k in (window.HSNC_MON||{}))MF[k]=HSNC_MON[k].map(f=>{const im=new Image();im.src=f.u;return {i:im,hr:f.hr,ar:f.ar,cx:f.cx,mx:f.mx,my:f.my,cy:f.cy};});
 const mReady=k=>MF[k]&&MF[k].every(f=>f.i.complete&&f.i.naturalWidth);
 drawMon=function(m){
   const sp=monSprite(m);if(!sp||!sp.c)return _dm(m);
@@ -318,8 +326,10 @@ drawMon=function(m){
     const BF=m.br&&MF[m.type+'_br'];
     if(BF&&mReady(m.type+'_br'))q=BF[brFrame(m.br.t)];
     const fh=H*q.hr,fw=fh*q.ar,breathe=!fly&&mv<.06&&m.lunge<=0?Math.sin(t*2+m.id)*.015:0;
-    ctx.save();ctx.scale(1,1+breathe);ctx.drawImage(q.i,-q.cx*H,-fh,fw,fh);ctx.restore();
-    if(fly){const lx=-q.cx*H+(q.mx!=null?q.mx:.92)*fw,ly=-fh+(q.my!=null?q.my:.38)*fh;m.mouth={x:m.x+MS*m.face*lx,y:m.y+MS*(hover+ly)};}
+    // rồng: giữ tâm thân ở cùng độ cao ở mọi khung (bay lẫn khạc) để không bị nhảy khi đổi khung
+    let y0=-fh;if(fly&&q.cy!=null){const R=F.ref||(F.ref=F.slice(1,5).map(z=>z.hr*(1-(z.cy??.6))).sort((x,y)=>x-y)[1]);y0=-R*H-q.cy*fh;}
+    ctx.save();ctx.scale(1,1+breathe);ctx.drawImage(q.i,-q.cx*H,y0,fw,fh);ctx.restore();
+    if(fly){const lx=-q.cx*H+(q.mx!=null?q.mx:.92)*fw,ly=y0+(q.my!=null?q.my:.38)*fh;m.mouth={x:m.x+MS*m.face*lx,y:m.y+MS*(hover+ly)};}
   }
   else if(fly){const fl=Math.sin(ph)*.04;ctx.scale(1,1+fl);ctx.drawImage(img,X,Y,W,H);}
   else{

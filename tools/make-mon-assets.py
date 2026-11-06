@@ -108,6 +108,31 @@ for t in ['dragon', 'dragon2', 'dragon3']:
                     'hr': round(h / IDLE_PX, 4), 'ar': round(w / h, 4), 'cx': round(cx / IDLE_PX, 4), 'mx': round(mx, 4), 'my': round(my, 4)})
     out[t + '_br'] = lst; json.dump(lst, open(ck, 'w'))
     print(t + '_br', [(f['mx'], f['my']) for f in lst])
+# rồng: khớp cỡ + vị trí thân giữa khung bay và khung khạc (không bị phình/nhảy khi đổi khung)
+def torso(u):
+    a = np.array(Image.open(io.BytesIO(base64.b64decode(u.split(',', 1)[1]))).convert('RGBA'))[:, :, 3] > 120
+    H, W = a.shape
+    band = a[int(H * .45):int(H * .8)]
+    xs = np.flatnonzero(band.sum(0) >= 2)
+    x0, x1 = (xs[0], xs[-1]) if len(xs) else (0, W - 1)
+    c = (x0 + x1) / 2; half = max(2, int((x1 - x0) * .1))
+    ys = np.flatnonzero(a[:, int(c - half):int(c + half) + 1].any(1))
+    cy = ((ys[0] + ys[-1]) / 2 / H) if len(ys) else .6
+    return (x1 - x0) / H, cy
+for t in ['dragon', 'dragon2', 'dragon3']:
+    if t not in out:
+        continue
+    for f in out[t]:
+        f['bw'], f['cy'] = (round(float(v), 4) for v in torso(f['u']))
+    if t + '_br' in out:
+        for f in out[t + '_br']:
+            f['bw'], f['cy'] = (round(float(v), 4) for v in torso(f['u']))
+        ref = float(np.median([f['bw'] * f['hr'] for f in out[t][1:5]]))
+        cur = float(np.median([f['bw'] * f['hr'] for f in out[t + '_br']]))
+        k = ref / cur
+        for f in out[t + '_br']:
+            f['hr'] = round(f['hr'] * k, 4)
+        print(t, 'khớp cỡ khung khạc x', round(k, 3))
 with open(OUT, 'w') as f:
     json.dump(out, f, separators=(',', ':'))
 print('Đã tạo', OUT, round(os.path.getsize(OUT) / 1024), 'KB')
