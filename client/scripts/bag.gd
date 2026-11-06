@@ -70,7 +70,7 @@ func _cell(sz := 74) -> PanelContainer:
 	return p
 
 func _item_cell(it: Dictionary, selected: bool, equipped := false) -> PanelContainer:
-	var own = str(it.get("cls", "")) == game.cls()
+	var own = Data.can_wear(it, game.cls())
 	var better = own and not equipped and Data.score(it) > Data.score(game.me_data.eq.get(it.slot))
 	return ItemCell.make(it, selected, own, better)
 
@@ -196,9 +196,12 @@ func _render_detail(d: Dictionary) -> void:
 	var nm = UI.label(Data.item_name(it), 22, Data.rar_color(r2) if r2 > 0 else UI.INK, "bold")
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail.add_child(nm)
-	var own = str(it.get("cls", "")) == game.cls()
+	var own = Data.can_wear(it, game.cls())
 	detail.add_child(UI.label("%s · %s · Cấp %d" % [Data.D.rar[r2].n, Data.SLOT_N[it.slot], int(it.lvl)], 16, Color("5a6b8c"), "semi"))
-	detail.add_child(UI.label("Phái: " + str(Data.D.cls.get(it.get("cls", ""), {}).get("n", "?")) + ("" if own else " (bạn không mặc được)"), 16, UI.INK if own else Color("d9345a"), "semi"))
+	if str(it.slot) in Data.FREE:
+		detail.add_child(UI.label("Mọi phái đều dùng được" + (" · chỉ rơi từ trùm" if str(it.slot) == "wing" else ""), 16, Color("2fa84f"), "semi"))
+	else:
+		detail.add_child(UI.label("Phái: " + str(Data.D.cls.get(it.get("cls", ""), {}).get("n", "?")) + ("" if own else " (bạn không mặc được)"), 16, UI.INK if own else Color("d9345a"), "semi"))
 	if int(it.get("lock", 0)) == 1:
 		detail.add_child(UI.label("Đồ khóa: không giao dịch được", 15, Color("b85c00"), "semi"))
 	elif int(it.get("shop", 0)) == 1:
@@ -235,13 +238,14 @@ func _render_char(d: Dictionary) -> void:
 	var h = Hero.new()
 	h.cls = game.cls()
 	h.look = game.me.look
+	h.wing = int(d.eq.wing.r) if d.eq.get("wing") is Dictionary else -1
 	h.show_name = false
 	h.position = Vector2(110, 230)
 	h.scale = Vector2(2.6, 2.6)
 	vp.add_child(h)
 	left.add_child(pv)
 	var slots = GridContainer.new()
-	slots.columns = 2
+	slots.columns = 4
 	slots.add_theme_constant_override("h_separation", 8)
 	slots.add_theme_constant_override("v_separation", 8)
 	body.add_child(slots)

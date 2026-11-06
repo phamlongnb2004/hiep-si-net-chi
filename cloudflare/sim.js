@@ -316,7 +316,7 @@ export class MapInst {
   // ảnh chụp trạng thái gửi 10 lần/giây
   snap(extra) {
     const p = [];
-    for (const c of this.players.values()) { if (c.hidden) continue; const f = c.f, ch = c.ch; p.push([c.id, Math.round(f.x), Math.round(f.y), f.face, f.mv, f.atkCd > 0 ? 1 : 0, ch.cls, ch.lv, ch.name, +(f.hp / f.maxHp).toFixed(3), f.dead > 0 ? 1 : 0, lookN(ch), f.air]); }
+    for (const c of this.players.values()) { if (c.hidden) continue; const f = c.f, ch = c.ch; p.push([c.id, Math.round(f.x), Math.round(f.y), f.face, f.mv, f.atkCd > 0 ? 1 : 0, ch.cls, ch.lv, ch.name, +(f.hp / f.maxHp).toFixed(3), f.dead > 0 ? 1 : 0, lookN(ch), f.air, ch.eq.wing ? ch.eq.wing.r | 0 : -1]); }
     if (extra) p.push(...extra);
     const m = [];
     for (const q of this.mons) m.push([q.id, Math.round(q.x), Math.round(q.y), Math.max(0, Math.round(q.hp)), q.face,

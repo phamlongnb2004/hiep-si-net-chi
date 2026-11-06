@@ -12,8 +12,22 @@ const NOUN := {
 	"archer": {"hat": "Mũ Trùm", "armor": "Áo Giáp Lá", "cape": "Áo Choàng", "weapon": "Cung"},
 	"mage": {"hat": "Nón Phép", "armor": "Pháp Bào", "cape": "Khăn Choàng", "weapon": "Trượng"},
 	"fighter": {"hat": "Khăn Đầu", "armor": "Võ Phục", "cape": "Khăn Choàng", "weapon": "Găng Vuốt"}}
-const SLOTS := ["hat", "armor", "cape", "weapon"]
-const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí"}
+const NOUN2 := {"sword": ["Giày Sắt", "Găng Sắt"], "archer": ["Giày Lá", "Bao Tay Cung"], "mage": ["Hài Phép", "Găng Phép"], "fighter": ["Giày Võ", "Bao Tay Võ"]}
+const SLOTS := ["hat", "armor", "cape", "weapon", "boots", "gloves", "neck", "wing"]
+const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh"}
+const FREE := ["neck", "wing"]   # dây chuyền, cánh: mọi phái đều dùng được
+const ACC_NAME := {"neck": ["Dây Chuyền Đồng", "Dây Chuyền Lam Ngọc", "Dây Chuyền Tử Tinh", "Dây Chuyền Thái Dương"], "wing": ["Cánh Thiên Thần", "Cánh Băng Tinh", "Cánh Ma Tinh", "Cánh Phượng Hoàng"]}
+
+## món đồ này nhân vật phái c có mặc được không
+func can_wear(it: Dictionary, c: String) -> bool:
+	return str(it.get("slot", "")) in FREE or str(it.get("cls", "")) == c
+
+func noun(c: String, slot: String) -> String:
+	if slot == "boots":
+		return NOUN2[c][0]
+	if slot == "gloves":
+		return NOUN2[c][1]
+	return NOUN[c][slot]
 const STAT_N := {"atk": "Công", "def": "Thủ", "hp": "Máu", "spd": "Tốc"}
 const CLS_KEYS := ["sword", "archer", "mage", "fighter"]
 
@@ -135,6 +149,11 @@ func item_name(it: Dictionary) -> String:
 func item_icon(it: Dictionary) -> Texture2D:
 	var g: Dictionary = A.get("gear", {})
 	var c = str(it.get("cls", ""))
+	var sl = str(it.get("slot", ""))
+	if sl in FREE:
+		var ac: Array = A.get("acc", {}).get(sl, [])
+		var rr = clampi(int(it.get("r", 0)), 0, 3)
+		return tex(ac[rr]) if rr < ac.size() else null
 	if g.has(c):
 		var row: Array = g[c][clampi(int(it.get("tier", it.get("r", 0))), 0, 3)]
 		var si = SLOTS.find(str(it.slot))

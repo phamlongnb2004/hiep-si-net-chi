@@ -47,13 +47,16 @@ static func sha256_file(p: String) -> String:
 	return h.finish().hex_encode()
 
 ## lúc khởi động: gắn gói đã tải nếu còn nguyên vẹn; hỏng thì quay về gói trước hoặc ảnh có sẵn trong ứng dụng
+## bản dữ liệu ảnh có sẵn trong ứng dụng này; gói tải về cũ hơn thì bỏ qua (không ghi đè ảnh mới)
+const BUNDLED := 4
+
 static func mount() -> Dictionary:
 	var s = read_state()
 	for k in ["current", "previous"]:
 		var e = s.get(k)
 		if not (e is Dictionary):
 			continue
-		if ver_cmp(app_version(), str(e.get("min_app", "0"))) < 0:
+		if ver_cmp(app_version(), str(e.get("min_app", "0"))) < 0 or int(e.get("version", 0)) < BUNDLED:
 			continue
 		var p = DIR + str(e.file)
 		if FileAccess.file_exists(p) and sha256_file(p) == str(e.sha256) and ProjectSettings.load_resource_pack(p, true):
@@ -125,6 +128,7 @@ func check(server: String) -> void:
 	var a: Dictionary = m.get("assets", {})
 	var st = read_state()
 	var cur = int(st.get("current", {}).get("version", 0)) if st.get("current") is Dictionary else 0
+	cur = maxi(cur, BUNDLED)
 	if not a.is_empty() and int(a.get("version", 0)) > cur and ver_cmp(app_version(), str(a.get("min_app", "0"))) >= 0:
 		var res = await download_pack(a)
 		out["assets"] = res

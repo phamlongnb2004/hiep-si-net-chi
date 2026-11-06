@@ -54,7 +54,7 @@ export const OPS = {
   // NPC Thương Nhân Giáp: bán mọi loại đồ của mọi phái, chỉ số mặc định, cấp đồ theo cấp người chơi (bậc 5)
   shopbuy(c, m) {
     const ch = c.ch, cls = String(m.cls), slot = String(m.slot), r = m.r | 0;
-    if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot) || r < 0 || r > 3) return { ok: false };
+    if (!R.CLS_KEYS.includes(cls) || !R.DROP_SLOTS.includes(slot) || r < 0 || r > 3) return { ok: false };
     if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Hãy tới gần Thương Nhân Giáp trong Làng.' };
     if (ch.inv.length >= R.INV_MAX) return { ok: false, msg: 'Túi đầy.' };
     const lvl = R.shopLevel(ch.lv), price = R.shopPrice(lvl, r);

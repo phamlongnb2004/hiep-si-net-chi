@@ -17,6 +17,8 @@ var lv = 0
 var hp = 1.0
 var show_name = true
 var is_me = false
+var wing = -1           # độ hiếm cánh đang đeo (0..3), -1 = không có
+var _sp: Array = []     # hạt sáng quanh cánh
 
 const HS := 0.8
 const FIT := {
@@ -29,7 +31,56 @@ const BOB := [0.0, 2.2, 0.0, 2.2]
 func _process(dt: float) -> void:
 	t += dt
 	flash = max(0.0, flash - dt)
+	# hạt sáng bay ra từ cánh (cánh càng hiếm càng nhiều)
+	if wing >= 0 and not dead:
+		var rate = [1.5, 4.0, 7.0, 12.0][clampi(wing, 0, 3)]
+		if randf() < rate * dt:
+			_sp.append({"p": Vector2(randf_range(-34, 34), randf_range(-70, -20)), "v": Vector2(randf_range(-12, 12), randf_range(-38, -14)), "t": 0.0, "life": randf_range(0.7, 1.4), "s": randf_range(1.5, 3.2)})
+	var i = 0
+	while i < _sp.size():
+		var q = _sp[i]
+		q.t += dt
+		q.p += q.v * dt
+		if q.t >= q.life:
+			_sp.remove_at(i)
+		else:
+			i += 1
 	queue_redraw()
+
+const WING_GLOW := [Color(1, 1, 1, 0.0), Color(0.55, 0.85, 1.0, 0.35), Color(0.75, 0.45, 1.0, 0.42), Color(1.0, 0.7, 0.25, 0.5)]
+const WING_SP := [Color(1, 1, 1), Color(0.7, 0.92, 1.0), Color(0.85, 0.6, 1.0), Color(1.0, 0.85, 0.35)]
+
+## cánh: 16 khung vỗ cánh, vỗ nhanh khi chạy/nhảy, chậm khi đứng; quầng sáng + hạt sáng theo độ hiếm
+func _draw_wing(al: float, up: float) -> void:
+	var fx: Array = Data.A.get("wingfx", [])
+	var r = clampi(wing, 0, 3)
+	if r >= fx.size():
+		return
+	var frames: Array = fx[r]
+	var spd = 14.0 if (moving or air) else 6.0
+	var fi = int(t * spd) % frames.size()
+	var tx = Data.tex(frames[fi])
+	if tx == null:
+		return
+	var w = 118.0
+	var h = w * tx.get_height() / tx.get_width()
+	var c = Vector2(-6 * face, -40 - up + sin(t * 2.2) * 1.5)
+	# lưng nhân vật quay theo hướng nhìn: cánh hơi lệch về sau và thu hẹp (nhìn nghiêng)
+	draw_set_transform(c, 0, Vector2(0.78 * HS * 1.25, HS * 1.25))
+	var g: Color = WING_GLOW[r]
+	if g.a > 0:
+		var pulse = 0.75 + 0.25 * sin(t * 3.0)
+		for k in 3:
+			var e = 1.0 + 0.06 * (k + 1)
+			draw_texture_rect(tx, Rect2(-w * e / 2, -h * 0.62 * e, w * e, h * e), false, Color(g.r, g.g, g.b, g.a * pulse * al / (k + 1)))
+	draw_texture_rect(tx, Rect2(-w / 2, -h * 0.62, w, h), false, Color(1, 1, 1, al))
+	draw_set_transform(Vector2.ZERO)
+	var sc: Color = WING_SP[r]
+	for q in _sp:
+		var k2 = 1.0 - q.t / q.life
+		draw_circle(q.p, q.s * k2 + 0.5, Color(sc.r, sc.g, sc.b, 0.85 * k2 * al))
+		if r >= 2:
+			draw_circle(q.p, q.s * 2.4 * k2, Color(sc.r, sc.g, sc.b, 0.18 * k2 * al))
 
 func _frames() -> Array:
 	var a = look % 5 - 1
@@ -63,6 +114,9 @@ func _draw() -> void:
 	var sk = 1.0 - up * 0.05
 	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
 	_ellipse(Vector2(0, 1.5), 28 * sk, 7, Color(0.1, 0.12, 0.2, 0.28 * al))
+	# cánh sau lưng (vẽ trước thân)
+	if wing >= 0:
+		_draw_wing(al, up)
 	# thân
 	var xf = Transform2D().scaled(Vector2(HS, HS))
 	xf = xf * Transform2D().scaled(Vector2(face, 1))

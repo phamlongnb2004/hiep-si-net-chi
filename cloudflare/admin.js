@@ -307,7 +307,7 @@ const ACT = {
     return { ok: true, char: charSummary(d) };
   },
   async item_add(w, A, b) {
-    const cls = String(b.cls), slot = String(b.slot), r = int(b.r, 0, 3), lvl = int(b.lvl, 1, R.MAX_LV), up = int(b.up, 0, D_forgeMax());
+    const slot = String(b.slot), cls = R.isFree(slot) ? R.CLS_KEYS[0] : String(b.cls), r = int(b.r, 0, 3), lvl = int(b.lvl, 1, R.MAX_LV), up = int(b.up, 0, D_forgeMax());
     if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot)) bad('Phái hoặc ô đồ không hợp lệ.');
     const d = editChar(w, A, userRow(w, b.uid).id, b.srv | 0, 'Tặng đồ', ch => {
       if ((ch.inv || []).length >= R.INV_MAX) bad('Túi người chơi đã đầy.');
@@ -321,9 +321,10 @@ const ACT = {
   async catalog(w, A, b) {
     const lvl = int(b.lvl || 1, 1, R.MAX_LV), gear = [];
     for (const cls of R.CLS_KEYS) for (let r = 0; r < 4; r++) R.SLOTS.forEach((slot, si) => {
+      const free = R.isFree(slot); if (free && cls !== R.CLS_KEYS[0]) return; // dây chuyền, cánh: không theo phái, chỉ một bản
       const base = R.shopItem(cls, slot, r, lvl, 'x'), mx = {};
       for (const k in base.st) mx[k] = Math.round(R.baseStats(slot, lvl, r)[k] * 1.25);
-      gear.push({ cls, slot, r, si, name: base.name, st: base.st, max: mx, icon: `admin-icons/gear/${cls}/${r}/${si}.webp` });
+      gear.push({ cls: free ? '' : cls, slot, r, si, name: base.name, st: base.st, max: mx, icon: free ? `admin-icons/acc/${slot}/${r}.webp` : `admin-icons/gear/${cls}/${r}/${si}.webp` });
     });
     const books = {}; for (const cls of R.CLS_KEYS) books[cls] = R.D.skills[cls].map((s, i) => ({ i, n: s.n, d: s.d, req: s.req, price: s.price, icon: `admin-icons/skills/${cls}/${i}.webp` }));
     return { lvl, gear, books, cls: Object.fromEntries(R.CLS_KEYS.map(k => [k, R.D.cls[k].n])), rar: R.D.rar.map(x => ({ n: x.n, c: x.c })),
@@ -335,7 +336,7 @@ const ACT = {
     const gear = Array.isArray(b.gear) ? b.gear.slice(0, 30) : [], books = Array.isArray(b.books) ? b.books.slice(0, 6) : [];
     const n = k => int(b[k] || 0, 0, k === 'exp' ? 1e12 : k === 'gold' ? 1e10 : 1e6);
     const make = g => {
-      const cls = String(g.cls), slot = String(g.slot), r = int(g.r, 0, 3), lvl = int(g.lvl, 1, R.MAX_LV);
+      const slot = String(g.slot), cls = R.isFree(slot) ? R.CLS_KEYS[0] : String(g.cls), r = int(g.r, 0, 3), lvl = int(g.lvl, 1, R.MAX_LV);
       if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot)) bad('Món đồ không hợp lệ.');
       const it = R.shopItem(cls, slot, r, lvl, 'a' + Date.now().toString(36) + rnd(4)); delete it.shop;
       const mx = R.maxItemStat(it);

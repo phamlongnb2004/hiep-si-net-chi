@@ -80,6 +80,17 @@ Mỗi bản đồ chia nhiều khu giống Ngọc Rồng Online. Mỗi khu tối
 - Giao dịch chỉ với người cùng khu. GM dịch chuyển/kéo người chơi thì vào đúng khu của người đó, kể cả khi khu đầy.
 - Đổi số người tối đa: **Vận hành → Khu trong bản đồ** (chỉ Chủ).
 
+## Đồ mới (từ 2.5.0)
+
+| Ô | Theo phái | Chỉ số | Có ở đâu |
+|---|---|---|---|
+| Giày | có | Tốc chạy, Giáp | quái rơi, Thương Nhân Giáp |
+| Găng | có | Sức đánh, Giáp | quái rơi, Thương Nhân Giáp |
+| Dây chuyền | không (mọi phái) | Máu, Sức đánh | quái rơi, Thương Nhân Giáp |
+| Cánh | không (mọi phái) | Máu, Sức đánh, Giáp, Tốc chạy | **chỉ rơi khi hạ trùm (rồng)**, 1,5% mỗi lần |
+
+Cánh rơi ra: Thường 60%, Hiếm 28%, Sử Thi 10%, Huyền Thoại 2% (tức khoảng 0,03% mỗi lần hạ trùm). Tỉ lệ rơi cánh chỉnh ở Admin → Cân bằng. Cánh hiện sau lưng nhân vật, 16 khung vỗ cánh, có quầng sáng và hạt sáng theo độ hiếm; người khác cũng thấy.
+
 ## Sức mạnh quái
 
 Quái thường mạnh theo **cấp**, không theo loài: cùng cấp thì máu, công, thủ, kinh nghiệm như nhau, và cấp cao hơn luôn mạnh hơn. Bảng mốc `MON_LV` trong `shared/rules.js` (cấp 1, 5, 9, 12, 15, 19, 24, 30, 60, 100); cấp ở giữa nội suy. Rồng (trùm) giữ chỉ số riêng. Hệ số từng loại quái trong Admin → Cân bằng vẫn nhân thêm lên trên.

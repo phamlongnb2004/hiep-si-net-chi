@@ -135,6 +135,39 @@ func run() -> void:
 	await wait(0.5)
 	await shot("12-glow-b")
 	cl.queue_free()
+	# đồ mới: giày, găng, dây chuyền, cánh + nhân vật đeo cánh (vỗ cánh)
+	var cl2 = CanvasLayer.new()
+	cl2.layer = 50
+	var bg2 = ColorRect.new()
+	bg2.color = Color("5d8fd6")
+	bg2.size = Vector2(1280, 720)
+	cl2.add_child(bg2)
+	var row2 = HBoxContainer.new()
+	row2.position = Vector2(60, 40)
+	row2.add_theme_constant_override("separation", 10)
+	for rk in 4:
+		for sl in ["boots", "gloves", "neck", "wing"]:
+			var it2 = {"slot": sl, "cls": "" if sl in Data.FREE else "mage", "tier": rk, "r": rk, "lvl": 30, "up": 0, "st": {"atk": 5}}
+			row2.add_child(ItemCell.make(it2, false, true, false, 66))
+	cl2.add_child(row2)
+	var cls4 = ["sword", "archer", "mage", "fighter"]
+	for rk in 4:
+		var hh = Hero.new()
+		hh.cls = cls4[rk]
+		hh.look = 31 * rk % 125
+		hh.wing = rk
+		hh.nm = "Cánh %d" % rk
+		hh.position = Vector2(200 + rk * 260, 520)
+		hh.scale = Vector2(2.2, 2.2)
+		cl2.add_child(hh)
+	add_child(cl2)
+	await wait(1.2)
+	await shot("13-new-gear-a")
+	await wait(0.13)
+	await shot("13-new-gear-b")
+	await wait(0.13)
+	await shot("13-new-gear-c")
+	cl2.queue_free()
 	print("XONG cấp=", g.me_data.get("lv"), " vàng=", g.me_data.get("gold"), " túi=", g.me_data.get("inv", []).size())
 	get_tree().quit()
 

@@ -9,6 +9,7 @@ var fit = {}            # {"id", "slot"}
 var msg = ""
 var msg_ok = true
 var gear_cls = ""
+var gear_grp = 0      # 0: mũ áo choàng vũ khí; 1: giày, găng, dây chuyền
 var body: VBoxContainer
 var title: Label
 var tabs: HBoxContainer
@@ -76,6 +77,11 @@ func render() -> void:
 			var cc: String = c
 			b2.pressed.connect(func(): gear_cls = cc; msg = ""; render())
 			tabs.add_child(b2)
+		for gi in 2:
+			var b3 = UI.button(["Giáp & vũ khí", "Giày, găng, dây chuyền"][gi], UI.GREEN if gear_grp == gi else UI.SKY, 16)
+			var g2: int = gi
+			b3.pressed.connect(func(): gear_grp = g2; msg = ""; render())
+			tabs.add_child(b3)
 	if mode == "shop":
 		for k in [["books", "Sách kỹ năng"], ["pots", "Bình máu"]]:
 			var b = UI.button(k[1], UI.GOLD if tab == k[0] else UI.SKY, 18)
@@ -209,11 +215,11 @@ func _gear(d: Dictionary) -> void:
 		var nm = UI.label(str(Data.D.rar[r].n), 18, Data.rar_color(r) if r > 0 else UI.INK, "bold")
 		nm.custom_minimum_size = Vector2(120, 0)
 		row.add_child(nm)
-		for slot in Data.SLOTS:
+		for slot in (["hat", "armor", "cape", "weapon"] if gear_grp == 0 else ["boots", "gloves", "neck"]):
 			var it = _shop_item(gear_cls, slot, r, lvl)
 			var price = int(round((25 + lvl * 9) * SHOP_MUL[r] * Data.shop_mul()))
 			var v = UI.vbox(2)
-			var cell = ItemCell.make(it, false, gear_cls == game.cls(), false, 70)
+			var cell = ItemCell.make(it, false, Data.can_wear(it, game.cls()), false, 70)
 			v.add_child(cell)
 			var st = []
 			for k in it.st:
@@ -239,7 +245,12 @@ func _shop_item(c: String, slot: String, r: int, lvl: int) -> Dictionary:
 		"hat": st = {"def": base * 0.6 * m, "hp": base * 3 * m}
 		"armor": st = {"def": base * m, "hp": base * 5 * m}
 		"cape": st = {"spd": (2 + lvl * 0.3) * m, "def": base * 0.4 * m}
+		"boots": st = {"spd": (1.5 + lvl * 0.25) * m, "def": base * 0.3 * m}
+		"gloves": st = {"atk": base * 0.5 * m, "def": base * 0.2 * m}
+		"neck": st = {"hp": base * 2.5 * m, "atk": base * 0.35 * m}
 		_: st = {"atk": base * 1.3 * m}
 	for k in st:
 		st[k] = max(1, int(round(st[k])))
-	return {"id": "", "slot": slot, "cls": c, "tier": r, "r": r, "lvl": lvl, "name": Data.NOUN[c][slot] + " " + str(Data.D.sets[c][r]), "st": st, "shop": 1}
+	if slot in Data.FREE:
+		return {"id": "", "slot": slot, "cls": "", "tier": r, "r": r, "lvl": lvl, "name": Data.ACC_NAME[slot][r], "st": st, "shop": 1}
+	return {"id": "", "slot": slot, "cls": c, "tier": r, "r": r, "lvl": lvl, "name": Data.noun(c, slot) + " " + str(Data.D.sets[c][r]), "st": st, "shop": 1}

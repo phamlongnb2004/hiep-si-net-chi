@@ -151,6 +151,8 @@ func _set_me(d: Dictionary, full: bool) -> void:
 	gcd = float(me_data.get("gcd", 0))
 	pot_cd = max(pot_cd, float(me_data.get("potCd", 0)))
 	me.look = _look(me_data)
+	var wg = me_data.get("eq", {}).get("wing") if me_data.get("eq") is Dictionary else null
+	me.wing = int(wg.get("r", 0)) if wg is Dictionary else -1
 	me_changed.emit()
 
 func _look(d: Dictionary) -> int:
@@ -222,6 +224,7 @@ func _snap(m: Dictionary) -> void:
 		h.dead = int(q[10]) == 1
 		h.look = int(q[11])
 		h.air = q.size() > 12 and int(q[12]) == 1
+		h.wing = int(q[13]) if q.size() > 13 else -1
 	for id in heroes.keys():
 		if not seen.has(id):
 			heroes[id].queue_free()

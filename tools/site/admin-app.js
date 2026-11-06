@@ -4,7 +4,7 @@
 'use strict';
 const root = document.getElementById('root');
 const CLS = { sword: 'Kiếm Sĩ', archer: 'Cung Thủ', mage: 'Pháp Sư', fighter: 'Võ Sĩ' };
-const SLOT = { hat: 'Mũ', armor: 'Áo', cape: 'Áo choàng', weapon: 'Vũ khí' };
+const SLOT = { hat: 'Mũ', armor: 'Áo', cape: 'Áo choàng', weapon: 'Vũ khí', boots: 'Giày', gloves: 'Găng', neck: 'Dây chuyền', wing: 'Cánh' };
 const RAR = ['Thường', 'Hiếm', 'Sử Thi', 'Huyền Thoại'];
 const MAPS = ['Làng Hiệp Sĩ', 'Đồng Bằng Khởi Nguyên', 'Rừng Tuyết Phong', 'Núi Lửa Hắc Ám'];
 const ROLE_N = { owner: 'Chủ', gm: 'GM hỗ trợ', viewer: 'Chỉ xem' };
@@ -256,11 +256,11 @@ const VIEWS = {
     const t = r.tune, ro = !can('owner');
     const num = (v, o) => inp({ type: 'number', value: v, step: o.step || .1, min: o.min, max: o.max, disabled: ro });
     const G = { exp: num(t.exp, { min: .1, max: 20 }), gold: num(t.gold, { min: .1, max: 20 }), drop: num(t.drop, { min: .1, max: 10 }), potPrice: num(t.potPrice, { step: 1, min: 1, max: 100000 }),
-      shopMul: num(t.shopMul, { min: .1, max: 20 }), forgeBonus: num(t.forgeBonus, { step: 1, min: -50, max: 50 }), eliteChance: num(t.eliteChance, { step: .01, min: 0, max: .5 }), kiMul: num(t.kiMul ?? 1, { min: 0, max: 5 }), ptMul: num(t.ptMul ?? 1, { min: .1, max: 5 }) };
+      shopMul: num(t.shopMul, { min: .1, max: 20 }), forgeBonus: num(t.forgeBonus, { step: 1, min: -50, max: 50 }), eliteChance: num(t.eliteChance, { step: .01, min: 0, max: .5 }), kiMul: num(t.kiMul ?? 1, { min: 0, max: 5 }), ptMul: num(t.ptMul ?? 1, { min: .1, max: 5 }), wingChance: num(t.wingChance ?? .015, { step: .005, min: 0, max: 1 }) };
     body.append(card(['scale', 'c-vio', 'Toàn game'], h('p', { class: 'note' }, 'Áp dụng ngay trên máy chủ, không cần ra bản ứng dụng mới. 1 = như gốc.' + (ro ? ' (Chỉ chủ mới sửa được.)' : '')),
       h('div', { class: 'row' }, field('x Kinh nghiệm', G.exp), field('x Vàng', G.gold), field('x Tỉ lệ rơi đồ', G.drop), field('Giá bình máu (vàng)', G.potPrice)),
       h('div', { class: 'row', style: 'margin-top:8px' }, field('x Giá đồ cửa hàng', G.shopMul), field('Cộng tỉ lệ rèn (%)', G.forgeBonus), field('Tỉ lệ quái tinh anh (0–0,5)', G.eliteChance)),
-      h('div', { class: 'row', style: 'margin-top:8px' }, field('x KI kỹ năng tốn (0 = không tốn)', G.kiMul), field('x Sức mạnh mỗi điểm tiềm năng', G.ptMul))));
+      h('div', { class: 'row', style: 'margin-top:8px' }, field('x KI kỹ năng tốn (0 = không tốn)', G.kiMul), field('x Sức mạnh mỗi điểm tiềm năng', G.ptMul), field('Tỉ lệ rơi cánh mỗi lần hạ trùm (0,015 = 1,5%)', G.wingChance))));
     const M = {}, tb = h('tbody');
     for (const [k, m] of Object.entries(r.mons)) {
       const o = t.mon[k] || {}; M[k] = {};
@@ -339,7 +339,7 @@ VIEWS.items = async function (body) {
   // trang bị
   const lv = inp({ type: 'number', min: 1, max: C.max.lv, value: G.lvl, style: 'width:110px' });
   lv.onchange = () => { G.lvl = Math.max(1, Math.min(C.max.lv, +lv.value || 1)); layout(); };
-  const list = C.gear.filter(g => (!G.f.cls || g.cls === G.f.cls) && (!G.f.slot || g.slot === G.f.slot) && (G.f.r < 0 || g.r === G.f.r));
+  const list = C.gear.filter(g => (!G.f.cls || g.cls === G.f.cls || !g.cls) && (!G.f.slot || g.slot === G.f.slot) && (G.f.r < 0 || g.r === G.f.r));
   const add = g => { G.cart.push({ cls: g.cls, slot: g.slot, r: g.r, lvl: G.lvl, up: 0, q: 'base', st: { ...g.st }, lock: false, qty: 1, name: g.name, icon: g.icon, base: g.st, max: g.max }); layout(); toast('Đã thêm ' + g.name + ' vào giỏ quà.'); };
   body.append(card(['sword', 'c-vio', 'Trang bị (' + list.length + ' món)'],
     chips([['', 'Mọi phái'], ...Object.entries(C.cls)], G.f.cls, v => G.f.cls = v),
@@ -347,7 +347,7 @@ VIEWS.items = async function (body) {
     chips([[-1, 'Mọi độ hiếm'], ...C.rar.map((r, i) => [i, r.n])], G.f.r, v => G.f.r = +v),
     h('div', { class: 'row', style: 'margin-bottom:10px' }, field('Cấp đồ (chỉ số theo cấp)', lv)),
     h('div', { class: 'cat' }, list.map(g => h('button', { class: 'gi r' + g.r, onclick: () => add(g), title: 'Thêm vào giỏ' },
-      h('img', { src: g.icon, alt: '', loading: 'lazy' }), h('b', { style: 'color:' + RCOL[g.r] }, g.name), h('span', { class: 'note' }, C.rar[g.r].n + ' · ' + SLOT[g.slot] + ' · ' + C.cls[g.cls]), h('span', null, stTxt(g.st)), h('span', { class: 'plus' }, icon('plus')))))));
+      h('img', { src: g.icon, alt: '', loading: 'lazy' }), h('b', { style: 'color:' + RCOL[g.r] }, g.name), h('span', { class: 'note' }, C.rar[g.r].n + ' · ' + SLOT[g.slot] + ' · ' + (C.cls[g.cls] || 'Mọi phái')), h('span', null, stTxt(g.st)), h('span', { class: 'plus' }, icon('plus')))))));
   // vật phẩm khác + sách
   const misc = card(['box', 'c-sun', 'Vật phẩm khác']);
   misc.append(h('div', { class: 'cat' }, C.misc.map(m => { const i = inp({ type: 'number', min: 0, value: G.misc[m.k] || 0 }); i.oninput = () => G.misc[m.k] = Math.max(0, +i.value || 0);

@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.4.0",
-  "min": "2.1.0",
+  "version": "2.5.0",
+  "min": "2.5.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "3859c17fceb8e3cc8f5dfd60912e74da1558e986b3c008543f5ef6ceddbeb143",
-   "size": 54130848
+   "sha256": "a4707372c434f5efe259feff83f369b97609e34032254ba6aba6888687ece868",
+   "size": 62047753
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "a7fb0f84d9becbfdb4c201153e9ab566d7648a641931755612bc853a749f482a",
-   "size": 81840808
+   "sha256": "a2fea4c653de9e70b1950ab29056b078dbbea2155866a0b4c25c008109fabaf1",
+   "size": 89795232
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "8bfbbc3c73bbd03612e9948ee1c5dce5b7d7f030f6f4156fa542819b78b99594",
-   "size": 56318638
+   "sha256": "f20703824fb3bce29a8ae1728b404bba9e434ac18cffbae468bea2a783b1f777",
+   "size": 64192962
   }
  },
  "assets": {
@@ -26,9 +26,9 @@
   "size": 29165352
  },
  "changelog": [
-  "Mỗi bản đồ chia nhiều khu như Ngọc Rồng Online, mỗi khu tối đa 15 người",
-  "Bấm nút Khu dưới tên bản đồ để xem số người và đổi khu",
-  "Mỗi khu có quái, đồ rơi và trò chuyện riêng"
+  "Đồ mới: Giày và Găng theo phái, Dây chuyền dùng cho mọi phái",
+  "Cánh: chỉ rơi khi hạ trùm, tỉ lệ rất thấp; cánh vỗ sau lưng, có hào quang theo độ hiếm",
+  "Thương Nhân Giáp bán thêm giày, găng, dây chuyền"
  ],
- "updated": "2026-11-06T18:24:22.311Z"
+ "updated": "2026-11-06T19:28:57.944Z"
 }

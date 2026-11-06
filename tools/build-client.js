@@ -65,7 +65,8 @@ for (const f of fs.readdirSync(path.join(root, 'tools', 'site'))) fs.copyFileSyn
 // biểu tượng vật phẩm cho trang quản trị (kho vật phẩm): lấy từ ảnh của ứng dụng gốc
 { const A = path.join(root, 'client', 'assets'), O = path.join(root, 'public', 'admin-icons');
   const cp = (src, dst) => { if (!fs.existsSync(src)) return; fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst); };
-  for (const cls of ['sword', 'archer', 'mage', 'fighter']) for (let r = 0; r < 4; r++) for (let i = 0; i < 4; i++) cp(path.join(A, 'gear', cls, String(r), i + '.webp'), path.join(O, 'gear', cls, String(r), i + '.webp'));
+  for (const cls of ['sword', 'archer', 'mage', 'fighter']) for (let r = 0; r < 4; r++) for (let i = 0; i < 6; i++) cp(path.join(A, 'gear', cls, String(r), i + '.webp'), path.join(O, 'gear', cls, String(r), i + '.webp'));
+  for (const k of ['neck', 'wing']) for (let r = 0; r < 4; r++) cp(path.join(A, 'acc', k, r + '.webp'), path.join(O, 'acc', k, r + '.webp'));
   for (const cls of ['sword', 'archer', 'mage', 'fighter']) for (let i = 0; i < 6; i++) cp(path.join(A, 'hud', 'skills', cls, i + '.webp'), path.join(O, 'skills', cls, i + '.webp'));
   for (const k of ['pot', 'stone', 'gold', 'book']) cp(path.join(A, 'hud', 'ui', k + '.webp'), path.join(O, k + '.webp')); }
 console.log('Đã tạo', path.relative(root, out), (html.length / 1048576).toFixed(2) + ' MB', 'máy chủ:', server || '(cùng địa chỉ trang)');

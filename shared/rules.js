@@ -8,19 +8,20 @@ export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 760, 
 export const POT_HEAL = .45, POT_CD = 3, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
 export const WORLD_CHAT_COST = 5000;          // nhắn cả máy chủ tốn vàng (cao) để tránh spam
 export const FRIEND_MAX = 100;
+export const WING_CHANCE = .015; // cánh: tỉ lệ rơi mỗi lần hạ trùm (rất thấp)
 export const LOCK_CHANCE = .4;                // đồ rơi có tỉ lệ bị khóa (không giao dịch được)
 export const ELITE_CHANCE = .07;              // quái thường thỉnh thoảng hồi sinh thành tinh anh
 export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
 // Tham số cân bằng do admin chỉnh trên máy chủ (không cần ra bản ứng dụng mới). Mặc định = luật gốc.
 // ev: sự kiện tạm thời (x2 kinh nghiệm...), máy chủ tự tắt khi hết giờ.
-export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, mon: {} };
+export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, mon: {} };
 export const TUNE = { ...TUNE_DEFAULT, mon: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
 // áp tham số mới (đã kiểm giới hạn) vào TUNE; trả về bản đã chuẩn hóa để lưu
 export function setTune(t) {
   const n = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
   const o = {
     exp: n(t.exp, .1, 20, 1), gold: n(t.gold, .1, 20, 1), drop: n(t.drop, .1, 10, 1), potPrice: Math.round(n(t.potPrice, 1, 100000, POT_PRICE)),
-    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), mon: {} };
+    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), wingChance: n(t.wingChance, 0, 1, WING_CHANCE), mon: {} };
   for (const k in (t.mon || {})) if (D.mons[k]) { const m = t.mon[k] || {}, q = {};
     for (const f of ['hp', 'atk', 'def', 'exp', 'gold', 'drop']) { const v = n(m[f], .1, 20, 1); if (v !== 1) q[f] = v; }
     if (Object.keys(q).length) o.mon[k] = q; }
@@ -34,8 +35,17 @@ export const NOUN = {
   archer: { hat: 'Mũ Trùm', armor: 'Áo Giáp Lá', cape: 'Áo Choàng', weapon: 'Cung' },
   mage: { hat: 'Nón Phép', armor: 'Pháp Bào', cape: 'Khăn Choàng', weapon: 'Trượng' },
   fighter: { hat: 'Khăn Đầu', armor: 'Võ Phục', cape: 'Khăn Choàng', weapon: 'Găng Vuốt' } };
+// giày, găng: theo phái; dây chuyền, cánh: dùng chung mọi phái (cls = '')
+for (const c in NOUN) Object.assign(NOUN[c], { boots: { sword: 'Giày Sắt', archer: 'Giày Lá', mage: 'Hài Phép', fighter: 'Giày Võ' }[c], gloves: { sword: 'Găng Sắt', archer: 'Bao Tay Cung', mage: 'Găng Phép', fighter: 'Bao Tay Võ' }[c] });
+export const ACC_NAME = { neck: ['Dây Chuyền Đồng', 'Dây Chuyền Lam Ngọc', 'Dây Chuyền Tử Tinh', 'Dây Chuyền Thái Dương'], wing: ['Cánh Thiên Thần', 'Cánh Băng Tinh', 'Cánh Ma Tinh', 'Cánh Phượng Hoàng'] };
+export const FREE_SLOTS = ['neck', 'wing'];
+export const isFree = slot => FREE_SLOTS.includes(slot);
+// cánh: chỉ rơi khi hạ trùm, tỉ lệ rất thấp; độ hiếm của cánh rơi ra
+export const W_WING = [60, 28, 10, 2];
 export const W_MOB = [80, 16.5, 3.1, .4], W_BOSS = [30, 48, 18.5, 3.5], W_ELITE = [52, 34, 11.5, 2.5];
-export const SLOTS = ['hat', 'armor', 'cape', 'weapon'];
+export const SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'wing'];
+// ô đồ rơi từ quái thường / bán ở cửa hàng (cánh thì không)
+export const DROP_SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck'], DROP_SLOT_W = [1, 1, 1, 1, 1, 1, .6];
 export const CLS_KEYS = ['sword', 'archer', 'mage', 'fighter'];
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -90,11 +100,16 @@ export function baseStats(slot, lvl, rk) {
   if (slot === 'hat') { st.def = base * .6 * m; st.hp = base * 3 * m; }
   else if (slot === 'armor') { st.def = base * m; st.hp = base * 5 * m; }
   else if (slot === 'cape') { st.spd = (2 + lvl * .3) * m; st.def = base * .4 * m; }
+  else if (slot === 'boots') { st.spd = (1.5 + lvl * .25) * m; st.def = base * .3 * m; }
+  else if (slot === 'gloves') { st.atk = base * .5 * m; st.def = base * .2 * m; }
+  else if (slot === 'neck') { st.hp = base * 2.5 * m; st.atk = base * .35 * m; }
+  else if (slot === 'wing') { st.hp = base * 3 * m; st.atk = base * .6 * m; st.def = base * .5 * m; st.spd = (2 + lvl * .3) * m; }
   else st.atk = base * 1.3 * m;
   return st;
 }
 function makeItem(id, slot, c, rk, lvl, st) {
-  const R = D.rar[rk], it = { id, slot, cls: c, tier: rk, style: 0, col: R.c.length === 7 ? R.c : '#8a93a8', r: rk, lvl, name: NOUN[c][slot] + ' ' + D.sets[c][rk], st };
+  const R = D.rar[rk], free = isFree(slot);
+  const it = { id, slot, cls: free ? '' : c, tier: rk, style: 0, col: R.c.length === 7 ? R.c : '#8a93a8', r: rk, lvl, name: free ? ACC_NAME[slot][rk] : NOUN[c][slot] + ' ' + D.sets[c][rk], st };
   if (slot === 'weapon') it.wk = c;
   return it;
 }
@@ -102,7 +117,7 @@ function makeItem(id, slot, c, rk, lvl, st) {
 export function genItem(rng, lvl, mode, cls, id) {
   const c = rng() < .75 && D.sets[cls] ? cls : CLS_KEYS[ri(rng, 0, CLS_KEYS.length - 1)];
   const ws = mode === 'elite' ? W_ELITE : (mode === true || mode === 'boss') ? W_BOSS : W_MOB;
-  const rk = pickW(rng, ws), slot = SLOTS[Math.floor(rng() * 4)], b = baseStats(slot, lvl, rk), st = {};
+  const wing = mode === 'wing', rk = pickW(rng, wing ? W_WING : ws), slot = wing ? 'wing' : DROP_SLOTS[pickW(rng, DROP_SLOT_W)], b = baseStats(slot, lvl, rk), st = {};
   for (const k in b) st[k] = Math.max(1, Math.round(b[k] * (.8 + rng() * .45)));
   const it = makeItem(id, slot, c, rk, lvl, st);
   if (rng() < LOCK_CHANCE) it.lock = 1;
@@ -120,6 +135,7 @@ export function shopItem(c, slot, rk, lvl, id) {
 // đồ cũ (trước khi có phái) thuộc về phái của nhân vật: giống fixIt trong gear.js
 export function fixItem(it, cls) {
   if (!it) return;
+  if (isFree(it.slot)) { it.cls = ''; it.tier = clamp(it.r | 0, 0, 3); return; }
   if (!D.sets[it.cls]) it.cls = D.sets[it.wk] ? it.wk : cls;
   it.tier = clamp(it.r | 0, 0, 3); if (it.slot === 'weapon') it.wk = it.cls;
 }
@@ -167,6 +183,7 @@ export function monDrops(rng, type, lv, cls, nextId, elite) {
   const t = D.mons[type], ds = [], dm = TUNE.drop * mt(type, 'drop') * (evOn() ? TUNE.ev.drop : 1), dc = Math.min(.95, (elite ? Math.min(ELITE.dropMax, t.drop * ELITE.drop) : t.drop) * dm);
   if (rng() < dc) ds.push({ k: 'item', item: genItem(rng, lv, t.boss ? 'boss' : elite ? 'elite' : 'mob', cls, nextId()) });
   if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, 'boss', cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
+  if (t.boss && rng() < TUNE.wingChance * (evOn() ? TUNE.ev.drop : 1)) ds.push({ k: 'item', item: genItem(rng, lv, 'wing', cls, nextId()) });
   if (rng() < (elite ? .35 : .14)) ds.push({ k: 'pot' });
   const sn = t.boss ? ri(rng, 5, 8) : elite ? ri(rng, 1, 3) : (rng() < .34 + Math.min(.1, lv * .004) ? 1 : 0);
   if (sn) ds.push({ k: 'stone', n: sn });
@@ -264,7 +281,7 @@ export function normalizeChar(d) {
   c.ptReset = Math.max(0, Math.floor(+c.ptReset || 0));
   c.inv.forEach(it => fixItem(it, c.cls)); for (const k of SLOTS) fixItem(c.eq[k], c.cls);
   // đồ khác phái đang mặc (bản cũ): đưa vào túi giống gear.js
-  for (const k of SLOTS) { const it = c.eq[k]; if (it && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }
+  for (const k of SLOTS) { const it = c.eq[k]; if (it && !isFree(k) && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }
   let n = 1; const seen = new Set();
   for (const it of [...c.inv, ...SLOTS.map(k => c.eq[k]).filter(Boolean)]) { if (it.id == null || seen.has(it.id)) it.id = 'o' + (n++); seen.add(it.id); }
   return c;
