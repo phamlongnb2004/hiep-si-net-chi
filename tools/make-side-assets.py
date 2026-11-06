@@ -111,10 +111,14 @@ def caps(path):
     return res
 
 
+# mảnh dựng từ chính dải mặt đất: tk = số điểm ảnh mảnh / 1 điểm ảnh dải đất (để vẽ đúng tỉ lệ)
+TK = {'lava': 4}
 for th in ['grass', 'snow', 'lava']:
     p = os.path.join(SRC, 'side', f'cap_{th}.webp')
     if os.path.exists(p):
         c = caps(p)
+        if th in TK:
+            c['L']['tk'] = c['R']['tk'] = TK[th]
         out['capL_' + th] = c['L']; out['capR_' + th] = c['R']
         print('cap', th, {k: (v['w'], v['h'], v['top'], v['wall']) for k, v in c.items()})
 with open(OUT, 'w') as f:

@@ -6,7 +6,7 @@ const GY=600,WH=720;                 // y của mặt đất (chân nhân vật)
 const GRAV=2100,JUMP=760;            // trọng lực, lực nhảy (nhảy cao ~135)
 window.HSNC_GY=GY;
 const SI={};
-for(const k in SA){const im=new Image();im.src=SA[k].u;SI[k]={i:im,w:SA[k].w,h:SA[k].h,top:SA[k].top||0,wall:SA[k].wall||0};}
+for(const k in SA){const im=new Image();im.src=SA[k].u;SI[k]={i:im,w:SA[k].w,h:SA[k].h,top:SA[k].top||0,wall:SA[k].wall||0,tk:SA[k].tk||0};}
 const S=k=>{const a=SI[k];return a&&a.i.complete&&a.i.naturalWidth?a:null;};
 
 /* --- bản đồ dạng dải ngang --- */
@@ -172,7 +172,7 @@ drawGround=function(vw,vh){
     // bóng đổ trên nền thấp, sát chân vách
     const sh=ctx.createRadialGradient(x0-dir*6,bot,2,x0-dir*6,bot,46);sh.addColorStop(0,'rgba(0,0,0,.28)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(x0-dir*14,bot+2,48,9,0,0,TAU);ctx.fill();
     // mép khối đất vẽ sẵn (vách + cỏ chìa ra), mặt trên khớp đúng mặt đất của khối cao
-    if(cap){const wc=CAPW,Hc=wc*cap.h/cap.w,dx=x0-cap.wall*wc+(dir>0?-3:3);ctx.drawImage(cap.i,dx,top-cap.top*Hc,wc,Hc);ctx.restore();continue;}
+    if(cap){const wc=cap.tk&&gr?cap.w*(hh/(1-gr.top))/gr.h/cap.tk:CAPW,Hc=wc*cap.h/cap.w,dx=x0-cap.wall*wc+(dir>0?-3:3);ctx.drawImage(cap.i,dx,top-cap.top*Hc,wc,Hc);ctx.restore();continue;}
     // mặt vách: dải tối ở mép khối cao
     const g=ctx.createLinearGradient(x0,0,x0+dir*22,0);g.addColorStop(0,'rgba(20,12,6,.55)');g.addColorStop(1,'rgba(20,12,6,0)');
     ctx.fillStyle=g;ctx.fillRect(dir>0?x0:x0-22,top+10,22,bot-top+30);
@@ -234,7 +234,7 @@ updatePlayer=function(dt){
   if(down&&!p.air&&p.y<gY(p.x)-2){dropQ=.25;p.y+=2;p.air=true;}
   ground();
   p.moving=dx!==0;
-  if(p.moving){const spd=p.spd*bm('spd')*(p.swing>0?.85:1)*(p.air?.92:1);p.vx=dx*spd;if(!moveX(p,p.x+p.vx*dt)&&!p.air&&gY(p.x+dx*24)>p.y-125){jumpQ=.15;}if(!p.air)p.walk+=dt*Math.abs(dx);if(!p.focus)p.face=dx>0?1:-1;}else p.vx=0;
+  if(p.moving){const spd=p.spd*bm('spd')*(p.swing>0?.85:1)*(p.air?.92:1);p.vx=dx*spd;if(!moveX(p,p.x+p.vx*dt)&&!manual&&!p.air&&gY(p.x+dx*24)>p.y-125){jumpQ=.15;}/* tự bước lên chỉ khi đang tự đi tới mục tiêu; tự điều khiển thì phải bấm nhảy */if(!p.air)p.walk+=dt*Math.abs(dx);if(!p.focus)p.face=dx>0?1:-1;}else p.vx=0;
   if(p.air){p.moving=true;} // giữ một tư thế khi đang bay lên/rơi xuống
   p.vy=0;
   if(p.focus&&Math.abs(p.focus.x-p.x)>4)p.face=p.focus.x>p.x?1:-1;
