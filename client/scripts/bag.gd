@@ -177,8 +177,8 @@ func _render_detail(d: Dictionary) -> void:
 		var u = UI.button("Dùng", UI.GREEN, 18)
 		u.pressed.connect(game.do_pot)
 		r.add_child(u)
-		var b = UI.button("Mua (30 vàng)", UI.GOLD, 18)
-		b.disabled = int(d.gold) < 30 or int(d.pots) >= 20
+		var b = UI.button("Mua (%d vàng)" % Data.pot_price(), UI.GOLD, 18)
+		b.disabled = int(d.gold) < Data.pot_price() or int(d.pots) >= 20
 		b.pressed.connect(func(): Net.send({"t": "buypot", "n": 1}))
 		r.add_child(b)
 		return

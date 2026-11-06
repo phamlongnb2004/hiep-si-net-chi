@@ -174,7 +174,7 @@ func _process(dt: float) -> void:
 			_stop_reason = ""
 			_want = false
 			_set_state("closed", r)
-		elif code in [4001, 4002, 4003, 4005, 4006, 4007]:
+		elif code in [4001, 4002, 4003, 4005, 4006, 4007, 4008, 4009, 4010]:
 			_want = false
 			_set_state("closed", "code:%d" % code)
 		else:
@@ -182,7 +182,7 @@ func _process(dt: float) -> void:
 
 func _on_err(j: Dictionary) -> void:
 	var c = str(j.get("code", ""))
-	if c in ["auth", "dup", "srv", "app", "save", "update"]:
+	if c in ["auth", "dup", "srv", "app", "save", "update", "ban", "maint", "kick"]:
 		_stop_reason = c + ":" + str(j.get("msg", ""))
 		if c == "auth":
 			clear_session()

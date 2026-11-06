@@ -9,6 +9,9 @@ signal npc_near(id: String)
 signal open_npc(id: String)
 signal map_changed(name: String)
 signal player_tapped(id: int, name: String)
+signal announce(text: String)
+signal cfg_changed
+signal gm_reply(m: Dictionary)
 
 const GRAV := 2100.0
 const JUMP := 760.0
@@ -20,6 +23,7 @@ var fx: Fx
 var cam: Camera2D
 var me: Hero
 var my_id = 0
+var staff = ""                # vai trò quản trị của tài khoản này (rỗng = người chơi)
 var me_data: Dictionary = {}     # tin 'me' (chỉ số, túi đồ...) do máy chủ gửi
 var heroes = {}                 # id -> Hero (người khác)
 var mons = {}                   # id -> Mon
@@ -83,6 +87,9 @@ func _on_msg(m: Dictionary) -> void:
 	match str(m.get("t")):
 		"welcome":
 			my_id = int(m.id)
+			staff = str(m.get("staff", ""))
+			if m.get("cfg") is Dictionary:
+				_set_cfg(m.cfg)
 			if m.get("me") is Dictionary:
 				_set_me(m.me, true)
 		"me":
@@ -104,11 +111,25 @@ func _on_msg(m: Dictionary) -> void:
 			fx.text(p + Vector2(18, -90), "+%d vàng" % int(m.gold), Color("ffd23f"))
 		"log":
 			log_line.emit(str(m.text), Color.html(str(m.get("col", "#ffffff"))))
+		"cfg":
+			if m.get("cfg") is Dictionary:
+				_set_cfg(m.cfg)
+		"ann":
+			announce.emit(str(m.get("text", "")))
+		"gm":
+			gm_reply.emit(m)
 		"res":
 			if m.get("msg"):
 				log_line.emit(str(m.msg), Color("9be05a") if m.get("ok") else Color("ffb347"))
 			if m.get("op") == "warp":
 				warping = false
+
+func _set_cfg(c: Dictionary) -> void:
+	Data.cfg = c
+	if c.get("ann") is Dictionary:
+		announce.emit(str(c.ann.get("text", "")))
+	cfg_changed.emit()
+	me_changed.emit()
 
 func _set_me(d: Dictionary, full: bool) -> void:
 	if full:
@@ -248,6 +269,19 @@ func _event(e: Array) -> void:
 			if w4 and int(e[1]) != my_id:
 				_swing(w4)
 				fx.skill(w4.cls, int(e[2]), w4, float(e[3]), mons.get(int(e[4])), w4.face)
+		"nm":  # quái mới (quản trị gọi ra)
+			if e[1] is Dictionary and not mons.has(int(e[1].id)):
+				var nmo = Mon.new()
+				nmo.setup(e[1])
+				ents.add_child(nmo)
+				mons[nmo.id] = nmo
+		"rm":  # quái bị xóa hẳn
+			var rmo: Mon = mons.get(int(e[1]))
+			if rmo:
+				if focus == rmo:
+					focus = null
+				rmo.queue_free()
+				mons.erase(int(e[1]))
 		"k":
 			var mo2: Mon = mons.get(int(e[1]))
 			if mo2:

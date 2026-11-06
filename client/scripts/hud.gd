@@ -23,6 +23,9 @@ var overlay_l: Label
 var touch = false
 var social
 var fr_b: TextureButton
+var gm_b: Button
+var ann_l: Label
+var ev_l: Label
 var fr_badge: Label
 var potb
 
@@ -188,6 +191,27 @@ func setup(g: Game) -> void:
 	var menu_b = UI.icon_button(Data.tex(H.ui.get("menu", "")), 58)
 	menu_b.pressed.connect(func(): g.get_parent().open_menu())
 	tbtn.add_child(menu_b)
+	# nút GM: chỉ hiện với tài khoản quản trị (máy chủ vẫn kiểm quyền từng lệnh)
+	gm_b = UI.button("GM", UI.RED, 18)
+	gm_b.custom_minimum_size = Vector2(58, 58)
+	gm_b.visible = false
+	gm_b.pressed.connect(func(): g.get_parent().open_gm())
+	tbtn.add_child(gm_b)
+	ev_l = UI.outlined("", 15, Color("ffd23f"), "bold", 5)
+	ev_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	tr.add_child(ev_l)
+	# thông báo của quản trị: dải chữ ở giữa phía trên
+	ann_l = UI.outlined("", 22, Color("ffe08a"), "bold", 7)
+	ann_l.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	ann_l.position = Vector2(-380, 64)
+	ann_l.custom_minimum_size = Vector2(760, 0)
+	ann_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ann_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ann_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ann_l.modulate.a = 0
+	root.add_child(ann_l)
+	g.announce.connect(show_ann)
+	g.cfg_changed.connect(_cfg)
 	# cụm nút phải dưới: nút đánh lớn ở góc, 6 kỹ năng xếp hình cung quanh nút đánh
 	var br = Control.new()
 	br.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -390,3 +414,24 @@ func _net(s: String, inf: String) -> void:
 func bind_social() -> void:
 	fr_b.pressed.connect(func(): social.open_friends())
 	social.badge.connect(func(n): fr_badge.text = ("%d" % n) if n > 0 else "")
+
+func show_ann(t: String) -> void:
+	if t == "":
+		return
+	ann_l.text = "📢 " + t
+	add_log("📢 " + t, Color("ffe08a"))
+	var tw = ann_l.create_tween()
+	ann_l.modulate.a = 0
+	tw.tween_property(ann_l, "modulate:a", 1.0, 0.3)
+	tw.tween_interval(12)
+	tw.tween_property(ann_l, "modulate:a", 0.0, 1.0)
+
+func _cfg() -> void:
+	var e = Data.cfg.get("ev")
+	if e is Dictionary:
+		var t = Time.get_datetime_dict_from_unix_time(int(float(e.until) / 1000.0) + 7 * 3600)
+		ev_l.text = "🎉 %s: x%s KN · x%s vàng · x%s rơi đồ (đến %02d:%02d)" % [e.name, str(e.exp), str(e.gold), str(e.drop), t.hour, t.minute]
+	else:
+		ev_l.text = ""
+	gm_b.visible = game.staff in ["gm", "owner"]
+

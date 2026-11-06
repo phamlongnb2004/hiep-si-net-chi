@@ -137,7 +137,7 @@ func _skills(d: Dictionary) -> void:
 
 func _pots(d: Dictionary) -> void:
 	body.add_child(UI.label("Bình máu hồi 45% máu tối đa. Mang tối đa 20 bình.", 15, Color("5a6b8c"), "body"))
-	for o in [[1, 30], [5, 150]]:
+	for o in [[1, Data.pot_price()], [5, Data.pot_price() * 5]]:
 		var b = UI.button("Mua %dv" % o[1], UI.GOLD, 18)
 		b.disabled = int(d.gold) < o[1] or int(d.pots) + o[0] > 20
 		var n: int = o[0]
@@ -211,7 +211,7 @@ func _gear(d: Dictionary) -> void:
 		row.add_child(nm)
 		for slot in Data.SLOTS:
 			var it = _shop_item(gear_cls, slot, r, lvl)
-			var price = int(round((25 + lvl * 9) * SHOP_MUL[r]))
+			var price = int(round((25 + lvl * 9) * SHOP_MUL[r] * Data.shop_mul()))
 			var v = UI.vbox(2)
 			var cell = ItemCell.make(it, false, gear_cls == game.cls(), false, 70)
 			v.add_child(cell)

@@ -41,6 +41,15 @@ export class MapInst {
         wx: x, wt: 0, vx: 0, kx: 0, stun: 0, slow: 0, pois: null, hold: false, dmg: new Map() });
     }
   }
+  // quái do GM gọi thêm (temp): chết là mất hẳn, không hồi sinh
+  addMon(type, lv, x, temp) {
+    x = clamp(x, 60, this.M.w - 60);
+    const st = R.monStats(type, lv, false), t = D.mons[type];
+    const m = { id: this.seq++, type, t, lv, el: false, x, y: this.gY(x), sx: x, x0: x - 300, x1: x + 300, ...st, hp: st.hpMax,
+      face: 1, state: 'idle', tgt: 0, cd: rand(0, 1), wind: 0, lunge: 0, shoot: rand(2, 4), br: null, dead: false, respawn: 0,
+      wx: x, wt: 0, vx: 0, kx: 0, stun: 0, slow: 0, pois: null, hold: false, dmg: new Map(), temp: !!temp };
+    this.mons.push(m); this.ev.push(['nm', this.monInfo(m)]); return m;
+  }
   monInfo(m) { return { id: m.id, type: m.type, lv: m.lv, el: m.el ? 1 : 0, hpMax: m.hpMax, x: Math.round(m.x), y: Math.round(m.y), hp: Math.round(m.hp), dead: m.dead ? 1 : 0 }; }
   dropInfo(d) { return { id: d.id, k: d.k, n: d.n || 0, x: Math.round(d.x), y: Math.round(d.y), item: d.item || null, own: d.own }; }
   join(c, x) {
@@ -66,7 +75,7 @@ export class MapInst {
     if (y > g) y = g;
     if (y < g - 150) { y = g - 150; bad = true; }
     f.x = x; f.y = y; f.face = m.f < 0 ? -1 : 1; f.air = m.air ? 1 : 0; f.mv = m.mv ? 1 : 0;
-    if (bad) this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y) });
+    if (bad) { c.badMoves = (c.badMoves || 0) + 1; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y) }); }
   }
 
   /* ---------- chiến đấu ---------- */
@@ -174,6 +183,7 @@ export class MapInst {
     m.dead = true; m.respawn = R.respawnTime(rng, m.type); m.state = 'idle'; m.kx = 0; m.vx = 0; m.br = null; m.stun = 0; m.slow = 0; m.pois = null; m.tgt = 0;
     const best = killer && this.players.has(killer.id) ? killer : null;
     m.dmg.clear(); this.ev.push(['k', m.id, best ? best.id : 0]);
+    if (m.temp) { m.gone = true; return; } // quái GM gọi ra để thử: không cho kinh nghiệm, vàng, đồ (tránh lạm quyền)
     if (!best) return;
     const ch = best.ch, e = R.monExp(m.type, m.lv, m.el), g = R.monGold(rng, m.type, m.lv, m.el);
     ch.kills++; ch.gold += g;
@@ -183,6 +193,7 @@ export class MapInst {
     for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
       const o = { id: this.seq++, k: d.k, n: d.n, item: d.item, x: clamp(m.x + rand(-34, 34), 40, this.M.w - 40), y: 0, life: DROP_LIFE, own: best.id, ownT: OWN_T };
       o.y = this.gY(o.x); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
+      if (d.item && d.item.r >= 2 && this.h.glog) this.h.glog('drop', best, 'Rơi ' + d.item.name + ' (' + D.rar[d.item.r].n + ') từ ' + m.t.n + ' cấp ' + m.lv + (m.el ? ' tinh anh' : ''));
     }
     best.meDirty = true; this.h.dirty(best);
   }
@@ -203,6 +214,7 @@ export class MapInst {
     for (let i = this.timers.length - 1; i >= 0; i--) { const s = this.timers[i]; s.t -= dt; if (s.t <= 0) { this.timers.splice(i, 1); try { s.fn(); } catch (e) { console.error(e); } } }
     for (const c of this.players.values()) this.tickPlayer(c, dt);
     this.tickMons(dt); this.tickProjs(dt);
+    if (this.mons.some(m => m.gone)) { for (const m of this.mons) if (m.gone) this.ev.push(['rm', m.id]); this.mons = this.mons.filter(m => !m.gone); }
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i]; d.life -= dt; d.ownT -= dt;
       if (d.life <= 0) { this.drops.splice(i, 1); this.ev.push(['x', d.id]); continue; }
@@ -219,7 +231,7 @@ export class MapInst {
     if (this.safe(f.x) && f.hp < f.maxHp) { f.hp = Math.min(f.maxHp, f.hp + f.maxHp * R.SAFE_REGEN * dt); if (this.tk % 5 === 0) c.meDirty = true; }
   }
   // chọn người chơi gần nhất trong tầm của quái
-  near(m, r) { let b = null, bd = r; for (const c of this.players.values()) { const f = c.f; if (f.dead > 0 || this.safe(f.x) || Math.abs(f.y - m.y) > 180) continue; const d = Math.abs(f.x - m.x); if (d < bd) { bd = d; b = c; } } return b; }
+  near(m, r) { let b = null, bd = r; for (const c of this.players.values()) { const f = c.f; if (c.hidden || f.dead > 0 || this.safe(f.x) || Math.abs(f.y - m.y) > 180) continue; const d = Math.abs(f.x - m.x); if (d < bd) { bd = d; b = c; } } return b; }
   tickMons(dt) {
     for (const m of this.mons) {
       if (m.dead) { m.respawn -= dt; if (m.respawn <= 0) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.gY(m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); } continue; }
@@ -297,7 +309,7 @@ export class MapInst {
   // ảnh chụp trạng thái gửi 10 lần/giây
   snap(extra) {
     const p = [];
-    for (const c of this.players.values()) { const f = c.f, ch = c.ch; p.push([c.id, Math.round(f.x), Math.round(f.y), f.face, f.mv, f.atkCd > 0 ? 1 : 0, ch.cls, ch.lv, ch.name, +(f.hp / f.maxHp).toFixed(3), f.dead > 0 ? 1 : 0, lookN(ch), f.air]); }
+    for (const c of this.players.values()) { if (c.hidden) continue; const f = c.f, ch = c.ch; p.push([c.id, Math.round(f.x), Math.round(f.y), f.face, f.mv, f.atkCd > 0 ? 1 : 0, ch.cls, ch.lv, ch.name, +(f.hp / f.maxHp).toFixed(3), f.dead > 0 ? 1 : 0, lookN(ch), f.air]); }
     if (extra) p.push(...extra);
     const m = [];
     for (const q of this.mons) m.push([q.id, Math.round(q.x), Math.round(q.y), Math.max(0, Math.round(q.hp)), q.face,

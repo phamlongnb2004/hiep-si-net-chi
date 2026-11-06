@@ -112,10 +112,17 @@ func score(it) -> float:
 		return 0.0
 	return item_stat(it, "atk") * 2.0 + item_stat(it, "def") * 1.5 + item_stat(it, "hp") * 0.1 + item_stat(it, "spd") * 0.6
 
+## tham số do máy chủ gửi (admin chỉnh được): giá bình máu, hệ số giá cửa hàng, cộng tỉ lệ rèn, sự kiện, thông báo
+var cfg: Dictionary = {}
+func pot_price() -> int:
+	return int(cfg.get("potPrice", 30))
+func shop_mul() -> float:
+	return float(cfg.get("shopMul", 1.0))
+
 func forge_info(it: Dictionary) -> Dictionary:
 	var L = int(it.get("up", 0)) + 1
 	var rate: Array = D.forge.rate
-	return {"L": L, "rate": rate[min(L - 1, rate.size() - 1)], "stones": 1 + int(floor((L - 1) / 2.0)),
+	return {"L": L, "rate": clampi(int(rate[min(L - 1, rate.size() - 1)]) + int(cfg.get("forgeBonus", 0)), 1, 100), "stones": 1 + int(floor((L - 1) / 2.0)),
 		"gold": int(round((40.0 + float(it.lvl) * 6.0) * pow(L, 1.5))), "drop": 0 if L <= 5 else (1 if L <= 10 else 2)}
 
 func rar_color(r: int) -> Color:

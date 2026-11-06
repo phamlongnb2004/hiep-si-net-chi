@@ -11,6 +11,7 @@ var hud: Hud
 var bag: Bag
 var npc: Npc
 var social: Social
+var gm: GmPanel
 var menu: Control
 var updater: Updater
 var update_note = ""
@@ -244,6 +245,9 @@ func _start_game() -> void:
 	social = Social.new()
 	top.add_child(social)
 	social.setup(game)
+	gm = GmPanel.new()
+	top.add_child(gm)
+	gm.setup(game)
 	hud.social = social
 	hud.bind_social()
 	npc = Npc.new()
@@ -256,7 +260,7 @@ func _start_game() -> void:
 	bg.visible = false
 
 func _end_game() -> void:
-	for n in [game, hud, bag, npc, menu, social]:
+	for n in [game, hud, bag, npc, menu, social, gm]:
 		if n and is_instance_valid(n):
 			var p = n.get_parent()
 			if p is CanvasLayer and p != ui_layer:
@@ -267,10 +271,16 @@ func _end_game() -> void:
 	bag = null
 	npc = null
 	menu = null
+	social = null
+	gm = null
 
 func open_bag() -> void:
 	if bag and not npc.visible:
 		bag.open()
+
+func open_gm() -> void:
+	if gm and game and game.staff in ["gm", "owner"]:
+		gm.open()
 
 func open_menu() -> void:
 	if menu and is_instance_valid(menu):
@@ -413,6 +423,8 @@ func _on_status(s: String, info: String) -> void:
 			show_login("Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.")
 		"dup":
 			show_login("Tài khoản vừa đăng nhập ở nơi khác.")
+		"ban", "maint", "kick":
+			show_login(msg)
 		"update":
 			app_required = true
 			show_login("Đã có bản mới. Hãy tải lại ứng dụng tại trang /tai-game rồi cài đè (không mất nhân vật).")

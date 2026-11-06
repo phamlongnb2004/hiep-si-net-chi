@@ -6,6 +6,7 @@ import * as R from '../shared/rules.js';
 import { MapInst, makeFighter, refreshStats } from './sim.js';
 import { OPS } from './ops.js';
 import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
+import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaff, maintOn, maintMsg, banInfo, mutedUntil } from './admin.js';
 
 const TICK_MS = 100;
 const MAX_SAVE = 300 * 1024;
@@ -21,8 +22,7 @@ let ADMINS = new Set(ADMIN_DEFAULT);
 const isAdmin = name => ADMINS.has(String(name || '').toLowerCase());
 const WEB_MSG = 'Hiệp Sĩ Nét Chì chỉ chơi trên ứng dụng. Hãy tải game cho máy tính hoặc điện thoại.';
 
-const SERVERS = [{ id: 1, name: 'Server 1', tag: 'Mới' }];
-const srvOf = v => SERVERS.find(x => x.id === (v | 0)) || null;
+const SERVERS = [{ id: 1, name: 'Server 1', tag: 'Mới', open: true }]; // mặc định; admin sửa danh sách ở trang /admin
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -60,6 +60,15 @@ export default {
       // chưa phát hành bản gốc: dùng file cũ (ứng dụng vỏ) đang có trên máy chủ
       return new Response(null, { status: 302, headers: { Location: k2(tai[1]), 'Cache-Control': 'no-store' } });
     }
+    // trang quản trị: không cho nhúng vào trang khác, không lưu cache, chỉ chạy mã của chính trang
+    if (url.pathname === '/admin' || url.pathname === '/admin/') {
+      const r = await env.ASSETS.fetch(new Request(new URL('/admin.html', url)));
+      const h = new Headers(r.headers);
+      h.set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+      h.set('X-Frame-Options', 'DENY'); h.set('X-Content-Type-Options', 'nosniff'); h.set('Referrer-Policy', 'no-referrer');
+      h.set('Cache-Control', 'no-store'); h.set('X-Robots-Tag', 'noindex, nofollow'); h.set('Strict-Transport-Security', 'max-age=31536000');
+      return new Response(r.body, { status: r.status, headers: h });
+    }
     if (url.pathname.startsWith('/api/') || url.pathname === '/ws') {
       const world = env.WORLD.get(env.WORLD.idFromName('world'));
       return world.fetch(req);
@@ -87,12 +96,22 @@ export class World extends DurableObject {
     this.sql.exec(`UPDATE sessions SET last=? WHERE last IS NULL`, Date.now()); // phiên cũ: tính hạn từ lúc nâng cấp, không đẩy ai ra
     this.insts = new Map();
     initSocial(this);
+    initAdmin(this);
     this.clients = new Map();
     this.seq = 1;
     this.tries = new Map();
     this.timer = null;
+    this._tk = 0;
   }
 
+  ownerNames() { return [...ADMINS]; }
+  servers() { return Array.isArray(this.cfg && this.cfg.servers) && this.cfg.servers.length ? this.cfg.servers : SERVERS; }
+  srvOf(v) { return this.servers().find(x => x.id === (v | 0)) || null; }
+  async checkPass(u, pass) { return sameHex(await hashPass(pass, u.salt), u.pass_hash); }
+  async setPass(uid, pass) { const salt = randHex(16); this.sql.exec('UPDATE users SET pass_hash=?, salt=? WHERE id=?', await hashPass(pass, salt), salt, uid); }
+  broadcastCfg() { const m = JSON.stringify({ t: 'cfg', cfg: publicCfg(this) }); for (const c of this.clients.values()) if (c.v2) this.sendTo(c, m); }
+  minApp() { return (this.cfg && this.cfg.min_app) || this.env.MIN_APP || ''; }
+  v1Off() { return ((this.cfg && this.cfg.v1) || this.env.V1) === 'off'; }
   one(sql, ...args) { const r = this.sql.exec(sql, ...args).toArray(); return r[0] || null; }
 
   async fetch(req) {
@@ -112,9 +131,10 @@ export class World extends DurableObject {
   }
 
   async api(req, url) {
+    if (url.pathname.startsWith('/api/admin/')) return adminHttp(this, req, url);
     if (url.pathname === '/api/health') return json(200, { ok: true, online: this.clients.size, store: 'cloudflare-sqlite' });
     if (url.pathname === '/api/top') {
-      const srv = srvOf(url.searchParams.get('srv') || 1) ? (url.searchParams.get('srv') | 0 || 1) : 1;
+      const srv = this.srvOf(url.searchParams.get('srv') || 1) ? (url.searchParams.get('srv') | 0 || 1) : 1;
       const top = this.sql.exec('SELECT user_id id, name, cls, lv, kills FROM chars WHERE srv=? ORDER BY lv DESC, kills DESC LIMIT 20', srv).toArray();
       return json(200, { top });
     }
@@ -126,7 +146,10 @@ export class World extends DurableObject {
       const u = this.session(b.token);
       if (!u) return json(401, { error: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' });
       if (b.app === 'web' && !isAdmin(u.username)) return json(403, { error: WEB_MSG, code: 'app' });
-      const servers = SERVERS.map(x => {
+      const staff = isStaff(this, u.id), ban = banInfo(this, u.id);
+      if (ban) return json(403, { error: ban, code: 'ban' });
+      if (maintOn(this) && !staff) return json(503, { error: maintMsg(this), code: 'maint' });
+      const servers = this.servers().filter(x => x.open !== false || staff).map(x => {
         const ch = this.one('SELECT name, cls, lv FROM chars WHERE user_id=? AND srv=?', u.id, x.id);
         let online = 0; for (const c of this.clients.values()) if (c.srv === x.id) online++;
         return { id: x.id, name: x.name, tag: x.tag, online, char: ch ? { name: ch.name, cls: ch.cls, lv: ch.lv | 0 } : null };
@@ -136,6 +159,7 @@ export class World extends DurableObject {
     const user = String(b.user || '').trim(), pass = String(b.pass || '');
     if (url.pathname === '/api/register') {
       if (b.app === 'web') return json(403, { error: WEB_MSG, code: 'app' });
+      if (maintOn(this)) return json(503, { error: maintMsg(this), code: 'maint' });
       if (!okName(user)) return json(400, { error: 'Tên tài khoản 3–16 ký tự, gồm chữ, số, dấu cách hoặc _' });
       if (pass.length < 6 || pass.length > 72) return json(400, { error: 'Mật khẩu cần từ 6 đến 72 ký tự' });
       if (this.one('SELECT id FROM users WHERE uname=?', user.toLowerCase())) return json(409, { error: 'Tên tài khoản đã có người dùng' });
@@ -147,6 +171,9 @@ export class World extends DurableObject {
       const u = this.one('SELECT * FROM users WHERE uname=?', user.toLowerCase());
       const good = u && sameHex(await hashPass(pass, u.salt), u.pass_hash);
       if (!good) return json(401, { error: 'Sai tên tài khoản hoặc mật khẩu' });
+      const ban = banInfo(this, u.id); if (ban) return json(403, { error: ban, code: 'ban' });
+      if (maintOn(this) && !isStaff(this, u.id)) return json(503, { error: maintMsg(this), code: 'maint' });
+      this.sql.exec('UPDATE users SET last_login=?, last_ip=? WHERE id=?', Date.now(), ip, u.id);
       if (b.app === 'web' && !isAdmin(u.username)) return json(403, { error: WEB_MSG, code: 'app' });
       return json(200, this.newSession(u));
     }
@@ -178,7 +205,7 @@ export class World extends DurableObject {
     ws.accept();
     const send = obj => { try { ws.send(JSON.stringify(obj)); } catch (e) {} };
     const token = String(url.searchParams.get('token') || '');
-    const srv = srvOf(url.searchParams.get('srv') || 1);
+    const srv = this.srvOf(url.searchParams.get('srv') || 1);
     if (!srv) {
       send({ t: 'err', code: 'srv', msg: 'Máy chủ này chưa mở.' });
       ws.close(4003, 'srv');
@@ -190,6 +217,9 @@ export class World extends DurableObject {
       ws.close(4001, 'auth');
       return new Response(null, { status: 101, webSocket: client });
     }
+    const ban = banInfo(this, u.id), staff = isStaff(this, u.id);
+    if (ban) { send({ t: 'err', code: 'ban', msg: ban }); ws.close(4008, 'ban'); return new Response(null, { status: 101, webSocket: client }); }
+    if ((maintOn(this) || srv.open === false) && !staff) { send({ t: 'err', code: 'maint', msg: srv.open === false ? 'Máy chủ này đang đóng.' : maintMsg(this) }); ws.close(4009, 'maint'); return new Response(null, { status: 101, webSocket: client }); }
     if (url.searchParams.get('app') === 'web' && !isAdmin(u.username)) {
       send({ t: 'err', code: 'app', msg: WEB_MSG });
       ws.close(4005, 'app');
@@ -198,14 +228,14 @@ export class World extends DurableObject {
     for (const c of this.clients.values()) if (c.uid === u.id) { this.sendTo(c, { t: 'err', code: 'dup', msg: 'Tài khoản vừa đăng nhập ở nơi khác.' }); try { c.ws.close(4002, 'dup'); } catch (e) {} this.drop(c); }
     if ((url.searchParams.get('proto') | 0) >= 2) {
       // ứng dụng quá cũ: báo cập nhật (bản tối thiểu đặt bằng biến MIN_APP trong Cloudflare)
-      if (this.env.MIN_APP && verCmp(url.searchParams.get('v') || '0', this.env.MIN_APP) < 0) {
+      if (this.minApp() && verCmp(url.searchParams.get('v') || '0', this.minApp()) < 0) {
         send({ t: 'err', code: 'update', msg: 'Đã có bản mới, hãy cập nhật ứng dụng để chơi tiếp.' }); ws.close(4007, 'update');
         return new Response(null, { status: 101, webSocket: client });
       }
       this.openV2(ws, u, srv, url); return new Response(null, { status: 101, webSocket: client });
     }
     // giao thức cũ (bản web / ứng dụng vỏ): tắt hẳn khi chuyển sang ứng dụng gốc (biến V1=off)
-    if (this.env.V1 === 'off') {
+    if (this.v1Off() && !staff) {
       send({ t: 'err', code: 'app', msg: 'Bản này đã ngừng. Hãy tải ứng dụng Hiệp Sĩ Nét Chì mới tại trang /tai-game.' }); ws.close(4005, 'app');
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -257,7 +287,9 @@ export class World extends DurableObject {
       const now = Date.now(), text = clean(m.text, 120).trim();
       if (!text || now - c.lastChat < 700) return;
       c.lastChat = now;
+      if (mutedUntil(this, c.uid)) return;
       const msg = { t: 'chat', id: c.id, n: (c.st && c.st[8]) || c.user, text, all: !!m.all };
+      chatLog(this, c, msg.n, text, m.all ? 'all' : 'map:' + c.map);
       if (m.all) this.toSrv(c.srv, msg); else this.toMap(c, c.map, msg);
     } else if (m.t === 'save') {
       const d = m.d;
@@ -292,6 +324,7 @@ export class World extends DurableObject {
       if (sn.p.length) { const v2 = sn.p.filter(q => inst.players.has(q[0])); if (v2.length) { if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(...v2); } }
     }
     const now = Date.now();
+    if (++this._tk % 10 === 0) adminTick(this);
     for (const c of this.clients.values()) {
       if (!c.v2 && c.map >= 0) this.sendTo(c, { t: 'ps', p: (byMap.get(c.srv * 100 + c.map) || []).filter(s => s[0] !== c.id) });
       if (c.pending && now - c.lastSave > SAVE_EVERY) this.writeSave(c);
@@ -305,7 +338,7 @@ export class World extends DurableObject {
     this.clients.set(c.id, c);
     const row = this.one('SELECT data FROM chars WHERE user_id=? AND srv=?', u.id, srv.id);
     if (row) { try { this.loadChar(c, JSON.parse(row.data)); } catch (e) { console.error('bản lưu hỏng', u.id, e); this.sendTo(c, { t: 'err', code: 'save', msg: 'Bản lưu nhân vật bị lỗi, hãy báo quản trị.' }); try { ws.close(4006, 'save'); } catch (e2) {} this.clients.delete(c.id); return; } }
-    this.sendTo(c, { t: 'welcome', proto: PROTO, id: c.id, user: u.username, srv: srv.id, srvName: srv.name, online: this.count(srv.id), me: c.ch ? this.meOf(c, true) : null });
+    this.sendTo(c, { t: 'welcome', proto: PROTO, id: c.id, user: u.username, srv: srv.id, srvName: srv.name, online: this.count(srv.id), me: c.ch ? this.meOf(c, true) : null, cfg: publicCfg(this), staff: (this.one('SELECT role FROM admins WHERE uid=?', u.id) || {}).role || '' });
     this.toSrv(srv.id, { t: 'count', online: this.count(srv.id) });
     if (c.ch) { this.enterMap(c, c.ch.map, null); friendList(this, c); }
     ws.addEventListener('message', ev => this.onV2(c, ev.data));
@@ -321,7 +354,7 @@ export class World extends DurableObject {
   }
   instOf(srv, mi) { const k = srv * 100 + mi; let i = this.insts.get(k); if (!i) { i = new MapInst(srv, mi, this.hooks()); this.insts.set(k, i); } return i; }
   gcInst(inst) { if (!inst.players.size) this.insts.delete(inst.srv * 100 + inst.mi); }
-  hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }) }; }
+  hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (c, d) => glog(this, 'drop', c, d) }; }
   // báo cho bạn bè đang online cập nhật danh sách (online/offline, bản đồ)
   friendsChanged(c) {
     try { for (const r of this.sql.exec('SELECT fid FROM friends WHERE uid=?', c.uid).toArray()) for (const o of this.clients.values()) if (o.uid === r.fid && o.v2 && o.ch && o !== c) friendList(this, o); } catch (e) { console.error(e); }
@@ -364,6 +397,7 @@ export class World extends DurableObject {
       return this.enterMap(c, 0, null);
     }
     if (!c.ch || !c.inst) return;
+    if (m.t === 'gm') return void onGM(this, c, m).catch(e => console.error(e));
     if (onSocial(this, c, m)) return;
     const I = c.inst;
     switch (m.t) {
@@ -376,7 +410,9 @@ export class World extends DurableObject {
       }
       case 'chat': {
         const text = clean(m.text, 120).trim(); if (!text || now - c.lastChat < 700) return; c.lastChat = now;
+        if (mutedUntil(this, c.uid)) return this.sendTo(c, { t: 'res', op: 'chat', ok: false, msg: 'Bạn đang bị cấm trò chuyện.' });
         const msg = { t: 'chat', id: c.id, n: c.ch.name, text, all: !!m.all };
+        chatLog(this, c, c.ch.name, text, m.all ? 'all' : 'map:' + c.map);
         if (m.all) {
           // nhắn cả máy chủ tốn vàng
           if (c.ch.gold < R.WORLD_CHAT_COST) return this.sendTo(c, { t: 'res', op: 'chat', ok: false, msg: 'Nhắn cả máy chủ cần ' + R.WORLD_CHAT_COST + ' vàng.' });
@@ -392,6 +428,7 @@ export class World extends DurableObject {
         const r = op(c, m) || { ok: false };
         this.sendTo(c, { t: 'res', op: m.t, rq: m.rq | 0, ...r });
         if (r.ok) { c.dirty = true; c.bagDirty = true; this.sendMe(c); }
+        if (m.t === 'forge' && r.win && r.up >= 8) glog(this, 'forge', c, 'Rèn thành công lên +' + r.up);
       }
     }
   }

@@ -11,6 +11,23 @@ export const FRIEND_MAX = 100;
 export const LOCK_CHANCE = .4;                // đồ rơi có tỉ lệ bị khóa (không giao dịch được)
 export const ELITE_CHANCE = .07;              // quái thường thỉnh thoảng hồi sinh thành tinh anh
 export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
+// Tham số cân bằng do admin chỉnh trên máy chủ (không cần ra bản ứng dụng mới). Mặc định = luật gốc.
+// ev: sự kiện tạm thời (x2 kinh nghiệm...), máy chủ tự tắt khi hết giờ.
+export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, mon: {} };
+export const TUNE = { ...TUNE_DEFAULT, mon: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
+// áp tham số mới (đã kiểm giới hạn) vào TUNE; trả về bản đã chuẩn hóa để lưu
+export function setTune(t) {
+  const n = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+  const o = {
+    exp: n(t.exp, .1, 20, 1), gold: n(t.gold, .1, 20, 1), drop: n(t.drop, .1, 10, 1), potPrice: Math.round(n(t.potPrice, 1, 100000, POT_PRICE)),
+    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), mon: {} };
+  for (const k in (t.mon || {})) if (D.mons[k]) { const m = t.mon[k] || {}, q = {};
+    for (const f of ['hp', 'atk', 'def', 'exp', 'gold', 'drop']) { const v = n(m[f], .1, 20, 1); if (v !== 1) q[f] = v; }
+    if (Object.keys(q).length) o.mon[k] = q; }
+  Object.assign(TUNE, o); return o;
+}
+const mt = (type, f) => (TUNE.mon[type] && TUNE.mon[type][f]) || 1;
+const evOn = () => TUNE.ev && TUNE.ev.on;
 // tên món theo phái (gear.js) và tỉ lệ hiếm khi rơi
 export const NOUN = {
   sword: { hat: 'Mũ Giáp', armor: 'Giáp Kỵ Sĩ', cape: 'Áo Choàng', weapon: 'Kiếm' },
@@ -75,7 +92,7 @@ export function genItem(rng, lvl, mode, cls, id) {
 // đồ bán ở NPC Trang Bị: chỉ số mặc định, không khóa
 export const SHOP_TIER_MUL = [1, 3.5, 10, 32];
 export const shopLevel = lv => Math.max(1, Math.floor(lv / 5) * 5);
-export const shopPrice = (lvl, rk) => Math.round((25 + lvl * 9) * SHOP_TIER_MUL[rk]);
+export const shopPrice = (lvl, rk) => Math.round((25 + lvl * 9) * SHOP_TIER_MUL[rk] * TUNE.shopMul);
 export function shopItem(c, slot, rk, lvl, id) {
   const b = baseStats(slot, lvl, rk), st = {};
   for (const k in b) st[k] = Math.max(1, Math.round(b[k]));
@@ -97,21 +114,21 @@ export function maxItemStat(it) {
 /* ---------- lò rèn ---------- */
 export function forgeInfo(it) {
   const L = (it.up || 0) + 1;
-  return { L, rate: D.forge.rate[L - 1], stones: 1 + Math.floor((L - 1) / 2), gold: Math.round((40 + it.lvl * 6) * Math.pow(L, 1.5)), drop: L <= 5 ? 0 : L <= 10 ? 1 : 2 };
+  return { L, rate: Math.max(1, Math.min(100, D.forge.rate[L - 1] + TUNE.forgeBonus)), stones: 1 + Math.floor((L - 1) / 2), gold: Math.round((40 + it.lvl * 6) * Math.pow(L, 1.5)), drop: L <= 5 ? 0 : L <= 10 ? 1 : 2 };
 }
 
 /* ---------- quái ---------- */
 export function monStats(type, lv, elite) {
   const t = D.mons[type], e = elite ? ELITE : { hp: 1, atk: 1, def: 1 };
-  return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk, def: (t.def + lv * .5) * e.def };
+  return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp * mt(type, 'hp')), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk * mt(type, 'atk'), def: (t.def + lv * .5) * e.def * mt(type, 'def') };
 }
-export const monExp = (type, lv, elite) => Math.round(D.mons[type].exp * (1 + .45 * (lv - 1)) * (elite ? ELITE.exp : 1));
-export const monGold = (rng, type, lv, elite) => { const g = D.mons[type].gold; return ri(rng, g[0], g[1]) * (1 + Math.floor(lv / 3)) * (elite ? ELITE.gold : 1); };
+export const monExp = (type, lv, elite) => Math.round(D.mons[type].exp * (1 + .45 * (lv - 1)) * (elite ? ELITE.exp : 1) * TUNE.exp * mt(type, 'exp') * (evOn() ? TUNE.ev.exp : 1));
+export const monGold = (rng, type, lv, elite) => { const g = D.mons[type].gold; return Math.round(ri(rng, g[0], g[1]) * (1 + Math.floor(lv / 3)) * (elite ? ELITE.gold : 1) * TUNE.gold * mt(type, 'gold') * (evOn() ? TUNE.ev.gold : 1)); };
 export const respawnTime = (rng, type) => D.mons[type].boss ? 90 : 9 + rng() * 5;
-export const rollElite = (rng, type) => !D.mons[type].boss && rng() < ELITE_CHANCE;
+export const rollElite = (rng, type) => !D.mons[type].boss && rng() < TUNE.eliteChance;
 // vật phẩm rơi khi hạ quái (tinh anh: tỉ lệ rơi đồ cao hơn và đồ hiếm dễ ra hơn, nhưng không phải lần nào cũng rơi)
 export function monDrops(rng, type, lv, cls, nextId, elite) {
-  const t = D.mons[type], ds = [], dc = elite ? Math.min(ELITE.dropMax, t.drop * ELITE.drop) : t.drop;
+  const t = D.mons[type], ds = [], dm = TUNE.drop * mt(type, 'drop') * (evOn() ? TUNE.ev.drop : 1), dc = Math.min(.95, (elite ? Math.min(ELITE.dropMax, t.drop * ELITE.drop) : t.drop) * dm);
   if (rng() < dc) ds.push({ k: 'item', item: genItem(rng, lv, t.boss ? 'boss' : elite ? 'elite' : 'mob', cls, nextId()) });
   if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, 'boss', cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
   if (rng() < (elite ? .35 : .14)) ds.push({ k: 'pot' });

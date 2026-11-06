@@ -26,6 +26,11 @@ func run() -> void:
 	await wait(1.5)
 	main = get_tree().root.get_node_or_null("Main")
 	await shot("01-login")
+	# chế độ thử GM: HSNC_GM_USER/PASS/OTP -> đăng nhập tài khoản quản trị, mở bảng GM, chụp
+	if OS.get_environment("HSNC_GM_USER") != "":
+		await gm_test()
+		get_tree().quit()
+		return
 	var u = "bot%d" % (Time.get_unix_time_from_system() as int % 100000)
 	var r = await Net.login(u, "matkhau1", true)
 	print("đăng ký: ", r.code)
@@ -118,3 +123,30 @@ func run() -> void:
 	cl.queue_free()
 	print("XONG cấp=", g.me_data.get("lv"), " vàng=", g.me_data.get("gold"), " túi=", g.me_data.get("inv", []).size())
 	get_tree().quit()
+
+func gm_test() -> void:
+	var r = await Net.login(OS.get_environment("HSNC_GM_USER"), OS.get_environment("HSNC_GM_PASS"), false)
+	print("đăng nhập GM: ", r.code)
+	main.enter(1)
+	await wait(2.0)
+	if main.screen and main.screen.find_child("CreateErr", true, false):
+		Net.send({"t": "create", "name": "Chu Game", "cls": "sword"})
+		await wait(2.0)
+	await shot("g1-hud")
+	main.open_gm()
+	await wait(0.8)
+	await shot("g2-locked")
+	Net.send({"t": "gm", "cmd": "unlock", "otp": OS.get_environment("HSNC_GM_OTP")})
+	await wait(1.0)
+	await shot("g3-unlocked")
+	main.gm._send({"cmd": "spawn", "type": "boar", "lv": 3, "n": 3})
+	await wait(0.6)
+	main.gm._send({"cmd": "tp", "map": 1})
+	await wait(1.5)
+	main.gm._send({"cmd": "spawn", "type": "dragon", "lv": 10, "n": 1})
+	await wait(1.0)
+	main.gm.close()
+	await wait(0.5)
+	await shot("g4-spawned")
+	print("XONG GM mons=", main.game.mons.size(), " staff=", main.game.staff)
+

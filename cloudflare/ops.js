@@ -33,7 +33,7 @@ export const OPS = {
     if (c.inst) c.inst.ev.push(['ph', c.id, h]); return { ok: true, heal: h };
   },
   buypot(c, m) {
-    const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, price = R.POT_PRICE * n;
+    const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, price = R.TUNE.potPrice * n;
     if (ch.gold < price || ch.pots + n > R.POT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mang tối đa ' + R.POT_MAX + ' bình.' };
     ch.gold -= price; ch.pots += n; return { ok: true };
   },
