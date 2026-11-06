@@ -40,6 +40,12 @@ html = html.replace('Bản này chơi một mình và lưu tiến trình ngay tr
 const pwa = '<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon-192.png">\n<link rel="apple-touch-icon" href="icon-192.png">\n<meta name="theme-color" content="#10152a">\n'
   + '<script>if("serviceWorker" in navigator&&/^https:$/.test(location.protocol))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>';
 html = html.replace('<title>Hiệp Sĩ Nét Chì</title>', '<title>Hiệp Sĩ Nét Chì</title>\n' + pwa);
+// màn chờ khi mở trang: trang game nặng, trong lúc tải không để lộ màn bắt đầu cũ
+const splash = '<div id="bootSplash" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,#1e3c78,#080e22);color:#fff;font:800 20px \'Baloo 2\',sans-serif;text-shadow:0 2px 0 #16224a">'
+  + '<div style="display:flex;flex-direction:column;align-items:center;gap:16px"><div style="width:54px;height:54px;border-radius:50%;border:6px solid rgba(255,255,255,.25);border-top-color:#ffd23f;animation:bsSpin .8s linear infinite"></div><span>Đang tải Hiệp Sĩ Nét Chì…</span></div>'
+  + '<style>@keyframes bsSpin{to{transform:rotate(360deg)}}</style></div>';
+if (html.split('<section id="start" class="overlay">').length !== 2) throw new Error('Không tìm thấy màn bắt đầu');
+html = html.replace('<section id="start" class="overlay">', () => splash + '\n<section id="start" class="overlay" hidden>');
 const out = path.join(root, 'public', 'index.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);

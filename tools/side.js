@@ -49,15 +49,54 @@ const M3={name:'Núi Lửa Hắc Ám',lv:'Cấp 19-30',w:5400,h:WH,theme:'lava',
   safes:[Object.assign(R(0,440),{name:'Cổng Rừng Tuyết'})],spots:sp3,platforms:plats(sp3),
   portals:[{x:60,y:GY,to:2,tx:5480,ty:GY,label:'Rừng Tuyết Phong',lv:'Cấp 10-19',col:'#7fc8ff'}]};
 MAPS.splice(0,MAPS.length,M0,M1,M2,M3);
+/* --- địa hình nhiều tầng kiểu Ngọc Rồng: bậc cao thấp, đồi, dốc nối nhau (mặt đất không còn là một đường thẳng) --- */
+// mỗi bản đồ có MAP.terr = các điểm [x,y] của mặt đất; giữa hai điểm là đoạn thẳng (bằng hoặc dốc)
+function terrBuild(M,seed){
+  const r=mulberry(seed),pts=[[0,GY]];
+  const lvl=(y,x0,x1)=>{const L=pts[pts.length-1];if(Math.abs(L[1]-y)<1){if(pts.length===1)pts.push([x1,y]);else L[0]=Math.max(L[0],x1);return;}
+    // dốc tối đa ~0,6 (đi bộ lên được), bậc cao hơn thì thêm khoảng dốc
+    const need=Math.abs(L[1]-y)*1.65;let s=Math.max(L[0],x0-need);if(x0-s<need)x0=s+need;x1=Math.max(x1,x0+20);pts.push([s,L[1]]);pts.push([x0,y]);pts.push([x1,y]);};
+  if(M.village){ // làng: hai bên là gò cao có nhà, giữa là quảng trường
+    lvl(GY-58,0,680);lvl(GY,820,1780);lvl(GY-58,1920,M.w);
+  }else{
+    for(const s of M.safes)if(s.x<10)lvl(GY,0,s.x+s.w-80);
+    const H=[0,-70,-140,-205];let cur=0;
+    M.spots.forEach((s,i)=>{
+      // tầng của khu quái: lên xuống so le, không quá 2 bậc một lần
+      const opt=[0,1,2,3].filter(v=>v!==cur&&Math.abs(v-cur)<=2);let n=i===0?1+Math.floor(r()*2):opt[Math.floor(r()*opt.length)];cur=n;
+      const y=GY+H[n],a=s.x+70,b=s.x+s.w-70;
+      if(s.cnt>1&&i%2===1){ // giữa khu có gò nhỏ
+        const m0=a+(b-a)*.36,m1=a+(b-a)*.64,yh=y-(n<3?65:-65);lvl(y,a,m0-90);lvl(yh,m0,m1);lvl(y,m1+90,b);
+      }else lvl(y,a,b);
+    });
+    const last=M.safes.find(s=>s.x>10);if(last)lvl(GY,last.x+60,M.w);
+  }
+  const L=pts[pts.length-1];if(L[0]<M.w)pts.push([M.w,L[1]]);
+  M.terr=pts;
+}
+function gYm(M,x){const t=M&&M.terr;if(!t)return GY;if(x<=t[0][0])return t[0][1];
+  let lo=0,hi=t.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(t[m][0]<=x)lo=m;else hi=m;}
+  const a=t[lo],b=t[hi];return b[0]===a[0]?Math.min(a[1],b[1]):a[1]+(b[1]-a[1])*clamp((x-a[0])/(b[0]-a[0]),0,1);}
+const gY=x=>gYm(MAP,x);
+window.HSNC_gY=x=>gY(x);
+MAPS.forEach((M,i)=>terrBuild(M,977+i*53));
+// đặt lại mọi thứ đứng trên mặt đất theo địa hình
+MAPS.forEach(M=>{
+  for(const p of M.platforms||[]){const off=GY-p.y;p.y=Math.min(gYm(M,p.x),gYm(M,p.x+p.w/2),gYm(M,p.x+p.w))-off;}
+  for(const n of M.npcs||[])n.y=gYm(M,n.x);
+  for(const p of M.portals){p.y=gYm(M,p.x);const D=MAPS[p.to];if(D)p.ty=gYm(D,p.tx);}
+  M.spawn.y=gYm(M,M.spawn.x);
+});
+
 
 /* --- dựng bản đồ: cảnh vật đứng trên mặt đất, luôn nằm sau nhân vật --- */
 const BACK=200;                      // y sắp xếp của cảnh nền: vẫn trong vùng camera nhìn thấy, nhưng nhỏ hơn y của mọi nhân vật (thấp nhất ~220 khi nhảy từ bậc cao) nên luôn vẽ trước
 genDecor=function(){
   const M=MAP,r=mulberry(4242+MAPI*31),th=THEMES[M.theme];DECOR=[];FLATS.clear();
-  const add=(o,gy)=>{o.gy=gy==null?GY:gy;o.y=BACK+DECOR.length*.001;DECOR.push(o);};
+  const add=(o,gy)=>{o.gy=gYm(M,o.x)+(gy==null?0:gy-GY);o.y=BACK+DECOR.length*.001;DECOR.push(o);};
   const busy=x=>M.portals.some(p=>Math.abs(p.x-x)<120)||(M.npcs||[]).some(n=>Math.abs(n.x-x)<130)||(M.fountain&&Math.abs(M.fountain-x)<110)||(M.houses||[]).some(h=>Math.abs(h[0]-x)<110);
   // hàng cây, đá, bụi phía sau
-  for(let x=40;x<M.w-40;x+=70+r()*90){if(busy(x))continue;const k=r();
+  for(let x=40;x<M.w-40;x+=70+r()*90){if(busy(x))continue;if(Math.abs(gYm(M,x-26)-gYm(M,x+26))>6)continue;const k=r();
     if(k<.5)add({k:'tree',x,s:.85+r()*.5,v:th.trees[Math.floor(r()*3)]},GY-6-r()*10);
     else if(k<.75)add({k:'bush',x,s:.8+r()*.5},GY-2);else add({k:'rock',x,s:.7+r()*.6},GY-2);}
   (M.houses||[]).forEach(h=>add({k:'house',x:h[0],v:h[1]},GY-4));
@@ -72,17 +111,17 @@ spawnAll=function(){
   G.mons=[];
   for(const s of MAP.spots)for(let i=0;i<s.cnt;i++){
     const x=s.cnt===1?s.x+s.w/2:s.x+80+(s.w-160)*(i+.5)/s.cnt+rand(-30,30);
-    const m=spawnMon(s.mon,ri(s.lv[0],s.lv[1]),x,GY);m.x0=s.x+30;m.x1=s.x+s.w-30;m.vx=0;G.mons.push(m);}
+    const m=spawnMon(s.mon,ri(s.lv[0],s.lv[1]),x,gY(x));m.x0=s.x+30;m.x1=s.x+s.w-30;m.vx=0;G.mons.push(m);}
 };
 bakeMini=function(){
   const c=document.createElement('canvas');setupCanvas(c,118,78);const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
   const sx=118/WORLD.w,sy=78/WORLD.h,gy=GY*sy;
   const sky=g.createLinearGradient(0,0,0,78);sky.addColorStop(0,{grass:'#8fd3ff',snow:'#c9e3f5',lava:'#5a2a2a'}[MAP.theme]);sky.addColorStop(1,'#ffffff');g.fillStyle=sky;g.fillRect(0,0,118,78);
-  for(const s of MAP.spots){g.fillStyle=s.col;g.fillRect(s.x*sx,gy-14,s.w*sx,14);}
-  for(const s of MAP.safes){g.fillStyle='rgba(255,226,110,.9)';g.fillRect(s.x*sx,gy-14,s.w*sx,14);}
-  g.fillStyle=MAP.base;g.fillRect(0,gy,118,78-gy);
+  for(const s of MAP.spots){g.fillStyle=s.col;g.fillRect(s.x*sx,gYm(MAP,s.x+s.w/2)*sy-14,s.w*sx,14);}
+  for(const s of MAP.safes){g.fillStyle='rgba(255,226,110,.9)';g.fillRect(s.x*sx,gYm(MAP,s.x+s.w/2)*sy-14,s.w*sx,14);}
+  g.fillStyle=MAP.base;g.beginPath();g.moveTo(0,78);for(const t of (MAP.terr||[[0,GY],[WORLD.w,GY]]))g.lineTo(t[0]*sx,t[1]*sy);g.lineTo(118,78);g.closePath();g.fill();
   g.fillStyle='rgba(27,34,51,.55)';for(const p of MAP.platforms||[])g.fillRect(p.x*sx,p.y*sy,Math.max(2,p.w*sx),2);
-  for(const p of MAP.portals){g.fillStyle=p.col;g.strokeStyle='#1b2233';g.lineWidth=1;g.beginPath();g.arc(p.x*sx,gy-5,3,0,TAU);g.fill();g.stroke();}
+  for(const p of MAP.portals){g.fillStyle=p.col;g.strokeStyle='#1b2233';g.lineWidth=1;g.beginPath();g.arc(p.x*sx,p.y*sy-5,3,0,TAU);g.fill();g.stroke();}
   MINIBG=c;
 };
 
@@ -99,8 +138,16 @@ drawGround=function(vw,vh){
   if(mid){const h=vh*.42,y=GY-h*.94,px=cx*.5;ctx.save();ctx.translate(px,0);tileX(mid,cx-px,y,h,vw);ctx.restore();}
   // mặt đất: dải cắt ngang, mép trên đúng y mặt đất
   const gr=S('ground_'+th);
-  if(gr){const h=Math.max(WH-GY+60,(cy+vh-GY)+20)/(1-gr.top),y=GY-h*gr.top+4;tileX(gr,cx,y,h,vw);}
-  else{ctx.fillStyle=MAP.base;ctx.fillRect(cx-2,GY,vw+4,vh);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(cx-2,GY,vw+4,6);}
+  // mặt đất theo địa hình: mỗi đoạn (bằng/dốc) vẽ dải đất nghiêng theo đoạn đó, mép cỏ bám đúng mặt đất
+  const T=MAP.terr||[[0,GY],[WORLD.w,GY]],hh=Math.max(WH-GY+260,(cy+vh-GY)+240);
+  for(let i=0;i<T.length-1;i++){const [x0,y0]=T[i],[x1,y1]=T[i+1];if(x1<=x0||x1<cx-4||x0>cx+vw+4)continue;
+    const k=(y1-y0)/(x1-x0),a0=Math.max(x0,cx-4),a1=Math.min(x1,cx+vw+4);
+    ctx.save();ctx.beginPath();ctx.rect(a0-.6,cy-50,a1-a0+1.2,vh+300);ctx.clip();
+    ctx.translate(x0,y0-GY);ctx.transform(1,k,0,1,0,0);ctx.translate(-x0,0);
+    if(gr){const h=hh/(1-gr.top),y=GY-h*gr.top+4;tileX(gr,a0-2,y,h,a1-a0+4);}
+    else{ctx.fillStyle=MAP.base;ctx.fillRect(a0-1,GY,a1-a0+2,hh);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(a0-1,GY,a1-a0+2,6);}
+    ctx.restore();
+  }
   // bậc đá nổi
   const pl=S('plat_'+th);
   for(const p of MAP.platforms||[]){if(p.x+p.w<cx-40||p.x>cx+vw+40)continue;
@@ -114,7 +161,7 @@ let jumpQ=0,jWas=false,dropQ=0;
 window.HSNC_JUMP=()=>{jumpQ=.15;};
 const _dash=dashP;
 dashP=function(a,len,time,o){_dash(Math.cos(a)>=0?0:Math.PI,len,time,o);}; // lướt ngang
-respawnPlayer=function(){P.dead=0;P.x=MAP.spawn.x;P.y=GY;P.gvy=0;P.hp=P.maxHp;P.flash=0;for(const m of G.mons)if(!m.dead&&m.state==='chase')m.state='return';};
+respawnPlayer=function(){P.dead=0;P.x=MAP.spawn.x;P.y=gY(P.x);P.gvy=0;P.hp=P.maxHp;P.flash=0;for(const m of G.mons)if(!m.dead&&m.state==='chase')m.state='return';};
 updatePlayer=function(dt){
   const p=P;if(p.gvy==null){p.gvy=0;}
   if(p.dead>0){p.dead-=dt;if(p.dead<=0)respawnPlayer();return;}
@@ -123,10 +170,12 @@ updatePlayer=function(dt){
   for(let i=p.buffs.length-1;i>=0;i--){p.buffs[i].t-=dt;if(p.buffs[i].t<=0)p.buffs.splice(i,1);}
   p.swing=Math.max(0,p.swing-dt/p.swingDur);p.comboT-=dt;if(p.comboT<=0)p.combo=0;p.flash-=dt;
   // trọng lực (cả khi đang lướt)
-  const ground=()=>{const y0=p.y;p.gvy+=GRAV*dt;let ny=p.y+p.gvy*dt;
-    if(p.gvy>=0){const pl=dropQ>0?null:platUnder(p.x,y0,ny);if(pl&&y0<=pl.y+1){ny=pl.y;p.gvy=0;}if(ny>=GY){ny=GY;p.gvy=0;}}
-    p.y=ny;p.air=!(p.gvy===0&&(p.y===GY||!!platUnder(p.x,p.y,p.y)));
-    if(!p.air&&p.y<GY&&!platUnder(p.x,p.y-1,p.y+1))p.air=true;};
+  const ground=()=>{const y0=p.y,g0=gY(p.x);p.gvy+=GRAV*dt;let ny=p.y+p.gvy*dt;
+    if(p.gvy>=0){const pl=dropQ>0?null:platUnder(p.x,y0,ny);if(pl&&y0<=pl.y+1){ny=pl.y;p.gvy=0;}
+      else if(ny>=g0){ny=g0;p.gvy=0;}
+      else if(!p.air&&g0-ny<20&&!platUnder(p.x,y0-1,y0+1)){ny=g0;p.gvy=0;}}   // đi xuống dốc: bám đất, không bị bay
+    p.y=ny;const g1=gY(p.x);p.air=!(p.gvy===0&&(Math.abs(p.y-g1)<1||!!platUnder(p.x,p.y,p.y)));
+    if(!p.air&&p.y<g1-1&&!platUnder(p.x,p.y-1,p.y+1))p.air=true;};
   dropQ=Math.max(0,dropQ-dt);jumpQ=Math.max(0,jumpQ-dt);
   if(p.dash){
     const d=p.dash;p.x=clamp(p.x+d.vx*dt,40,WORLD.w-40);p.moving=true;p.walk+=dt*2;
@@ -147,7 +196,7 @@ updatePlayer=function(dt){
   else if(G.moveTarget){const ddx=G.moveTarget.x-p.x;if(Math.abs(ddx)>8)dx=Math.sign(ddx);else G.moveTarget=null;}
   // nhảy (đứng trên đất hoặc bậc đá), xuống bậc đá bằng phím xuống
   if(jumpQ>0&&!p.air){p.gvy=-JUMP;p.air=true;jumpQ=0;fx({k:'poof',x:p.x,y:p.y,max:.35,r:16});}
-  if(down&&!p.air&&p.y<GY){dropQ=.25;p.y+=2;p.air=true;}
+  if(down&&!p.air&&p.y<gY(p.x)-2){dropQ=.25;p.y+=2;p.air=true;}
   ground();
   p.moving=dx!==0;
   if(p.moving){const spd=p.spd*bm('spd')*(p.swing>0?.85:1)*(p.air?.92:1);p.vx=dx*spd;p.x=clamp(p.x+p.vx*dt,40,WORLD.w-40);if(!p.air)p.walk+=dt*Math.abs(dx);if(!p.focus)p.face=dx>0?1:-1;}else p.vx=0;
@@ -156,7 +205,7 @@ updatePlayer=function(dt){
   if(p.focus&&Math.abs(p.focus.x-p.x)>4)p.face=p.focus.x>p.x?1:-1;
   if(p.atkCd<=0&&(atkHeld||inReach))basicAttack();
   if(inSafe(p))p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.08*dt);
-  if(!p.air)for(const pt of MAP.portals)if(Math.abs(p.x-pt.x)<46&&p.y>=GY-1){G.trans={t:0,pt,sw:false};G.moveTarget=null;p.focus=null;break;}
+  if(!p.air)for(const pt of MAP.portals)if(Math.abs(p.x-pt.x)<46&&p.y>=gY(p.x)-1){G.trans={t:0,pt,sw:false};G.moveTarget=null;p.focus=null;break;}
 };
 
 /* --- quái: tuần tra và đuổi theo mặt đất, tăng tốc/giảm tốc mượt (không giật cục) --- */
@@ -164,11 +213,11 @@ updateMons=function(dt){
   const pIn=P.dead<=0&&!inSafe(P);
   for(let i=0;i<G.mons.length;i++){
     const m=G.mons[i];if(m.vx==null)m.vx=0;
-    if(m.dead){m.respawn-=dt;if(m.respawn<=0){m.dead=false;m.hp=m.hpMax;m.x=m.sx;m.y=GY;m.vx=0;m.state='idle';fx({k:'poof',x:m.x,y:m.y,max:.5,r:m.t.r});}continue;}
+    if(m.dead){m.respawn-=dt;if(m.respawn<=0){m.dead=false;m.hp=m.hpMax;m.x=m.sx;m.y=gY(m.x);m.vx=0;m.state='idle';fx({k:'poof',x:m.x,y:m.y,max:.5,r:m.t.r});}continue;}
     if(Math.abs(m.x-P.x)>2200){if(m.state!=='idle'){m.state='idle';m.x=m.sx;m.hp=m.hpMax;}continue;}
     m.flash-=dt;m.cd-=dt;m.shoot-=dt;m.lunge=Math.max(0,m.lunge-dt);m.breath=Math.max(0,m.breath-dt);
     if(m.kx){m.x=clamp(m.x+m.kx*dt,30,WORLD.w-30);const k=Math.pow(.02,dt);m.kx*=k;if(Math.abs(m.kx)<4)m.kx=0;}
-    m.ky=0;m.y=GY;
+    m.ky=0;m.y=gY(m.x);
     if(m.slow>0)m.slow-=dt;
     if(m.pois){const q=m.pois;q.t-=dt;q.acc+=dt;if(q.acc>=.5){q.acc-=.5;hitMon(m,q.dps*.5,{dot:true});}if(q.t<=0)m.pois=null;if(m.dead)continue;}
     let want=0;const sf=m.slow>0?.4:1,spd=m.t.spd*sf;
@@ -249,7 +298,7 @@ function updBreath(m,dt){
     while(b.em>=1){b.em-=1;const da=rand(-.13,.13),ca=Math.cos(da),sa=Math.sin(da),dx=g.dx*ca-g.dy*sa*g.face,dy=g.dy*ca+g.dx*sa*g.face,v=sp*rand(.85,1.08),l=rand(.42,.56),o=rand(0,dt);
       b.parts.push({x:g.mo.x+dx*v*o,y:g.mo.y+dy*v*o,vx:dx*v,vy:dy*v,life:l,max:l,s:rand(.8,1.2),spin:rand(0,TAU)});}
     // chỗ luồng chạm đất
-    const hy=GY-8;if(g.dy>.05){const d=(hy-g.mo.y)/g.dy;b.ground=d>0&&d<=b.reach?{x:g.mo.x+g.dx*d,y:hy,t:b.ground?b.ground.t:0}:b.ground;}
+    for(let d=20;d<=b.reach;d+=12){const x=g.mo.x+g.dx*d,y=g.mo.y+g.dy*d,gy=gY(x);if(y>=gy-8){b.ground={x,y:gy-6,t:b.ground?b.ground.t:0};break;}}
     // sát thương theo luồng (4 lần/giây)
     b.hit-=dt;
     if(b.hit<=0&&P.dead<=0&&!inSafe(P)){
@@ -261,7 +310,7 @@ function updBreath(m,dt){
   for(let i=b.parts.length-1;i>=0;i--){const q=b.parts[i];q.life-=dt;
     if(q.pull){q.x+=(g.mo.x-q.x)*Math.min(1,dt*9);q.y+=(g.mo.y-q.y)*Math.min(1,dt*9);}
     else{q.x+=q.vx*dt;q.y+=q.vy*dt;const dr=Math.pow(.35,dt);q.vx*=dr;q.vy=q.vy*dr+k.rise*dt*2.2+Math.sin(G.time*13+q.spin*6)*dt*90;
-      if(q.y>GY-6){q.y=GY-6;q.vy=-Math.abs(q.vy)*.15;q.vx*=1.02;}}   // chạm đất thì loang ra
+      {const gq=gY(q.x)-6;if(q.y>gq){q.y=gq;q.vy=-Math.abs(q.vy)*.15;q.vx*=1.02;}}}   // chạm đất thì loang ra
     if(q.life<=0)b.parts.splice(i,1);}
   if(b.t>=BR_T+.9){m.br=null;}
 }

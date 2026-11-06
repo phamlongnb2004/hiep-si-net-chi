@@ -79,7 +79,7 @@ const chatBar=document.createElement('form');chatBar.id='chatBar';chatBar.hidden
 const chatBtn=document.createElement('button');chatBtn.id='chatBtn';chatBtn.type='button';chatBtn.textContent='Chat';$('hud').append(chatBtn);
 
 // chưa đăng nhập thì chưa cho vào màn chọn nhân vật
-$('start').hidden=true;
+$('start').hidden=true;{const bs=document.getElementById('bootSplash');if(bs)setTimeout(()=>bs.remove(),60);}
 let MODE='login';
 const msg=(t,ok)=>{const m=$('netMsg');m.textContent=t||'';m.className='ui-msg'+(t?(ok?' ok':' bad'):'');if(t&&!ok){m.classList.remove('shake');void m.offsetWidth;m.classList.add('shake');}};
 const setMode=k=>{MODE=k;const reg=k==='register';$('tabLogin').setAttribute('aria-selected',String(!reg));$('tabReg').setAttribute('aria-selected',String(reg));
