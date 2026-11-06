@@ -1,41 +1,34 @@
 {
  "app": {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "min": "2.1.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "2418774ae0a29b213f020fbd17e0120bf86b11513dd920fdea00da29cc54e030",
-   "size": 54109952
+   "sha256": "6d131d1c27fd1a99da797c2744994a3e1569955294d82bf03be4080976b178a6",
+   "size": 54122564
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "840d90d8f14d34907c5ea82a4a3a3b7e2b0458dbeb3603912b82128e7d67267b",
-   "size": 81820189
+   "sha256": "c2aa31a0599b9f889b7751d3b734f3e62fb1339d942a8aa7cb1b779bf848c46b",
+   "size": 81832616
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "146e6c3d4cdb37eb0a8cba9a26565aa963e3f49353dad36f4f68cb3f7cebb914",
-   "size": 56297998
+   "sha256": "a234f88537005704035a0a13ce344c41b38ff63fd17bb45a8c8017b0bee7b5ec",
+   "size": 56311688
   }
  },
  "assets": {
-  "version": 2,
-  "min_app": "2.1.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-2.pck",
+  "version": 3,
+  "min_app": "2.2.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-3.pck",
   "sha256": "c490b9cd2a471539d632856eef367de09fe891f20f2e84bca7d375884355d4ee",
   "size": 29165352
  },
  "changelog": [
-  "Đánh đòn cuối mới nhận thưởng (kinh nghiệm, vàng, đồ)",
-  "Cấp tối đa 100, càng lên cao càng khó",
-  "NPC mới Thương Nhân Giáp bán trang bị mọi phái; đồ rơi từ quái có thể yếu hơn hoặc mạnh hơn",
-  "Giao dịch giữa người chơi; đồ rơi có thể bị khóa (không giao dịch được)",
-  "Kết bạn (tối đa 100), nhắn riêng bạn bè; nhắn cả máy chủ tốn 5.000 vàng",
-  "Quái tinh anh thỉnh thoảng xuất hiện: mạnh hơn, dễ rơi đồ ngon",
-  "Đồ cường hóa có ánh sáng chạy quanh ô, cấp càng cao càng đẹp",
-  "Hiệu ứng chiêu đẹp và mượt hơn; quái trúng đòn ửng đỏ, chết nhấp nháy rồi biến mất",
-  "Bình máu có thời gian hồi 3 giây; bỏ nút bán nhanh",
-  "Cây cối, nhà, biển hiệu không còn lơ lửng"
+  "Thêm khu quản trị cho chủ game và GM (đăng nhập 2 lớp)",
+  "Thông báo, sự kiện nhân thưởng và giá cửa hàng do máy chủ cập nhật ngay",
+  "Báo rõ khi tài khoản bị khóa hoặc máy chủ bảo trì"
  ],
- "updated": "2026-11-06T12:32:03.090Z"
+ "updated": "2026-11-06T16:10:56.098Z"
 }
