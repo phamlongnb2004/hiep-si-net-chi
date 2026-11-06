@@ -7,6 +7,12 @@ const LS={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set
 const defServer=()=>{const c=window.HSNC_CONFIG&&window.HSNC_CONFIG.server;if(c)return c;if(/^https?:$/.test(location.protocol)&&location.host)return location.origin;return '';};
 NET.server=(LS.get('hsnc-server')||defServer()).replace(/\/+$/,'');
 NET.token=LS.get('hsnc-token');NET.user=LS.get('hsnc-user');
+// chơi qua ứng dụng (Windows / Android) hay trình duyệt: trình duyệt chỉ dành cho admin thử game
+{const qs=new URLSearchParams(location.search);let A=LS.get('hsnc-app');
+  if(qs.get('app')==='pc')A='pc';else if(/^android-app:/.test(document.referrer||''))A='android';
+  else if(!A&&/Android/i.test(navigator.userAgent)&&matchMedia('(display-mode: fullscreen),(display-mode: standalone)').matches)A='android';
+  else if(!A&&(!/^https?:$/.test(location.protocol)||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))A=/Android/i.test(navigator.userAgent)?'android':'pc';   // bản gói sẵn game trong ứng dụng (không qua web)
+  if(A)LS.set('hsnc-app',A);NET.app=A||'web';}
 
 /* --- giao diện (kiểu chữ và màu ở tools/ui.js) --- */
 const css=document.createElement('style');css.textContent=`
@@ -109,9 +115,9 @@ async function auth(kind){
   }
   msg(kind==='register'?'Đang tạo tài khoản…':'Đang đăng nhập…',true);busy(true);
   try{
-    const r=await fetch(NET.server+'/api/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user,pass})});
+    const r=await fetch(NET.server+'/api/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user,pass,app:NET.app})});
     const d=await r.json().catch(()=>({}));
-    if(!r.ok){busy(false);msg(d.error||'Máy chủ báo lỗi '+r.status);return;}
+    if(!r.ok){busy(false);msg(d.error||'Máy chủ báo lỗi '+r.status);if(d.code==='app')setTimeout(()=>showGate(d.error),900);return;}
     NET.token=d.token;NET.user=d.user;LS.set('hsnc-token',d.token);LS.set('hsnc-user',d.user);$('netPass').value='';$('netPass2').value='';
     msg(kind==='register'?'Tạo tài khoản thành công!':'Đăng nhập thành công!',true);busy(false);
     showServers();
@@ -123,7 +129,7 @@ NET.logout=()=>{const t=NET.token;NET.token=null;LS.set('hsnc-token',null);if(t&
 /* --- kết nối --- */
 function connect(){
   if(!NET.token||!NET.server)return;
-  const u=NET.server.replace(/^http/,'ws')+'/ws?token='+encodeURIComponent(NET.token)+'&srv='+NET.srv;
+  const u=NET.server.replace(/^http/,'ws')+'/ws?token='+encodeURIComponent(NET.token)+'&srv='+NET.srv+'&app='+NET.app;
   if(NET.ws&&NET.ws.readyState<2){NET.ws.onclose=null;try{NET.ws.close();}catch(e){}}
   let ws;try{ws=new WebSocket(u);}catch(e){busy(false);msg('Địa chỉ máy chủ không hợp lệ.');return;}
   NET.ws=ws;
@@ -133,6 +139,7 @@ function connect(){
     const was=NET.on;NET.on=false;NET.others.clear();showBadge();
     if(ev.code===4001){NET.token=null;LS.set('hsnc-token',null);loading(null);sbox.hidden=true;box.hidden=false;$('start').hidden=true;busy(false);msg('Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.');return;}
     if(ev.code===4002){loading(null);sbox.hidden=true;box.hidden=false;$('start').hidden=true;busy(false);msg('Tài khoản vừa đăng nhập ở nơi khác.');return;}
+    if(ev.code===4005){NET.token=null;LS.set('hsnc-token',null);loading(null);sbox.hidden=true;$('start').hidden=true;busy(false);showGate('Tài khoản này chỉ chơi được trên ứng dụng.');return;}
     if(ev.code===4003){loading(null);showServers('Máy chủ này chưa mở.');return;}
     if(!was&&!NET.gotSave){loading('Đang kết nối lại…','Máy chủ chưa phản hồi, đang thử lại');}
     NET.retry=Math.min(NET.retry+1,6);setTimeout(connect,1000*NET.retry*NET.retry);
@@ -194,8 +201,9 @@ async function showServers(note){
   const list=$('srvList'),sm=$('srvMsg');sm.textContent=note||'';sm.className='ui-msg'+(note?' bad':'');
   list.innerHTML='<div class="srv-skel"></div>';
   let d;
-  try{const r=await fetch(NET.server+'/api/servers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:NET.token})});
+  try{const r=await fetch(NET.server+'/api/servers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:NET.token,app:NET.app})});
     d=await r.json().catch(()=>({}));
+    if(r.status===403&&d.code==='app'){NET.token=null;LS.set('hsnc-token',null);sbox.hidden=true;showGate(d.error);return;}
     if(r.status===401){NET.token=null;LS.set('hsnc-token',null);sbox.hidden=true;box.hidden=false;msg(d.error||'Hãy đăng nhập lại.');return;}
     if(!r.ok)throw new Error(d.error||r.status);
   }catch(e){list.innerHTML='';sm.textContent='Không tải được danh sách máy chủ. Bấm Tải lại.';sm.className='ui-msg bad';return;}
@@ -289,6 +297,26 @@ chatBar.addEventListener('submit',e=>{e.preventDefault();const v=$('chatIn').val
 $('chatIn').addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();closeChat();}e.stopPropagation();});
 window.addEventListener('keydown',e=>{if((e.code==='Enter'||e.code==='NumpadEnter')&&chatBar.hidden&&G.state==='play'&&!typing()){e.preventDefault();openChat();}},true);
 chatBtn.addEventListener('click',openChat);
+
+/* --- trình duyệt: chỉ admin thử game, người chơi tải ứng dụng --- */
+const gate=document.createElement('section');gate.id='netGate';gate.className='overlay';gate.hidden=true;
+gate.innerHTML=`<div class="ui-wrap">
+<div class="ui-logo" aria-hidden="true"><span class="l1"><b class="o">Hiệp Sĩ</b><b class="f">Hiệp Sĩ</b></span><span class="l2"><b class="o">Nét Chì</b><b class="f">Nét Chì</b></span><span class="ribbon">ONLINE</span></div>
+<div class="ui-card gate-card"><b class="gate-t">Tải game để chơi</b>
+<p class="ui-hint">Hiệp Sĩ Nét Chì chơi trên ứng dụng cho máy tính Windows và điện thoại Android. Cài một lần, game tự cập nhật.</p>
+<div class="ui-msg" id="gateMsg" role="status" aria-live="polite"></div>
+<a class="ui-btn big-cta" id="gateDl" href="/tai-game"><span>Tải game</span></a>
+<button type="button" class="gate-adm" id="gateAdm">Đăng nhập quản trị</button></div></div>`;
+app.append(gate);
+{const st=document.createElement('style');st.textContent=`#netGate{z-index:31;display:block;padding:0;background:transparent!important}#netGate[hidden]{display:none}
+#netGate .gate-card{width:min(400px,calc(100vw - 32px));text-align:center;padding:18px 20px 14px}
+#netGate .gate-t{font:800 24px/1.1 'Baloo 2',sans-serif;color:#16224a}#netGate .ui-btn{text-decoration:none;display:flex;align-items:center;justify-content:center}
+#netGate .gate-adm{margin:2px auto 0;background:none;border:0;font:800 13.5px 'Nunito',sans-serif;color:#5a6788;text-decoration:underline;cursor:pointer;padding:4px}
+.web-admin #tabReg{display:none}.web-admin .ui-tabs{grid-template-columns:1fr}.web-admin .ui-tabpill{width:calc(100% - 8px)}`;document.head.append(st);}
+$('gateDl').href=(NET.server||'')+'/tai-game';
+function showGate(m){gate.hidden=false;box.hidden=true;sbox.hidden=true;const g=$('gateMsg');g.textContent=m||'';g.className='ui-msg'+(m?' bad':'');}
+$('gateAdm').addEventListener('click',()=>{gate.hidden=true;box.hidden=false;box.classList.add('web-admin');setMode('login');$('netHint').textContent='Đăng nhập tài khoản quản trị để thử game trên trình duyệt.';});
+if(NET.app==='web'&&!NET.token)showGate();
 
 /* --- khởi động --- */
 if(NET.token&&NET.server)showServers();

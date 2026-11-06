@@ -7,6 +7,13 @@ const TICK_MS = 100;
 const MAX_SAVE = 300 * 1024;
 const ITER = 60000; // vòng lặp băm mật khẩu PBKDF2
 // danh sách máy chủ (cụm) trong game; mỗi tài khoản có một nhân vật riêng trên mỗi máy chủ
+// Trình duyệt chỉ dành cho admin thử game; người chơi dùng ứng dụng Windows / Android (gửi app=pc|android).
+// Thêm admin: biến ADMINS trong Cloudflare (tên tài khoản, cách nhau bằng dấu phẩy).
+const ADMIN_DEFAULT = ['phamlongnb2004'];
+let ADMINS = new Set(ADMIN_DEFAULT);
+const isAdmin = name => ADMINS.has(String(name || '').toLowerCase());
+const WEB_MSG = 'Hiệp Sĩ Nét Chì chỉ chơi trên ứng dụng. Hãy tải game cho máy tính hoặc điện thoại.';
+
 const SERVERS = [{ id: 1, name: 'Server 1', tag: 'Mới' }];
 const srvOf = v => SERVERS.find(x => x.id === (v | 0)) || null;
 
@@ -43,6 +50,7 @@ export default {
 
 export class World extends DurableObject {
   constructor(ctx, env) {
+    if (env && env.ADMINS) ADMINS = new Set([...ADMIN_DEFAULT, ...String(env.ADMINS).split(',').map(x => x.trim().toLowerCase()).filter(Boolean)]);
     super(ctx, env);
     this.sql = ctx.storage.sql;
     this.sql.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, uname TEXT UNIQUE NOT NULL, pass_hash TEXT NOT NULL, salt TEXT NOT NULL, created INTEGER)`);
@@ -88,8 +96,9 @@ export class World extends DurableObject {
     if (this.limited(ip)) return json(429, { error: 'Thử lại sau một phút.' });
     let b; try { b = await req.json(); } catch (e) { return json(400, { error: 'Dữ liệu không hợp lệ' }); }
     if (url.pathname === '/api/servers') {
-      const u = b.token && this.one('SELECT u.id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=?', String(b.token));
+      const u = b.token && this.one('SELECT u.id, u.username FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=?', String(b.token));
       if (!u) return json(401, { error: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' });
+      if (b.app === 'web' && !isAdmin(u.username)) return json(403, { error: WEB_MSG, code: 'app' });
       const servers = SERVERS.map(x => {
         const ch = this.one('SELECT name, cls, lv FROM chars WHERE user_id=? AND srv=?', u.id, x.id);
         let online = 0; for (const c of this.clients.values()) if (c.srv === x.id) online++;
@@ -99,6 +108,7 @@ export class World extends DurableObject {
     }
     const user = String(b.user || '').trim(), pass = String(b.pass || '');
     if (url.pathname === '/api/register') {
+      if (b.app === 'web') return json(403, { error: WEB_MSG, code: 'app' });
       if (!okName(user)) return json(400, { error: 'Tên tài khoản 3–16 ký tự, gồm chữ, số, dấu cách hoặc _' });
       if (pass.length < 6 || pass.length > 72) return json(400, { error: 'Mật khẩu cần từ 6 đến 72 ký tự' });
       if (this.one('SELECT id FROM users WHERE uname=?', user.toLowerCase())) return json(409, { error: 'Tên tài khoản đã có người dùng' });
@@ -110,6 +120,7 @@ export class World extends DurableObject {
       const u = this.one('SELECT * FROM users WHERE uname=?', user.toLowerCase());
       const good = u && sameHex(await hashPass(pass, u.salt), u.pass_hash);
       if (!good) return json(401, { error: 'Sai tên tài khoản hoặc mật khẩu' });
+      if (b.app === 'web' && !isAdmin(u.username)) return json(403, { error: WEB_MSG, code: 'app' });
       return json(200, this.newSession(u));
     }
     if (url.pathname === '/api/logout') { if (b.token) this.sql.exec('DELETE FROM sessions WHERE token=?', String(b.token)); return json(200, { ok: true }); }
@@ -139,6 +150,11 @@ export class World extends DurableObject {
     if (!u) {
       send({ t: 'err', code: 'auth', msg: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.' });
       ws.close(4001, 'auth');
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.searchParams.get('app') === 'web' && !isAdmin(u.username)) {
+      send({ t: 'err', code: 'app', msg: WEB_MSG });
+      ws.close(4005, 'app');
       return new Response(null, { status: 101, webSocket: client });
     }
     for (const c of this.clients.values()) if (c.uid === u.id) { this.sendTo(c, { t: 'err', code: 'dup', msg: 'Tài khoản vừa đăng nhập ở nơi khác.' }); try { c.ws.close(4002, 'dup'); } catch (e) {} this.drop(c); }
