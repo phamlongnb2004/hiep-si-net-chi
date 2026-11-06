@@ -51,4 +51,6 @@ const out = path.join(root, 'public', 'index.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
 for (const f of fs.readdirSync(path.join(root, 'tools', 'pwa'))) fs.copyFileSync(path.join(root, 'tools', 'pwa', f), path.join(root, 'public', f));
+// trang tải game (/tai-game) và ảnh của nó
+for (const f of fs.readdirSync(path.join(root, 'tools', 'site'))) fs.copyFileSync(path.join(root, 'tools', 'site', f), path.join(root, 'public', f));
 console.log('Đã tạo', path.relative(root, out), (html.length / 1048576).toFixed(2) + ' MB', 'máy chủ:', server || '(cùng địa chỉ trang)');

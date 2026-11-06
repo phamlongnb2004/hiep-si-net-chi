@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tải Hiệp Sĩ Nét Chì</title>
+<meta name="description" content="Tải game nhập vai online Hiệp Sĩ Nét Chì cho máy tính Windows và điện thoại Android. Luôn là bản mới nhất.">
+<meta name="theme-color" content="#10152a">
+<link rel="icon" href="icon-192.png">
+<meta property="og:title" content="Hiệp Sĩ Nét Chì Online – Tải game">
+<meta property="og:description" content="Game nhập vai chibi online. Tải cho Windows và Android.">
+<meta property="og:image" content="shot-1.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+:root{--ink:#16224a;--ink2:#2b3a6b;--cream:#fffaf0;--muted:#5a6a95;--sun:#ffd23f;--sun2:#ff9f1c;--mint:#3ccf91;--sky:#5cc8ff;
+  --disp:'Baloo 2','Nunito',system-ui,sans-serif;--body:'Nunito','Segoe UI',system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;font-family:var(--body);color:var(--ink);background:#4fb8ff url(tai-game-bg.webp) center 62%/cover fixed}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,0) 35%,rgba(10,30,70,.32) 100%);pointer-events:none}
+main{position:relative;max-width:1060px;margin:0 auto;padding:max(22px,env(safe-area-inset-top)) 16px 40px;display:flex;flex-direction:column;align-items:center;gap:22px}
+/* logo giống màn đăng nhập trong game */
+.logo{position:relative;display:flex;flex-direction:column;align-items:center;line-height:.86;text-align:center;animation:bob 3.2s ease-in-out infinite;margin-top:6px}
+.logo .l1,.logo .l2{position:relative;display:block;font-family:var(--disp);font-weight:800;letter-spacing:.5px}
+.logo .o,.logo .f{display:block;white-space:nowrap}
+.logo .o{position:absolute;inset:0;color:var(--ink);-webkit-text-stroke:var(--sw) var(--ink);text-shadow:0 6px 0 var(--ink),0 12px 20px rgba(10,30,80,.35)}
+.logo .f{position:relative;color:var(--c1);text-shadow:0 -2px 0 var(--c0),0 3px 0 var(--c2)}
+.logo .l1{--sw:14px;--c0:#fff6b8;--c1:#ffd23f;--c2:#ff9f1c;font-size:clamp(50px,11vw,96px)}
+.logo .l2{--sw:12px;--c0:#fff;--c1:#8fdcff;--c2:#3aa8ff;font-size:clamp(38px,8vw,70px);margin-top:4px}
+.ribbon{margin-top:12px;padding:4px 20px 3px;font:800 clamp(13px,2.4vw,17px)/1.2 var(--disp);letter-spacing:4px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25);background:linear-gradient(#ff8a8a,#ff5d6c);border:3px solid var(--ink);border-radius:999px;box-shadow:0 4px 0 var(--ink)}
+@keyframes bob{50%{transform:translateY(-8px) rotate(-.6deg)}}
+/* thẻ kem */
+.card{position:relative;width:100%;background:rgba(255,250,240,.95);border:4px solid var(--ink);border-radius:28px;box-shadow:0 8px 0 var(--ink),0 24px 46px rgba(10,30,80,.35);padding:22px clamp(16px,3vw,30px)}
+.card::before{content:"";position:absolute;inset:6px;border:2px dashed rgba(22,34,74,.14);border-radius:22px;pointer-events:none}
+.card h2{margin:0 0 4px;font:800 clamp(22px,3.4vw,28px)/1.1 var(--disp);text-align:center}
+.card .sub{margin:0 0 18px;text-align:center;font-weight:700;color:var(--muted)}
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.plat{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:22px;border:3px solid var(--ink);background:linear-gradient(180deg,#ffffff,#e8f2ff);box-shadow:0 5px 0 var(--ink)}
+.plat.me{outline:4px solid var(--sun);outline-offset:3px}
+.plat .ph{display:flex;align-items:center;gap:12px}
+.plat .ic{flex:none;width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;box-shadow:0 3px 0 var(--ink)}
+.plat .ic svg{width:32px;height:32px}
+.plat.win .ic{background:linear-gradient(#8fd0ff,#3a8de0)}
+.plat.and .ic{background:linear-gradient(#9ff0b8,#2fb763)}
+.plat h3{margin:0;font:800 22px/1.05 var(--disp)}
+.plat .meta{margin:2px 0 0;font:700 13.5px var(--body);color:var(--muted)}
+.tag{position:absolute;top:-13px;right:14px;padding:2px 10px;border-radius:999px;background:linear-gradient(#ffe066,#f29e0b);border:2.5px solid var(--ink);font:800 12px/18px var(--body)}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:0 18px;border-radius:18px;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink),inset 0 3px 0 rgba(255,255,255,.6);font:800 20px/1 var(--disp);color:var(--ink);text-decoration:none;transition:transform .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn svg{width:24px;height:24px}
+.btn.gold{background:linear-gradient(#fff3b0,#ffd23f 45%,#ff9f1c)}
+.btn.green{background:linear-gradient(#c9ffd9,#5fdc8c 45%,#2fb763);color:#0d3a1f}
+.btn.web{background:linear-gradient(#fff,#d9ecff);font-size:17px;min-height:48px}
+.steps{margin:0;padding-left:20px;font:700 13.5px/1.5 var(--body);color:var(--ink2)}
+.steps b{color:var(--ink)}
+.ver{margin-top:16px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 14px;font:700 13.5px var(--body);color:var(--muted)}
+.ver .dot{width:10px;height:10px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(60,207,145,.25)}
+.ver b{color:var(--ink)}
+.webrow{display:flex;justify-content:center;margin-top:14px}
+/* ảnh trong game */
+.shots{width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.shots figure{margin:0;border:4px solid var(--ink);border-radius:20px;overflow:hidden;box-shadow:0 6px 0 var(--ink);background:#fff}
+.shots img{display:block;width:100%;height:auto;aspect-ratio:960/444;object-fit:cover}
+.shots figcaption{padding:7px 12px;font:800 14px var(--disp);background:var(--cream);border-top:3px solid var(--ink)}
+h4.sec{margin:6px 0 -6px;padding:4px 18px 2px;font:800 20px/1.2 var(--disp);color:var(--ink);background:linear-gradient(#fff,#ffe9a3);border:3px solid var(--ink);border-radius:999px;box-shadow:0 4px 0 var(--ink)}
+footer{position:relative;text-align:center;font:700 13px var(--body);color:#fff;text-shadow:0 1.5px 0 rgba(0,0,0,.4)}
+footer a{color:#fff}
+@media (max-width:720px){.dl{grid-template-columns:1fr}.shots{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.logo{animation:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="logo" aria-label="Hiệp Sĩ Nét Chì Online">
+    <span class="l1"><b class="o" aria-hidden="true">Hiệp Sĩ</b><b class="f">Hiệp Sĩ</b></span>
+    <span class="l2"><b class="o" aria-hidden="true">Nét Chì</b><b class="f">Nét Chì</b></span>
+    <span class="ribbon">ONLINE</span>
+  </div>
+
+  <section class="card" aria-labelledby="t1">
+    <h2 id="t1">Tải game miễn phí</h2>
+    <p class="sub">Luôn là bản mới nhất – mỗi lần game cập nhật, nút tải tự trỏ tới bản mới.</p>
+    <div class="dl">
+      <div class="plat win" id="pWin">
+        <div class="ph">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7H3zM11.5 4.3 21 3v8.4h-9.5zM3 12.6h7.5v7L3 18.5zM11.5 12.6H21V21l-9.5-1.3z"/></svg></div>
+          <div><h3>Máy tính Windows</h3><p class="meta" id="mWin">Windows 10 / 11 · 64-bit</p></div>
+        </div>
+        <a class="btn gold" id="aWin" href="https://github.com/phamlongnb2004/hiep-si-net-chi/releases/latest/download/HiepSiNetChi-Windows.zip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 10l6 6 6-6M4 20h16"/></svg>Tải cho Windows</a>
+        <ol class="steps">
+          <li>Giải nén file <b>.zip</b>, mở <b>HiepSiNetChi-win_x64.exe</b>.</li>
+          <li>Nếu Windows báo "đã bảo vệ máy tính": bấm <b>Thông tin thêm → Vẫn chạy</b>.</li>
+        </ol>
+      </div>
+      <div class="plat and" id="pAnd">
+        <div class="ph">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M7.2 9h9.6v8.2a1.3 1.3 0 0 1-1.3 1.3h-1v2.4a1.2 1.2 0 0 1-2.4 0v-2.4h-.2v2.4a1.2 1.2 0 0 1-2.4 0v-2.4h-1a1.3 1.3 0 0 1-1.3-1.3zM4.6 9.2a1.2 1.2 0 0 1 1.2 1.2v4.8a1.2 1.2 0 0 1-2.4 0v-4.8a1.2 1.2 0 0 1 1.2-1.2zm14.8 0a1.2 1.2 0 0 1 1.2 1.2v4.8a1.2 1.2 0 0 1-2.4 0v-4.8a1.2 1.2 0 0 1 1.2-1.2zM7.3 8.2a4.8 4.8 0 0 1 2.4-3.6l-.9-1.6a.3.3 0 0 1 .5-.3l.9 1.6a5.2 5.2 0 0 1 3.6 0l.9-1.6a.3.3 0 0 1 .5.3l-.9 1.6a4.8 4.8 0 0 1 2.4 3.6zM10 6.3a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2zm4 0a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z"/></svg></div>
+          <div><h3>Điện thoại Android</h3><p class="meta" id="mAnd">Android 7 trở lên · tự cập nhật nội dung</p></div>
+        </div>
+        <a class="btn green" id="aAnd" href="https://github.com/phamlongnb2004/hiep-si-net-chi/releases/latest/download/HiepSiNetChi.apk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 10l6 6 6-6M4 20h16"/></svg>Tải cho Android</a>
+        <ol class="steps">
+          <li>Mở file <b>HiepSiNetChi.apk</b> vừa tải.</li>
+          <li>Nếu máy hỏi, cho phép <b>"Cài ứng dụng không rõ nguồn"</b> rồi bấm <b>Cài đặt</b>.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="ver" id="ver"><span class="dot"></span><span>Đang kiểm tra bản mới nhất…</span></div>
+    <div class="webrow"><a class="btn web" href="./">▶ Chơi ngay trên trình duyệt</a></div>
+  </section>
+
+  <h4 class="sec">Hình ảnh trong game</h4>
+  <section class="shots" aria-label="Hình ảnh trong game">
+    <figure><img src="shot-1.webp" alt="Làng Hiệp Sĩ" loading="lazy" width="960" height="444"><figcaption>Làng Hiệp Sĩ</figcaption></figure>
+    <figure><img src="shot-4.webp" alt="Đồng Bằng Khởi Nguyên" loading="lazy" width="960" height="444"><figcaption>Đồng Bằng Khởi Nguyên</figcaption></figure>
+    <figure><img src="shot-3.webp" alt="Rừng Tuyết Phong" loading="lazy" width="960" height="444"><figcaption>Rừng Tuyết Phong</figcaption></figure>
+    <figure><img src="shot-2.webp" alt="Hành trang" loading="lazy" width="960" height="444"><figcaption>Hành trang &amp; trang bị theo phái</figcaption></figure>
+  </section>
+
+  <footer>© Hiệp Sĩ Nét Chì · <a href="./">Chơi trên web</a></footer>
+</main>
+<script>
+(()=>{
+  // làm nổi nút đúng loại máy đang xem
+  const ua=navigator.userAgent||'';const me=/Android/i.test(ua)?'pAnd':/Windows/i.test(ua)?'pWin':null;
+  if(me){const p=document.getElementById(me);p.classList.add('me');const t=document.createElement('span');t.className='tag';t.textContent='Máy của bạn';p.prepend(t);
+    if(me==='pAnd'){const dl=document.querySelector('.dl');dl.prepend(p);}}
+  // thông tin bản mới nhất lấy thẳng từ trang phát hành (tự đổi mỗi lần cập nhật)
+  const mb=n=>(n/1048576).toFixed(n>10485760?0:1)+' MB';
+  const dt=s=>{try{return new Date(s).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return s;}};
+  fetch('https://api.github.com/repos/phamlongnb2004/hiep-si-net-chi/releases/latest',{headers:{Accept:'application/vnd.github+json'}})
+    .then(r=>r.ok?r.json():Promise.reject(r.status)).then(rel=>{
+      const a=n=>(rel.assets||[]).find(x=>x.name===n);const w=a('HiepSiNetChi-Windows.zip'),d=a('HiepSiNetChi.apk');
+      if(w){document.getElementById('aWin').href=w.browser_download_url;document.getElementById('mWin').textContent='Windows 10 / 11 · 64-bit · '+mb(w.size);}
+      if(d){document.getElementById('aAnd').href=d.browser_download_url;document.getElementById('mAnd').textContent='Android 7 trở lên · '+mb(d.size);}
+      const up=[w,d].filter(Boolean).map(x=>x.updated_at).sort().pop()||rel.published_at;
+      document.getElementById('ver').innerHTML='<span class="dot"></span><span>Bản mới nhất: <b>'+(rel.name||rel.tag_name)+'</b></span><span>Cập nhật lúc <b>'+dt(up)+'</b></span>';
+    }).catch(()=>{document.getElementById('ver').innerHTML='<span class="dot"></span><span>Nút tải luôn trỏ tới bản mới nhất</span>';});
+})();
+</script>
+</body>
+</html>

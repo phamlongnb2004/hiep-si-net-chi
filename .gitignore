@@ -14,3 +14,6 @@ public/
 tools/__pycache__/
 tools/.anim-cache/
 tools/.mon-cache/
+desktop-lite/bin/
+desktop-lite/dist/
+desktop-lite/resources/index.html
