@@ -8,7 +8,7 @@ const key = fs.readFileSync(arg('key') || process.env.HSNC_UPDATE_KEY, 'utf8');
 const rel = JSON.parse(fs.readFileSync(arg('in'), 'utf8')), base = path.dirname(path.resolve(arg('in')));
 const fill = o => { if (!o || !o.file) return; const p = path.resolve(base, o.file), b = fs.readFileSync(p);
   o.sha256 = crypto.createHash('sha256').update(b).digest('hex'); o.size = b.length; delete o.file; };
-fill(rel.app && rel.app.windows); fill(rel.app && rel.app.android); fill(rel.assets);
+for (const k in (rel.app || {})) if (rel.app[k] && typeof rel.app[k] === 'object') fill(rel.app[k]); fill(rel.assets);
 rel.updated = new Date().toISOString();
 const payload = Buffer.from(JSON.stringify(rel), 'utf8');
 const sig = crypto.sign('sha256', payload, { key, padding: crypto.constants.RSA_PKCS1_PADDING });

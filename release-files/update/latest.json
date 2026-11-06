@@ -14,7 +14,8 @@
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "file": "HiepSiNetChi-Linux.tar.gz"
+   "sha256": "b525165f65b569ad78b1c6a4c9de4528d60ca1b930108587d392423c1f5baa66",
+   "size": 56270029
   }
  },
  "assets": {
@@ -32,5 +33,5 @@
   "Tự tải hình ảnh và dữ liệu mới khi mở game",
   "Mất mạng thì tự kết nối lại"
  ],
- "updated": "2026-11-06T11:53:19.465Z"
+ "updated": "2026-11-06T11:56:15.806Z"
 }
