@@ -8,6 +8,7 @@ var tab = "books"
 var fit = {}            # {"id", "slot"}
 var msg = ""
 var msg_ok = true
+var gear_cls = ""
 var body: VBoxContainer
 var title: Label
 var tabs: HBoxContainer
@@ -47,13 +48,13 @@ func setup(g: Game) -> void:
 	sc.add_child(body)
 	g.me_changed.connect(func(): if visible: render())
 	Net.message.connect(func(m):
-		if visible and m.get("t") == "res" and m.get("op") in ["forge", "book", "learn", "buypot"] and m.get("msg"):
+		if visible and m.get("t") == "res" and m.get("op") in ["forge", "book", "learn", "buypot", "shopbuy"] and m.get("msg"):
 			msg = str(m.msg); msg_ok = bool(m.get("ok", false)) and int(m.get("win", 1)) == 1; render())
 	visible = false
 
 func open(id: String) -> void:
-	mode = "shop" if id == "shop" else "forge"
-	tab = "books" if mode == "shop" else "forge"
+	mode = id if id in ["shop", "gear"] else "forge"
+	tab = {"shop": "books", "gear": "gear"}.get(mode, "forge")
 	msg = ""
 	fit = {}
 	visible = true
@@ -68,7 +69,13 @@ func render() -> void:
 	var d = game.me_data
 	if d.is_empty():
 		return
-	title.text = "Thương Nhân Bảo" if mode == "shop" else "Thợ Rèn Cương"
+	title.text = {"shop": "Thương Nhân Bảo", "gear": "Thương Nhân Giáp"}.get(mode, "Thợ Rèn Cương")
+	if mode == "gear":
+		for c in Data.CLS_KEYS:
+			var b2 = UI.button(str(Data.D.cls[c].n), UI.GOLD if gear_cls == c else UI.SKY, 16)
+			var cc: String = c
+			b2.pressed.connect(func(): gear_cls = cc; msg = ""; render())
+			tabs.add_child(b2)
 	if mode == "shop":
 		for k in [["books", "Sách kỹ năng"], ["pots", "Bình máu"]]:
 			var b = UI.button(k[1], UI.GOLD if tab == k[0] else UI.SKY, 18)
@@ -82,6 +89,7 @@ func render() -> void:
 		"books": _skills(d)
 		"pots": _pots(d)
 		"forge": _forge(d)
+		"gear": _gear(d)
 
 func _row(no: String, h: String, p: String, small: String, btn: Button) -> void:
 	var r = PanelContainer.new()
@@ -155,19 +163,7 @@ func _forge(d: Dictionary) -> void:
 		var selected: bool = fit.get("id") == it.id
 		if selected:
 			cur = o
-		var p = PanelContainer.new()
-		p.custom_minimum_size = Vector2(76, 76)
-		p.add_theme_stylebox_override("panel", UI.box(Color.WHITE, UI.BLUE if selected else Data.rar_color(int(it.r)), 12, 4 if selected else 2, false))
-		var t = TextureRect.new()
-		t.texture = Data.item_icon(it)
-		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		p.add_child(t)
-		if int(it.get("up", 0)) > 0:
-			var u = UI.outlined("+%d" % int(it.up), 13, Color("ffd23f"), "bold", 4)
-			u.size_flags_horizontal = Control.SIZE_SHRINK_END
-			u.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			p.add_child(u)
+		var p = ItemCell.make(it, selected, true, false, 76)
 		if o.slot != "":
 			var e = UI.label("Mặc", 11, Color("2fa84f"), "bold")
 			e.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -199,3 +195,51 @@ func _forge(d: Dictionary) -> void:
 			if cs != "": m["slot"] = cs
 			Net.send(m))
 		body.add_child(b)
+
+
+## Thương Nhân Giáp: đồ mọi phái, mọi độ hiếm, chỉ số mặc định (đồ rơi từ quái có thể thấp hơn hoặc cao hơn)
+const SHOP_MUL = [1, 3.5, 10, 32]
+func _gear(d: Dictionary) -> void:
+	if gear_cls == "":
+		gear_cls = game.cls()
+	var lvl = max(1, int(floor(int(d.lv) / 5.0)) * 5)
+	body.add_child(UI.label("Đồ cấp %d (theo cấp của bạn), chỉ số mặc định. Đồ rơi từ quái có thể thấp hơn hoặc cao hơn, và có thể bị khóa." % lvl, 15, Color("5a6b8c"), "body"))
+	for r in 4:
+		var row = UI.hbox(10)
+		var nm = UI.label(str(Data.D.rar[r].n), 18, Data.rar_color(r) if r > 0 else UI.INK, "bold")
+		nm.custom_minimum_size = Vector2(120, 0)
+		row.add_child(nm)
+		for slot in Data.SLOTS:
+			var it = _shop_item(gear_cls, slot, r, lvl)
+			var price = int(round((25 + lvl * 9) * SHOP_MUL[r]))
+			var v = UI.vbox(2)
+			var cell = ItemCell.make(it, false, gear_cls == game.cls(), false, 70)
+			v.add_child(cell)
+			var st = []
+			for k in it.st:
+				st.append("%s %d" % [Data.STAT_N[k], int(it.st[k])])
+			var sl = UI.label(", ".join(st), 12, UI.INK, "semi")
+			sl.custom_minimum_size = Vector2(150, 0)
+			v.add_child(sl)
+			var b = UI.button("%s vàng" % UI.fmt(price), UI.GOLD, 14)
+			b.disabled = int(d.gold) < price or d.inv.size() >= 30
+			var cs: String = gear_cls
+			var ss: String = slot
+			var rr: int = r
+			b.pressed.connect(func(): Net.send({"t": "shopbuy", "cls": cs, "slot": ss, "r": rr}))
+			v.add_child(b)
+			row.add_child(v)
+		body.add_child(row)
+
+func _shop_item(c: String, slot: String, r: int, lvl: int) -> Dictionary:
+	var m = float(Data.D.rar[r].m)
+	var base = 3 + lvl * 1.4
+	var st = {}
+	match slot:
+		"hat": st = {"def": base * 0.6 * m, "hp": base * 3 * m}
+		"armor": st = {"def": base * m, "hp": base * 5 * m}
+		"cape": st = {"spd": (2 + lvl * 0.3) * m, "def": base * 0.4 * m}
+		_: st = {"atk": base * 1.3 * m}
+	for k in st:
+		st[k] = max(1, int(round(st[k])))
+	return {"id": "", "slot": slot, "cls": c, "tier": r, "r": r, "lvl": lvl, "name": Data.NOUN[c][slot] + " " + str(Data.D.sets[c][r]), "st": st, "shop": 1}

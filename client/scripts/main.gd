@@ -10,6 +10,7 @@ var game: Game
 var hud: Hud
 var bag: Bag
 var npc: Npc
+var social: Social
 var menu: Control
 var updater: Updater
 var update_note = ""
@@ -240,6 +241,11 @@ func _start_game() -> void:
 	bag = Bag.new()
 	top.add_child(bag)
 	bag.setup(game)
+	social = Social.new()
+	top.add_child(social)
+	social.setup(game)
+	hud.social = social
+	hud.bind_social()
 	npc = Npc.new()
 	top.add_child(npc)
 	npc.setup(game)
@@ -250,7 +256,7 @@ func _start_game() -> void:
 	bg.visible = false
 
 func _end_game() -> void:
-	for n in [game, hud, bag, npc, menu]:
+	for n in [game, hud, bag, npc, menu, social]:
 		if n and is_instance_valid(n):
 			var p = n.get_parent()
 			if p is CanvasLayer and p != ui_layer:

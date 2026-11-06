@@ -4,15 +4,20 @@
 import D from './data.json';
 export { D };
 
-export const MAX_LV = 60, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 760, MAXSTEP = 105;
-export const POT_HEAL = .45, POT_CD = 1, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
+export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 760, MAXSTEP = 105;
+export const POT_HEAL = .45, POT_CD = 3, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
+export const WORLD_CHAT_COST = 5000;          // nhắn cả máy chủ tốn vàng (cao) để tránh spam
+export const FRIEND_MAX = 100;
+export const LOCK_CHANCE = .4;                // đồ rơi có tỉ lệ bị khóa (không giao dịch được)
+export const ELITE_CHANCE = .07;              // quái thường thỉnh thoảng hồi sinh thành tinh anh
+export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
 // tên món theo phái (gear.js) và tỉ lệ hiếm khi rơi
 export const NOUN = {
   sword: { hat: 'Mũ Giáp', armor: 'Giáp Kỵ Sĩ', cape: 'Áo Choàng', weapon: 'Kiếm' },
   archer: { hat: 'Mũ Trùm', armor: 'Áo Giáp Lá', cape: 'Áo Choàng', weapon: 'Cung' },
   mage: { hat: 'Nón Phép', armor: 'Pháp Bào', cape: 'Khăn Choàng', weapon: 'Trượng' },
   fighter: { hat: 'Khăn Đầu', armor: 'Võ Phục', cape: 'Khăn Choàng', weapon: 'Găng Vuốt' } };
-export const W_MOB = [80, 16.5, 3.1, .4], W_BOSS = [30, 48, 18.5, 3.5];
+export const W_MOB = [80, 16.5, 3.1, .4], W_BOSS = [30, 48, 18.5, 3.5], W_ELITE = [52, 34, 11.5, 2.5];
 export const SLOTS = ['hat', 'armor', 'cape', 'weapon'];
 export const CLS_KEYS = ['sword', 'archer', 'mage', 'fighter'];
 
@@ -21,7 +26,9 @@ const ri = (rng, a, b) => Math.floor(a + rng() * (b - a + 1));
 const pickW = (rng, ws) => { let x = rng() * ws.reduce((a, b) => a + b), k = 0; for (; k < ws.length; k++) { x -= ws[k]; if (x < 0) break; } return Math.min(k, ws.length - 1); };
 
 /* ---------- cấp, chỉ số ---------- */
-export const expNeed = l => Math.floor(30 * Math.pow(l, 1.45));
+// cấp 1-30 giữ như cũ; sau 30 mỗi cấp khó hơn 15%, sau 60 mỗi cấp khó hơn 18% (cấp 99 cần ~500 triệu kinh nghiệm)
+export const expMul = l => l <= 30 ? 1 : l <= 60 ? Math.pow(1.15, l - 30) : Math.pow(1.15, 30) * Math.pow(1.18, l - 60);
+export const expNeed = l => Math.floor(30 * Math.pow(l, 1.45) * expMul(l));
 export const itemStat = (it, k) => Math.round(((it.st && it.st[k]) || 0) * (1 + .12 * (it.up || 0)));
 export const sellPrice = it => Math.round((4 + it.lvl * 2.2) * D.rar[it.r].m * (1 + .35 * (it.up || 0)));
 export const score = it => it ? itemStat(it, 'atk') * 2 + itemStat(it, 'def') * 1.5 + itemStat(it, 'hp') * .1 + itemStat(it, 'spd') * .6 : 0;
@@ -41,16 +48,38 @@ export function addExp(ch, n) {
 }
 
 /* ---------- đồ ---------- */
-export function genItem(rng, lvl, boss, cls, id) {
-  const c = rng() < .75 && D.sets[cls] ? cls : CLS_KEYS[ri(rng, 0, CLS_KEYS.length - 1)];
-  const rk = pickW(rng, boss ? W_BOSS : W_MOB), R = D.rar[rk], m = R.m, base = 3 + lvl * 1.4, slot = SLOTS[Math.floor(rng() * 4)], st = {};
-  if (slot === 'hat') { st.def = Math.round(base * .6 * m); st.hp = Math.round(base * 3 * m); }
-  else if (slot === 'armor') { st.def = Math.round(base * m); st.hp = Math.round(base * 5 * m); }
-  else if (slot === 'cape') { st.spd = Math.round((2 + lvl * .3) * m); st.def = Math.round(base * .4 * m); }
-  else st.atk = Math.round(base * 1.3 * m);
-  const it = { id, slot, cls: c, tier: rk, style: 0, col: R.c.length === 7 ? R.c : '#8a93a8', r: rk, lvl, name: NOUN[c][slot] + ' ' + D.sets[c][rk], st };
+// chỉ số mặc định của một món (đồ bán ở NPC); đồ rơi từ quái dao động 80%..125% quanh mức này
+export function baseStats(slot, lvl, rk) {
+  const m = D.rar[rk].m, base = 3 + lvl * 1.4, st = {};
+  if (slot === 'hat') { st.def = base * .6 * m; st.hp = base * 3 * m; }
+  else if (slot === 'armor') { st.def = base * m; st.hp = base * 5 * m; }
+  else if (slot === 'cape') { st.spd = (2 + lvl * .3) * m; st.def = base * .4 * m; }
+  else st.atk = base * 1.3 * m;
+  return st;
+}
+function makeItem(id, slot, c, rk, lvl, st) {
+  const R = D.rar[rk], it = { id, slot, cls: c, tier: rk, style: 0, col: R.c.length === 7 ? R.c : '#8a93a8', r: rk, lvl, name: NOUN[c][slot] + ' ' + D.sets[c][rk], st };
   if (slot === 'weapon') it.wk = c;
   return it;
+}
+// mode: false/'mob' quái thường, true/'boss' trùm, 'elite' tinh anh
+export function genItem(rng, lvl, mode, cls, id) {
+  const c = rng() < .75 && D.sets[cls] ? cls : CLS_KEYS[ri(rng, 0, CLS_KEYS.length - 1)];
+  const ws = mode === 'elite' ? W_ELITE : (mode === true || mode === 'boss') ? W_BOSS : W_MOB;
+  const rk = pickW(rng, ws), slot = SLOTS[Math.floor(rng() * 4)], b = baseStats(slot, lvl, rk), st = {};
+  for (const k in b) st[k] = Math.max(1, Math.round(b[k] * (.8 + rng() * .45)));
+  const it = makeItem(id, slot, c, rk, lvl, st);
+  if (rng() < LOCK_CHANCE) it.lock = 1;
+  return it;
+}
+// đồ bán ở NPC Trang Bị: chỉ số mặc định, không khóa
+export const SHOP_TIER_MUL = [1, 3.5, 10, 32];
+export const shopLevel = lv => Math.max(1, Math.floor(lv / 5) * 5);
+export const shopPrice = (lvl, rk) => Math.round((25 + lvl * 9) * SHOP_TIER_MUL[rk]);
+export function shopItem(c, slot, rk, lvl, id) {
+  const b = baseStats(slot, lvl, rk), st = {};
+  for (const k in b) st[k] = Math.max(1, Math.round(b[k]));
+  const it = makeItem(id, slot, c, rk, lvl, st); it.shop = 1; return it;
 }
 // đồ cũ (trước khi có phái) thuộc về phái của nhân vật: giống fixIt trong gear.js
 export function fixItem(it, cls) {
@@ -61,7 +90,7 @@ export function fixItem(it, cls) {
 export const validItem = it => !!(it && typeof it === 'object' && SLOTS.includes(it.slot) && it.st && typeof it.name === 'string' && D.rar[it.r] && typeof it.col === 'string' && /^#[0-9a-fA-F]{6}$/.test(it.col));
 // chỉ số lớn nhất có thể có của một món (để đánh dấu bản lưu bất thường, không sửa)
 export function maxItemStat(it) {
-  const m = D.rar[3].m, base = 3 + (it.lvl || 1) * 1.4;
+  const m = D.rar[3].m * 1.25, base = 3 + (it.lvl || 1) * 1.4;
   return { atk: Math.round(base * 1.3 * m) + 1, def: Math.round(base * m) + 1, hp: Math.round(base * 5 * m) + 1, spd: Math.round((2 + (it.lvl || 1) * .3) * m) + 1 };
 }
 
@@ -72,20 +101,21 @@ export function forgeInfo(it) {
 }
 
 /* ---------- quái ---------- */
-export function monStats(type, lv) {
-  const t = D.mons[type];
-  return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1))), atk: t.atk * (1 + .12 * (lv - 1)), def: t.def + lv * .5 };
+export function monStats(type, lv, elite) {
+  const t = D.mons[type], e = elite ? ELITE : { hp: 1, atk: 1, def: 1 };
+  return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk, def: (t.def + lv * .5) * e.def };
 }
-export const monExp = (type, lv) => Math.round(D.mons[type].exp * (1 + .45 * (lv - 1)));
-export const monGold = (rng, type, lv) => { const g = D.mons[type].gold; return ri(rng, g[0], g[1]) * (1 + Math.floor(lv / 3)); };
+export const monExp = (type, lv, elite) => Math.round(D.mons[type].exp * (1 + .45 * (lv - 1)) * (elite ? ELITE.exp : 1));
+export const monGold = (rng, type, lv, elite) => { const g = D.mons[type].gold; return ri(rng, g[0], g[1]) * (1 + Math.floor(lv / 3)) * (elite ? ELITE.gold : 1); };
 export const respawnTime = (rng, type) => D.mons[type].boss ? 90 : 9 + rng() * 5;
-// vật phẩm rơi khi hạ quái
-export function monDrops(rng, type, lv, cls, nextId) {
-  const t = D.mons[type], ds = [];
-  if (rng() < t.drop) ds.push({ k: 'item', item: genItem(rng, lv, !!t.boss, cls, nextId()) });
-  if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, true, cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
-  if (rng() < .14) ds.push({ k: 'pot' });
-  const sn = t.boss ? ri(rng, 5, 8) : (rng() < .34 + Math.min(.1, lv * .004) ? 1 : 0);
+export const rollElite = (rng, type) => !D.mons[type].boss && rng() < ELITE_CHANCE;
+// vật phẩm rơi khi hạ quái (tinh anh: tỉ lệ rơi đồ cao hơn và đồ hiếm dễ ra hơn, nhưng không phải lần nào cũng rơi)
+export function monDrops(rng, type, lv, cls, nextId, elite) {
+  const t = D.mons[type], ds = [], dc = elite ? Math.min(ELITE.dropMax, t.drop * ELITE.drop) : t.drop;
+  if (rng() < dc) ds.push({ k: 'item', item: genItem(rng, lv, t.boss ? 'boss' : elite ? 'elite' : 'mob', cls, nextId()) });
+  if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, 'boss', cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
+  if (rng() < (elite ? .35 : .14)) ds.push({ k: 'pot' });
+  const sn = t.boss ? ri(rng, 5, 8) : elite ? ri(rng, 1, 3) : (rng() < .34 + Math.min(.1, lv * .004) ? 1 : 0);
   if (sn) ds.push({ k: 'stone', n: sn });
   return ds;
 }

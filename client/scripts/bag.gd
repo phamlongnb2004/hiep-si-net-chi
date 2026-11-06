@@ -70,35 +70,9 @@ func _cell(sz := 74) -> PanelContainer:
 	return p
 
 func _item_cell(it: Dictionary, selected: bool, equipped := false) -> PanelContainer:
-	var p = _cell()
-	var r = int(it.get("r", 0))
-	var s = UI.box(Color.WHITE.lerp(Data.rar_color(r), 0.18 if r > 0 else 0.0), Data.rar_color(r) if r > 0 else Color("b8c4dc"), 12, 4 if selected else 2, false)
-	if selected:
-		s.border_color = UI.BLUE
-	p.add_theme_stylebox_override("panel", s)
-	var t = TextureRect.new()
-	t.texture = Data.item_icon(it)
-	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	p.add_child(t)
 	var own = str(it.get("cls", "")) == game.cls()
-	if not own:
-		t.modulate = Color(1, 1, 1, 0.55)
-	var lv = UI.label("Lv.%d" % int(it.lvl), 12, UI.INK, "bold")
-	lv.size_flags_vertical = Control.SIZE_SHRINK_END
-	lv.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	p.add_child(lv)
-	if int(it.get("up", 0)) > 0:
-		var u = UI.outlined("+%d" % int(it.up), 13, Color("ffd23f"), "bold", 4)
-		u.size_flags_horizontal = Control.SIZE_SHRINK_END
-		u.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		p.add_child(u)
-	if own and not equipped and Data.score(it) > Data.score(game.me_data.eq.get(it.slot)):
-		var up = UI.label("▲", 14, Color("2fa84f"), "bold")
-		up.size_flags_horizontal = Control.SIZE_SHRINK_END
-		up.size_flags_vertical = Control.SIZE_SHRINK_END
-		p.add_child(up)
-	return p
+	var better = own and not equipped and Data.score(it) > Data.score(game.me_data.eq.get(it.slot))
+	return ItemCell.make(it, selected, own, better)
 
 func _click(c: Control, f: Callable) -> void:
 	c.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -164,14 +138,6 @@ func _render_bag(d: Dictionary) -> void:
 	var so = UI.button("Sắp xếp", UI.SKY, 18)
 	so.pressed.connect(func(): Net.send({"t": "sort"}))
 	row.add_child(so)
-	var junk = 0
-	for it in inv:
-		if int(it.r) == 0 and not (str(it.get("cls", "")) == game.cls() and Data.score(it) > Data.score(d.eq.get(it.slot))):
-			junk += 1
-	var sj = UI.button("Bán đồ thường (%d)" % junk, UI.GOLD, 18)
-	sj.disabled = junk == 0
-	sj.pressed.connect(func(): Net.send({"t": "selljunk"}))
-	row.add_child(sj)
 	row.add_child(UI.label("%d / 30 ô" % inv.size(), 16, Color("5a6b8c"), "semi"))
 	detail = UI.vbox(8)
 	detail.custom_minimum_size = Vector2(300, 0)
@@ -231,6 +197,12 @@ func _render_detail(d: Dictionary) -> void:
 	var own = str(it.get("cls", "")) == game.cls()
 	detail.add_child(UI.label("%s · %s · Cấp %d" % [Data.D.rar[r2].n, Data.SLOT_N[it.slot], int(it.lvl)], 16, Color("5a6b8c"), "semi"))
 	detail.add_child(UI.label("Phái: " + str(Data.D.cls.get(it.get("cls", ""), {}).get("n", "?")) + ("" if own else " (bạn không mặc được)"), 16, UI.INK if own else Color("d9345a"), "semi"))
+	if int(it.get("lock", 0)) == 1:
+		detail.add_child(UI.label("Đồ khóa: không giao dịch được", 15, Color("b85c00"), "semi"))
+	elif int(it.get("shop", 0)) == 1:
+		detail.add_child(UI.label("Đồ cửa hàng (chỉ số mặc định)", 15, Color("5a6b8c"), "semi"))
+	else:
+		detail.add_child(UI.label("Không khóa: giao dịch được", 15, Color("2fa84f"), "semi"))
 	_stat_lines(it, d.eq.get(it.slot))
 	var row = UI.hbox(8)
 	detail.add_child(row)

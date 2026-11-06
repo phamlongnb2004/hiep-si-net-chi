@@ -3,6 +3,11 @@ extends Node
 
 func _ready() -> void:
 	var args = OS.get_cmdline_user_args()
+	for a in args:
+		if a.begins_with("glowtest="):
+			get_tree().root.add_child.call_deferred(load("res://scripts/glowtest.gd").new())
+			queue_free()
+			return
 	if "updtest" in args:
 		get_tree().root.add_child.call_deferred(load("res://scripts/updtest.gd").new())
 		queue_free()

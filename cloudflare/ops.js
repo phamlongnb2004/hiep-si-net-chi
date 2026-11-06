@@ -24,11 +24,6 @@ export const OPS = {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
     const g = R.sellPrice(ch.inv[i]); ch.gold += g; ch.inv.splice(i, 1); return { ok: true, gold: g };
   },
-  selljunk(c) {
-    const ch = c.ch; let g = 0, n = 0;
-    ch.inv = ch.inv.filter(x => { const keep = !(x.r === 0 && !(own(ch, x) && R.score(x) > R.score(ch.eq[x.slot]))); if (!keep) { g += R.sellPrice(x); n++; } return keep; });
-    ch.gold += g; return { ok: n > 0, gold: g, n };
-  },
   sort(c) {
     const ch = c.ch; ch.inv.sort((a, b) => (own(ch, b) - own(ch, a)) || (b.r - a.r) || (ORD[a.slot] - ORD[b.slot]) || (b.lvl - a.lvl)); return { ok: true };
   },
@@ -42,7 +37,19 @@ export const OPS = {
     if (ch.gold < price || ch.pots + n > R.POT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mang tối đa ' + R.POT_MAX + ' bình.' };
     ch.gold -= price; ch.pots += n; return { ok: true };
   },
-  book(c, m) {
+  // NPC Thương Nhân Giáp: bán mọi loại đồ của mọi phái, chỉ số mặc định, cấp đồ theo cấp người chơi (bậc 5)
+  shopbuy(c, m) {
+    const ch = c.ch, cls = String(m.cls), slot = String(m.slot), r = m.r | 0;
+    if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot) || r < 0 || r > 3) return { ok: false };
+    if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Hãy tới gần Thương Nhân Giáp trong Làng.' };
+    if (ch.inv.length >= R.INV_MAX) return { ok: false, msg: 'Túi đầy.' };
+    const lvl = R.shopLevel(ch.lv), price = R.shopPrice(lvl, r);
+    if (ch.gold < price) return { ok: false, msg: 'Không đủ vàng.' };
+    const it = R.shopItem(cls, slot, r, lvl, 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
+    ch.gold -= price; ch.inv.push(it);
+    return { ok: true, msg: 'Đã mua ' + it.name + ' (' + price + ' vàng).' };
+  },
+    book(c, m) {
     const ch = c.ch, i = m.i | 0, S = D.skills[ch.cls][i]; if (!S || ch.books[i]) return { ok: false };
     if (!nearNpc(c, 'shop')) return { ok: false, msg: 'Hãy tới gần Thương Nhân Bảo trong Làng.' };
     if (ch.gold < S.price) return { ok: false, msg: 'Không đủ vàng.' };

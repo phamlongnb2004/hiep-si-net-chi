@@ -8,6 +8,7 @@ signal log_line(text: String, col: Color)
 signal npc_near(id: String)
 signal open_npc(id: String)
 signal map_changed(name: String)
+signal player_tapped(id: int, name: String)
 
 const GRAV := 2100.0
 const JUMP := 760.0
@@ -40,6 +41,8 @@ var send_t = 0.0
 var atk_t = 0.0
 var cds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var gcd = 0.0
+var pot_cd = 0.0
+const POT_CD = 3.0
 var warping = false
 var near_npc = ""
 var fade = 0.0
@@ -121,6 +124,7 @@ func _set_me(d: Dictionary, full: bool) -> void:
 	for i in mini(6, sc.size()):
 		cds[i] = float(sc[i])
 	gcd = float(me_data.get("gcd", 0))
+	pot_cd = max(pot_cd, float(me_data.get("potCd", 0)))
 	me.look = _look(me_data)
 	me_changed.emit()
 
@@ -216,9 +220,11 @@ func _event(e: Array) -> void:
 		"h":   # quái trúng đòn: id, sát thương, cờ (1 chí mạng, 2 độc), người đánh
 			var mo: Mon = mons.get(int(e[1]))
 			if mo:
-				mo.flash = 0.14
+				mo.hit_t = 0.18
 				var crit = int(e[3]) & 1 == 1
 				var dot = int(e[3]) & 2 == 2
+				if int(e[4]) == my_id and not dot:
+					fx.hit_spark(mo.position + Vector2(0, -float(Mon.MH.get(mo._k, 80)) * 0.4), crit)
 				if int(e[4]) == my_id or crit:
 					fx.text(mo.position + Vector2(0, -float(Mon.MH.get(mo._k, 80)) * 0.9), str(int(e[2])) + ("!" if crit else ""),
 						Color("7ddc5a") if dot else (Color("ffb300") if crit else Color.WHITE), crit)
@@ -246,12 +252,17 @@ func _event(e: Array) -> void:
 			var mo2: Mon = mons.get(int(e[1]))
 			if mo2:
 				mo2.flags |= 1
+				mo2.die_t = 0.0
 				if focus == mo2:
 					focus = null
 		"r":
 			var mo3: Mon = mons.get(int(e[1]))
 			if mo3:
 				mo3.flags = 0
+				mo3.die_t = -1.0
+				if e.size() > 5:
+					mo3.elite = int(e[4]) == 1
+					mo3.hp_max = float(e[5])
 				mo3.hp = mo3.hp_max
 				mo3.position = Vector2(e[2], e[3])
 				mo3.target = mo3.position
@@ -343,7 +354,9 @@ func do_skill(i: int) -> void:
 	fx.skill(cls(), i, me, aim, tg, me.face)
 
 func do_pot() -> void:
-	if can_act():
+	# bình máu có thời gian hồi để không bấm liên tục được
+	if can_act() and pot_cd <= 0.05:
+		pot_cd = POT_CD
 		Net.send({"t": "pot"})
 
 func jump() -> void:
@@ -364,6 +377,18 @@ func tap_world(screen_pos: Vector2) -> void:
 		if d < bd:
 			bd = d
 			best = mo
+	# người chơi khác gần chỗ chạm hơn quái: mở menu kết bạn / giao dịch
+	var hb = null
+	var hd = 70.0
+	for id in heroes:
+		var h: Hero = heroes[id]
+		var d2 = (h.position + Vector2(0, -36)).distance_to(wp)
+		if d2 < hd:
+			hd = d2
+			hb = id
+	if hb != null and (best == null or hd < bd):
+		player_tapped.emit(int(hb), heroes[hb].nm)
+		return
 	if best:
 		focus = best
 		move_to = -1
@@ -383,6 +408,7 @@ func _process(dt: float) -> void:
 		return
 	atk_t = max(0.0, atk_t - dt)
 	gcd = max(0.0, gcd - dt)
+	pot_cd = max(0.0, pot_cd - dt)
 	for i in 6:
 		cds[i] = max(0.0, cds[i] - dt)
 	for mo in mons.values():
@@ -392,6 +418,7 @@ func _process(dt: float) -> void:
 		h.position = h.position.lerp(tp, min(1.0, dt * 12)) if h.position.distance_to(tp) < 300 else tp
 	_control(dt)
 	cam.position = me.position + Vector2(0, -60)
+	cam.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * (fx.shake * 40.0) if fx.shake > 0 else Vector2.ZERO
 	# NPC gần
 	var nn = ""
 	for n in M.get("npcs", []):

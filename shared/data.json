@@ -634,6 +634,13 @@
      "y": 600,
      "name": "Thợ Rèn Cương",
      "role": "Lò rèn · Cường hóa đồ"
+    },
+    {
+     "id": "gear",
+     "x": 1500,
+     "y": 600,
+     "name": "Thương Nhân Giáp",
+     "role": "Bán trang bị mọi phái"
     }
    ],
    "portals": [

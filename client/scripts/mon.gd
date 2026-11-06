@@ -24,6 +24,9 @@ var mouth = Vector2.ZERO # toạ độ thế giới của miệng rồng
 var focused = false
 var hover = 0.0
 var _k = ""
+var elite = false
+var die_t = -1.0         # >=0: đang chết (nhấp nháy, mờ dần rồi biến mất)
+var hit_t = 0.0          # >0: vừa trúng đòn (ửng đỏ)
 var _info: Dictionary = {}
 
 func setup(info: Dictionary) -> void:
@@ -35,6 +38,7 @@ func setup(info: Dictionary) -> void:
 	position = Vector2(info.x, info.y)
 	target = position
 	flags = 1 if int(info.get("dead", 0)) else 0
+	elite = int(info.get("el", 0)) == 1
 	_info = Data.D.mons.get(type, {})
 	_k = str(_info.get("kind", "boar"))
 	walk = randf() * 6.0
@@ -59,7 +63,10 @@ func _process(dt: float) -> void:
 	walk += dt * (2.0 if mv else 0.4)
 	if not dead() and absf(d.x) > 1.5 and br_t < 0:
 		face = 1 if d.x > 0 else -1
-	visible = not dead()
+	hit_t = max(0.0, hit_t - dt)
+	if die_t >= 0:
+		die_t += dt
+	visible = not dead() or (die_t >= 0 and die_t < 0.75)
 	queue_redraw()
 
 func _br_frame(bt: float) -> int:
@@ -76,8 +83,16 @@ func _draw() -> void:
 	var H: float = MH.get(_k, 80)
 	var r: float = _info.get("r", 30)
 	hover = (-70.0 - sin(t * 2.2 + id) * 12.0) if fly else 0.0
-	var al = 0.55 if flash > 0 and int(t * 30) % 2 == 0 else 1.0
-	var base = Transform2D().scaled(Vector2(MS, MS))
+	var al = 1.0
+	if die_t >= 0:
+		# chết: nhấp nháy nhanh và mờ dần trong 0,75 giây
+		al = (1.0 - die_t / 0.75) * (0.25 if int(die_t * 20) % 2 == 0 else 1.0)
+	var tint = Color(1, 1, 1, al)
+	if hit_t > 0:
+		var k = hit_t / 0.18
+		tint = Color(1, 1 - 0.55 * k, 1 - 0.55 * k, al)   # ửng đỏ khi trúng đòn
+	var esc = 1.15 if elite else 1.0
+	var base = Transform2D().scaled(Vector2(MS * esc, MS * esc))
 	draw_set_transform_matrix(base)
 	var sw: float = 44.0 if _k == "boar" else (58.0 if _k == "wolf" else (62.0 if _k == "bear" else 130.0))
 	_ellipse(Vector2(0, r * 0.12 - r * 0.5 + r * 0.5), sw * 1.3 * (0.8 if fly else 1.0), r * 0.42, Color(0.1, 0.1, 0.2, 0.25 * (0.5 if fly else 1.0)))
@@ -103,7 +118,12 @@ func _draw() -> void:
 	draw_set_transform_matrix(xf * Transform2D().scaled(Vector2(1, 1 + breathe)))
 	var tx = Data.tex(q.u)
 	if tx:
-		draw_texture_rect(tx, Rect2(-float(q.cx) * H, y0, fw, fh), false, Color(1, 1, 1, al))
+		if elite and die_t < 0:
+			# tinh anh: viền sáng vàng tím nhấp nháy quanh thân
+			var gl = 0.35 + sin(t * 4.0) * 0.15
+			for o in [Vector2(3, 0), Vector2(-3, 0), Vector2(0, 3), Vector2(0, -3)]:
+				draw_texture_rect(tx, Rect2(Vector2(-float(q.cx) * H, y0) + o, Vector2(fw, fh)), false, Color(1.0, 0.75, 0.25, gl))
+		draw_texture_rect(tx, Rect2(-float(q.cx) * H, y0, fw, fh), false, tint)
 	if fly:
 		var lx: float = -float(q.cx) * H + float(q.get("mx", 0.92) if q.get("mx") != null else 0.92) * fw
 		var ly: float = y0 + float(q.get("my", 0.38) if q.get("my") != null else 0.38) * fh
@@ -120,15 +140,18 @@ func _draw() -> void:
 		draw_arc(Vector2(0, 2), sw * MS + 4, 0, TAU, 24, Color("6fcf3f") if flags & 8 else Color("6fb8ff"), 3)
 	var boss: bool = _info.get("boss", false)
 	var ly2 = top - 8
-	if hp < hp_max or boss or focused:
+	if die_t >= 0:
+		draw_set_transform(Vector2.ZERO)
+		return
+	if hp < hp_max or boss or focused or elite:
 		var bw = 96.0 if boss else 48.0
 		draw_rect(Rect2(-bw / 2 - 1.5, ly2 - 1.5, bw + 3, 8), Color("0f1422"))
 		draw_rect(Rect2(-bw / 2, ly2, bw * clampf(hp / hp_max, 0, 1), 5), Color("d9345a"))
 	var f2: Font = Data.fonts.get("bold")
-	var lab = "Lv.%d %s" % [lv, _info.get("n", type)]
+	var lab = "Lv.%d %s%s" % [lv, _info.get("n", type), " Tinh Anh" if elite else ""]
 	var w = f2.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	draw_string_outline(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Color(1, 1, 1, 0.85))
-	draw_string(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("c0143f") if focused else UI.INK)
+	draw_string(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("c0143f") if focused else (Color("b85c00") if elite else UI.INK))
 	if focused:
 		draw_arc(Vector2(0, 3), sw * MS * 0.9, 0, TAU, 28, Color(1, 0.82, 0.25, 0.9), 2.5)
 

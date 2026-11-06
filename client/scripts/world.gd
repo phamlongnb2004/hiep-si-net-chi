@@ -53,22 +53,22 @@ func _gen_decor() -> void:
 		if not busy.call(x) and absf(gy(x - 46) - gy(x + 46)) <= 2:
 			var k = r.randf()
 			if k < 0.5:
-				decor.append({"k": "tree", "x": x, "s": 0.85 + r.randf() * 0.5, "v": trees[r.randi() % 3], "dy": -6 - r.randf() * 10})
+				decor.append({"k": "tree", "x": x, "s": 0.85 + r.randf() * 0.5, "v": trees[r.randi() % 3], "dy": 6 + r.randf() * 4})
 			elif k < 0.75:
-				decor.append({"k": "bush", "x": x, "s": 0.8 + r.randf() * 0.5, "dy": -2})
+				decor.append({"k": "bush", "x": x, "s": 0.8 + r.randf() * 0.5, "dy": 5})
 			else:
-				decor.append({"k": "rock", "x": x, "s": 0.7 + r.randf() * 0.6, "dy": -2})
+				decor.append({"k": "rock", "x": x, "s": 0.7 + r.randf() * 0.6, "dy": 5})
 		x += 70 + r.randf() * 90
 	for h in M.get("houses", []):
-		decor.append({"k": "house", "x": float(h[0]), "v": int(h[1]), "dy": -4})
+		decor.append({"k": "house", "x": float(h[0]), "v": int(h[1]), "dy": 6})
 	if M.get("fountain") != null:
-		decor.append({"k": "fountain", "x": float(M.fountain), "dy": -2})
+		decor.append({"k": "fountain", "x": float(M.fountain), "dy": 5})
 	for s in M.spots:
 		var sx: float = s.x + 60
 		while sx < s.x + s.w / 2 and absf(gy(sx - 50) - gy(sx + 50)) > 1:
 			sx += 10
 		var lvt = "Cấp %d" % int(s.lv[0]) + ("-%d" % int(s.lv[1]) if s.lv[1] > s.lv[0] else "")
-		decor.append({"k": "sign", "x": sx, "txt": [str(s.n), lvt], "dy": -1})
+		decor.append({"k": "sign", "x": sx, "txt": [str(s.n), lvt], "dy": 5})
 	for d in decor:
 		d.gy = gy(d.x) + d.dy
 
@@ -211,14 +211,14 @@ func _ground(cx: float, cy: float, vw: float, vh: float) -> void:
 		else:
 			draw_rect(Rect2(x0 if dir > 0 else x0 - 3, top + 8, 3, bot - top + 30), Color(0.08, 0.05, 0.02, 0.5))
 
-func _spr(k: String, x: float, gyv: float, s: float, ay := 0.95) -> void:
+func _spr(k: String, x: float, gyv: float, s: float, ay := 0.95, mod := Color.WHITE) -> void:
 	var a = _ai(k)
 	var tx = Data.tex(a.get("u", ""))
 	if tx == null:
 		return
 	var w: float = a.w * s
 	var h: float = a.h * s
-	draw_texture_rect(tx, Rect2(x - w / 2, gyv - h * ay, w, h), false)
+	draw_texture_rect(tx, Rect2(x - w / 2, gyv - h * ay, w, h), false, mod)
 
 func _decor(d: Dictionary) -> void:
 	match d.k:
@@ -264,9 +264,9 @@ func _sign(d: Dictionary) -> void:
 	draw_string(f, Vector2(mx - t2 / 2, my + 12), n2, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("7a3b10"))
 
 func _npc(n: Dictionary) -> void:
-	_spr(str(n.id), n.x, n.y, DSC.npc)
+	_spr("shop" if str(n.id) == "gear" else str(n.id), n.x, n.y + 5, DSC.npc, 0.95, Color(0.75, 0.88, 1.0) if str(n.id) == "gear" else Color.WHITE)
 	var f: Font = Data.fonts.get("bold")
-	var a = _ai(str(n.id))
+	var a = _ai("shop" if str(n.id) == "gear" else str(n.id))
 	var top: float = n.y - float(a.get("h", 190)) * DSC.npc * 0.95 - 8
 	for i in 2:
 		var s: String = n.name if i == 0 else n.role
@@ -284,7 +284,7 @@ func _portal(p: Dictionary) -> void:
 	var a = _ai("gate")
 	var glow = 0.5 + sin(t * 3) * 0.2
 	_ellipse(Vector2(p.x, p.y - 50), 46, 62, Color(0.6, 0.9, 1, 0.22 * glow))
-	_spr("gate", p.x, p.y, 1.0)
+	_spr("gate", p.x, p.y + 5, 1.0)
 	var f: Font = Data.fonts.get("bold")
 	var top: float = p.y - float(a.get("h", 115)) - 10
 	for i in 2:

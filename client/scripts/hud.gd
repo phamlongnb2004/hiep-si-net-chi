@@ -21,6 +21,10 @@ var banner: Label
 var overlay: Control
 var overlay_l: Label
 var touch = false
+var social
+var fr_b: TextureButton
+var fr_badge: Label
+var potb
 
 class SkillBtn extends Control:
 	var tex: Texture2D
@@ -175,6 +179,12 @@ func setup(g: Game) -> void:
 	var chat_b = UI.icon_button(Data.tex(H.ui.get("chat", "")), 58)
 	chat_b.pressed.connect(_toggle_chat)
 	tbtn.add_child(chat_b)
+	fr_b = UI.icon_button(Data.tex(H.ui.get("talk", "")), 58)
+	fr_b.tooltip_text = "Bạn bè"
+	tbtn.add_child(fr_b)
+	fr_badge = UI.outlined("", 14, Color("ff5d7d"), "bold", 5)
+	fr_badge.position = Vector2(38, -4)
+	fr_b.add_child(fr_badge)
 	var menu_b = UI.icon_button(Data.tex(H.ui.get("menu", "")), 58)
 	menu_b.pressed.connect(func(): g.get_parent().open_menu())
 	tbtn.add_child(menu_b)
@@ -207,7 +217,8 @@ func setup(g: Game) -> void:
 		b.pressed.connect(func(): g.do_skill(ii))
 		br.add_child(b)
 		skills.append(b)
-	var potb = SkillBtn.new()
+	potb = SkillBtn.new()
+	potb.mx = 3.0
 	potb.tex = Data.tex(H.ui.get("pot", ""))
 	potb.size = Vector2(72, 72)
 	potb.position = Vector2(-10, 250)
@@ -243,7 +254,7 @@ func setup(g: Game) -> void:
 	talk_btn.visible = false
 	talk_btn.pressed.connect(func(): g.open_npc.emit(g.near_npc))
 	root.add_child(talk_btn)
-	chat_edit = UI.edit("Nhập tin nhắn rồi bấm Enter…")
+	chat_edit = UI.edit("Nhắn cùng bản đồ · gõ /all trước để nhắn cả máy chủ (5.000 vàng)")
 	chat_edit.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	chat_edit.position = Vector2(-260, 80)
 	chat_edit.custom_minimum_size = Vector2(520, 50)
@@ -311,6 +322,7 @@ func _process(_dt: float) -> void:
 		return
 	for i in 6:
 		skills[i].cd = game.cds[i]
+	potb.cd = game.pot_cd
 	if game.joy != null and joy:
 		game.joy = joy.value
 	net_l.text = ("Ping %d ms" % Net.ping_ms) if Net.online() else ""
@@ -348,12 +360,25 @@ func _toggle_chat() -> void:
 func _send_chat(t: String) -> void:
 	t = t.strip_edges()
 	if t != "":
-		Net.send({"t": "chat", "text": t, "all": t.begins_with("/all ")})
+		# "/all ..." = nhắn cả máy chủ (tốn vàng); còn lại nhắn những người cùng bản đồ (miễn phí)
+		var all = t.begins_with("/all ")
+		if all:
+			t = t.substr(5).strip_edges()
+		if t != "":
+			Net.send({"t": "chat", "text": t, "all": all})
 	chat_edit.text = ""
 	chat_edit.visible = false
 
 func chat(m: Dictionary) -> void:
-	add_log("%s%s: %s" % ["[Thế giới] " if m.get("all") else "", m.get("n", ""), m.get("text", "")], Color("ffffff") if not m.get("all") else Color("ffd23f"))
+	var pre = ""
+	var col = Color("ffffff")
+	if m.get("all"):
+		pre = "[Thế giới] "
+		col = Color("ffd23f")
+	elif m.get("pm"):
+		pre = "[Riêng → %s] " % m.get("to", "")
+		col = Color("ff9ee0")
+	add_log("%s%s: %s" % [pre, m.get("n", ""), m.get("text", "")], col)
 
 func _net(s: String, inf: String) -> void:
 	overlay.visible = s != "online"
@@ -361,3 +386,7 @@ func _net(s: String, inf: String) -> void:
 		"connecting": overlay_l.text = "Đang kết nối máy chủ…"
 		"reconnecting": overlay_l.text = inf if inf != "" else "Mất kết nối. Đang kết nối lại…"
 		"closed": overlay_l.text = "Đã ngắt kết nối."
+
+func bind_social() -> void:
+	fr_b.pressed.connect(func(): social.open_friends())
+	social.badge.connect(func(n): fr_badge.text = ("%d" % n) if n > 0 else "")

@@ -3,8 +3,8 @@ extends Node
 ## đi, đánh quái, mở túi đồ, chụp màn hình từng bước. Dùng để kiểm tra bản dựng thật trên máy.
 
 var main: Node
-var out := "user://shots"
-var step := 0
+var out = "user://shots"
+var step = 0
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -15,7 +15,7 @@ func _ready() -> void:
 
 func shot(n: String) -> void:
 	await RenderingServer.frame_post_draw
-	var img := get_viewport().get_texture().get_image()
+	var img = get_viewport().get_texture().get_image()
 	img.save_png(out.path_join(n + ".png"))
 	print("ẢNH ", n)
 
@@ -26,7 +26,7 @@ func run() -> void:
 	await wait(1.5)
 	main = get_tree().root.get_node_or_null("Main")
 	await shot("01-login")
-	var u := "bot%d" % (Time.get_unix_time_from_system() as int % 100000)
+	var u = "bot%d" % (Time.get_unix_time_from_system() as int % 100000)
 	var r = await Net.login(u, "matkhau1", true)
 	print("đăng ký: ", r.code)
 	main.show_servers()
@@ -38,13 +38,26 @@ func run() -> void:
 	Net.send({"t": "create", "name": "Bot " + u.substr(3), "cls": "archer"})
 	await wait(2.5)
 	await shot("04-village")
+	# có người chơi thử (bot) mời giao dịch: đồng ý rồi chụp bảng giao dịch
+	var tw = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - tw < 8000 and not (main.social.popup and is_instance_valid(main.social.popup)):
+		await wait(0.3)
+	if main.social.popup and is_instance_valid(main.social.popup):
+		await shot("04b-trade-ask")
+		for b in main.social.popup.find_children("*", "Button", true, false):
+			if b.text == "Đồng ý":
+				b.pressed.emit()
+		await wait(2.5)
+		await shot("04c-trade")
+		Net.send({"t": "tr_cancel"})
+		await wait(0.5)
 	var g: Game = main.game
 	# đi sang phải tới cổng
 	g.joy = Vector2(1, 0)
 	await wait(4.0)
 	await shot("05-walk")
-	var tw0 := Time.get_ticks_msec()
-	var lx := 0.0
+	var tw0 = Time.get_ticks_msec()
+	var lx = 0.0
 	while g.mi == 0 and Time.get_ticks_msec() - tw0 < 40000:
 		await wait(0.4)
 		if absf(g.me.position.x - lx) < 4:
@@ -57,7 +70,7 @@ func run() -> void:
 	await wait(2.5)
 	g.joy = Vector2.ZERO
 	# đánh quái gần nhất
-	var t0 := Time.get_ticks_msec()
+	var t0 = Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t0 < 12000:
 		var m = g.nearest_mon(900)
 		if m:
@@ -74,5 +87,34 @@ func run() -> void:
 	await wait(0.8)
 	await shot("09-char")
 	main.bag.close()
+	main.npc.open("gear")
+	await wait(0.8)
+	await shot("10-gear-shop")
+	main.npc.close()
+	main.social.open_friends()
+	await wait(1.0)
+	await shot("11-friends")
+	main.social.open_friends()
+	# ô đồ cường hóa: +3 +6 +9 +12 +15
+	var box = HBoxContainer.new()
+	box.position = Vector2(200, 250)
+	box.add_theme_constant_override("separation", 20)
+	for upv in [0, 3, 6, 9, 12, 15]:
+		var it = {"slot": "weapon", "cls": "archer", "tier": 3, "r": 3, "lvl": 20, "up": upv, "lock": 1 if upv == 6 else 0, "st": {"atk": 50}}
+		box.add_child(ItemCell.make(it, false, true, false, 110))
+	var cl = CanvasLayer.new()
+	cl.layer = 50
+	var bgc = ColorRect.new()
+	bgc.color = Color("fffaf0")
+	bgc.size = Vector2(1100, 200)
+	bgc.position = Vector2(150, 200)
+	cl.add_child(bgc)
+	cl.add_child(box)
+	add_child(cl)
+	await wait(0.7)
+	await shot("12-glow-a")
+	await wait(0.5)
+	await shot("12-glow-b")
+	cl.queue_free()
 	print("XONG cấp=", g.me_data.get("lv"), " vàng=", g.me_data.get("gold"), " túi=", g.me_data.get("inv", []).size())
 	get_tree().quit()

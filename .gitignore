@@ -21,3 +21,4 @@ desktop-lite/resources/index.html
 client/.godot/
 build/
 wrangler.test.json
+!client/data/

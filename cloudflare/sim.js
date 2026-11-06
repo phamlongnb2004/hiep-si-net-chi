@@ -35,13 +35,13 @@ export class MapInst {
   spawnAll() {
     for (const s of this.M.spots) for (let i = 0; i < s.cnt; i++) {
       const x = s.cnt === 1 ? s.x + s.w / 2 : s.x + 80 + (s.w - 160) * (i + .5) / s.cnt + rand(-30, 30);
-      const lv = Math.floor(rand(s.lv[0], s.lv[1] + 1)), st = R.monStats(s.mon, lv), t = D.mons[s.mon];
-      this.mons.push({ id: this.seq++, type: s.mon, t, lv, x, y: this.gY(x), sx: x, x0: s.x + 30, x1: s.x + s.w - 30, ...st, hp: st.hpMax,
+      const lv = Math.floor(rand(s.lv[0], s.lv[1] + 1)), el = R.rollElite(rng, s.mon), st = R.monStats(s.mon, lv, el), t = D.mons[s.mon];
+      this.mons.push({ id: this.seq++, type: s.mon, t, lv, el, x, y: this.gY(x), sx: x, x0: s.x + 30, x1: s.x + s.w - 30, ...st, hp: st.hpMax,
         face: 1, state: 'idle', tgt: 0, cd: rand(0, 1), wind: 0, lunge: 0, shoot: rand(2, 4), br: null, dead: false, respawn: 0,
         wx: x, wt: 0, vx: 0, kx: 0, stun: 0, slow: 0, pois: null, hold: false, dmg: new Map() });
     }
   }
-  monInfo(m) { return { id: m.id, type: m.type, lv: m.lv, hpMax: m.hpMax, x: Math.round(m.x), y: Math.round(m.y), hp: Math.round(m.hp), dead: m.dead ? 1 : 0 }; }
+  monInfo(m) { return { id: m.id, type: m.type, lv: m.lv, el: m.el ? 1 : 0, hpMax: m.hpMax, x: Math.round(m.x), y: Math.round(m.y), hp: Math.round(m.hp), dead: m.dead ? 1 : 0 }; }
   dropInfo(d) { return { id: d.id, k: d.k, n: d.n || 0, x: Math.round(d.x), y: Math.round(d.y), item: d.item || null, own: d.own }; }
   join(c, x) {
     const f = c.f, p = x != null ? x : this.M.spawn.x; f.x = p; f.y = this.gY(p); f.air = 0; f.moveAt = Date.now();
@@ -85,7 +85,7 @@ export class MapInst {
     if (o.kb) m.kx += Math.sign(m.x - f.x || f.face) * o.kb * (m.t.boss ? .15 : 1);
     if (m.state === 'idle') { m.state = 'chase'; m.tgt = c.id; }
     this.ev.push(['h', m.id, r.d, (r.c ? 1 : 0) | (o.dot ? 2 : 0), c.id]);
-    if (m.hp <= 0) this.kill(m);
+    if (m.hp <= 0) this.kill(m, c);
     return r.d;
   }
   status(m, o) {
@@ -169,18 +169,18 @@ export class MapInst {
       for (const m of this.mons) if (m.tgt === c.id) { m.tgt = 0; if (m.state === 'chase') m.state = 'return'; }
     }
   }
-  kill(m) {
+  // phần thưởng (kinh nghiệm, vàng, đồ rơi) thuộc về người đánh đòn cuối
+  kill(m, killer) {
     m.dead = true; m.respawn = R.respawnTime(rng, m.type); m.state = 'idle'; m.kx = 0; m.vx = 0; m.br = null; m.stun = 0; m.slow = 0; m.pois = null; m.tgt = 0;
-    // phần thưởng cho người gây nhiều sát thương nhất còn ở bản đồ
-    let best = null, bd = 0; for (const [id, d] of m.dmg) { const c = this.players.get(id); if (c && d > bd) { bd = d; best = c; } }
+    const best = killer && this.players.has(killer.id) ? killer : null;
     m.dmg.clear(); this.ev.push(['k', m.id, best ? best.id : 0]);
     if (!best) return;
-    const ch = best.ch, e = R.monExp(m.type, m.lv), g = R.monGold(rng, m.type, m.lv);
+    const ch = best.ch, e = R.monExp(m.type, m.lv, m.el), g = R.monGold(rng, m.type, m.lv, m.el);
     ch.kills++; ch.gold += g;
     const up = R.addExp(ch, e);
     this.h.send(best, { t: 'gain', m: m.id, exp: e, gold: g });
     if (up) { refreshStats(best.f, ch, false); this.ev.push(['lv', best.id, ch.lv]); this.h.log(best, 'Lên cấp ' + ch.lv + '. Máu, công, thủ đều tăng.', '#ffd23f'); }
-    for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++))) {
+    for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
       const o = { id: this.seq++, k: d.k, n: d.n, item: d.item, x: clamp(m.x + rand(-34, 34), 40, this.M.w - 40), y: 0, life: DROP_LIFE, own: best.id, ownT: OWN_T };
       o.y = this.gY(o.x); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
     }
@@ -222,7 +222,7 @@ export class MapInst {
   near(m, r) { let b = null, bd = r; for (const c of this.players.values()) { const f = c.f; if (f.dead > 0 || this.safe(f.x) || Math.abs(f.y - m.y) > 180) continue; const d = Math.abs(f.x - m.x); if (d < bd) { bd = d; b = c; } } return b; }
   tickMons(dt) {
     for (const m of this.mons) {
-      if (m.dead) { m.respawn -= dt; if (m.respawn <= 0) { m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.gY(m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y)]); } continue; }
+      if (m.dead) { m.respawn -= dt; if (m.respawn <= 0) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.gY(m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); } continue; }
       const px = m.x;
       m.cd -= dt; m.shoot -= dt; m.lunge = Math.max(0, m.lunge - dt);
       if (m.kx) { m.x = clamp(m.x + m.kx * dt, 30, this.M.w - 30); m.kx *= Math.pow(.02, dt); if (Math.abs(m.kx) < 4) m.kx = 0; }

@@ -1,6 +1,6 @@
 # Tình trạng chuyển sang ứng dụng gốc
 
-Cập nhật: 06/11/2026 · Ứng dụng 2.0.0 · Dữ liệu 1
+Cập nhật: 06/11/2026 · Ứng dụng 2.1.0 · Dữ liệu 2
 
 ## Đã xong (đã dựng và chạy thử thật)
 **Máy chủ (giao thức v2, chạy song song v1)**
@@ -20,6 +20,20 @@ Cập nhật: 06/11/2026 · Ứng dụng 2.0.0 · Dữ liệu 1
 - Mất mạng: dừng điều khiển, tự kết nối lại (chờ tăng dần), nhận lại toàn bộ trạng thái từ máy chủ; không có chơi offline.
 - Cập nhật có chữ ký: kiểm chữ ký, SHA-256, kích thước, tải tiếp khi đứt, quay lại gói trước khi hỏng (đã thử cả 5 trường hợp).
 - Bản dựng: trình cài Windows (NSIS, 52 MB), APK ký bằng khóa cũ (78 MB), Linux .tar.gz (54 MB), gói dữ liệu (29 MB); đã phát hành, tải ở /tai-game.
+
+## Mới trong 2.1.0
+- Phần thưởng quái (kinh nghiệm, vàng, đồ) thuộc về người đánh đòn cuối.
+- Cấp tối đa 100; cấp 1-30 như cũ, sau 30 mỗi cấp khó hơn 15%, sau 60 khó hơn 18% (cấp 99 cần ~500 triệu kinh nghiệm).
+- Bỏ nút bán nhanh. NPC mới Thương Nhân Giáp (Làng): bán đồ mọi phái, mọi độ hiếm, chỉ số mặc định theo bậc cấp 5; đồ rơi từ quái dao động 80%–125% quanh mức mặc định.
+- Đồ rơi có 40% bị khóa (không giao dịch được); đồ cửa hàng không khóa.
+- Bình máu hồi 3 giây (hiện vòng đếm trên nút).
+- Nhắn cả máy chủ (/all) tốn 5.000 vàng; nhắn cùng bản đồ và nhắn riêng bạn bè miễn phí.
+- Giao dịch giữa người chơi (cùng bản đồ): mời → đặt đồ/vàng → cả hai Khóa → cả hai Đồng ý; máy chủ kiểm lại và đổi một lần, ghi nhật ký giao dịch.
+- Bạn bè tối đa 100: mời theo tên hoặc chạm vào người chơi, đồng ý/từ chối, xóa, xem online và bản đồ, nhắn riêng.
+- Quái tinh anh (7% mỗi lần sinh): máu x3, công x1.6, thủ x1.5, kinh nghiệm/vàng x3, tỉ lệ rơi đồ x2.5 (tối đa 60%) và dễ ra đồ hiếm; có viền sáng và chữ "Tinh Anh".
+- Ô đồ cường hóa có ánh sáng chạy quanh viền: +1-3 xanh nhạt, +4-6 xanh lam, +7-9 tím 2 vệt, +10-12 vàng có quầng và lấp lánh, +13-15 cầu vồng 3 vệt.
+- Hiệu ứng: quái trúng đòn ửng đỏ, chết nhấp nháy rồi mờ dần; chiêu có ánh sáng cộng, vòng sóng, hạt bung, vệt đạn, nổ khi trúng, rung màn hình ở chiêu lớn.
+- Cây, bụi, đá, nhà, biển, NPC, cổng cắm xuống đất (hết lơ lửng).
 
 ## Còn thiếu / cần làm tiếp
 - **iOS**: cần máy Mac (Xcode) + tài khoản Apple Developer (99 USD/năm) để ký và phát hành qua TestFlight/App Store; mã Godot dùng chung được, chỉ thiếu bước dựng/ký. Trang tải đã có ô iPhone/iPad ("Sắp có"), tự hiện nút khi manifest có app.ios.

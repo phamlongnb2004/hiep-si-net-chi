@@ -5,6 +5,7 @@ import { DurableObject } from 'cloudflare:workers';
 import * as R from '../shared/rules.js';
 import { MapInst, makeFighter, refreshStats } from './sim.js';
 import { OPS } from './ops.js';
+import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
 
 const TICK_MS = 100;
 const MAX_SAVE = 300 * 1024;
@@ -85,6 +86,7 @@ export class World extends DurableObject {
     try { this.sql.exec(`ALTER TABLE sessions ADD COLUMN last INTEGER`); } catch (e) {}
     this.sql.exec(`UPDATE sessions SET last=? WHERE last IS NULL`, Date.now()); // phiên cũ: tính hạn từ lúc nâng cấp, không đẩy ai ra
     this.insts = new Map();
+    initSocial(this);
     this.clients = new Map();
     this.seq = 1;
     this.tries = new Map();
@@ -224,7 +226,7 @@ export class World extends DurableObject {
   drop(c) {
     if (this.clients.get(c.id) !== c) return;
     if (c.pending) this.writeSave(c);
-    if (c.v2) { if (c.dirty) this.writeChar(c); if (c.inst) { c.inst.leave(c); this.gcInst(c.inst); c.inst = null; } }
+    if (c.v2) { tradeCancel(this, c, 'Người kia đã thoát, giao dịch bị hủy.'); if (c.dirty) this.writeChar(c); this.friendsChanged(c); if (c.inst) { c.inst.leave(c); this.gcInst(c.inst); c.inst = null; } }
     this.clients.delete(c.id);
     if (c.map >= 0) this.toMap(c, c.map, { t: 'gone', id: c.id });
     this.toSrv(c.srv, { t: 'count', online: this.count(c.srv) });
@@ -305,7 +307,7 @@ export class World extends DurableObject {
     if (row) { try { this.loadChar(c, JSON.parse(row.data)); } catch (e) { console.error('bản lưu hỏng', u.id, e); this.sendTo(c, { t: 'err', code: 'save', msg: 'Bản lưu nhân vật bị lỗi, hãy báo quản trị.' }); try { ws.close(4006, 'save'); } catch (e2) {} this.clients.delete(c.id); return; } }
     this.sendTo(c, { t: 'welcome', proto: PROTO, id: c.id, user: u.username, srv: srv.id, srvName: srv.name, online: this.count(srv.id), me: c.ch ? this.meOf(c, true) : null });
     this.toSrv(srv.id, { t: 'count', online: this.count(srv.id) });
-    if (c.ch) this.enterMap(c, c.ch.map, null);
+    if (c.ch) { this.enterMap(c, c.ch.map, null); friendList(this, c); }
     ws.addEventListener('message', ev => this.onV2(c, ev.data));
     const bye = () => this.drop(c);
     ws.addEventListener('close', bye);
@@ -320,11 +322,17 @@ export class World extends DurableObject {
   instOf(srv, mi) { const k = srv * 100 + mi; let i = this.insts.get(k); if (!i) { i = new MapInst(srv, mi, this.hooks()); this.insts.set(k, i); } return i; }
   gcInst(inst) { if (!inst.players.size) this.insts.delete(inst.srv * 100 + inst.mi); }
   hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }) }; }
+  // báo cho bạn bè đang online cập nhật danh sách (online/offline, bản đồ)
+  friendsChanged(c) {
+    try { for (const r of this.sql.exec('SELECT fid FROM friends WHERE uid=?', c.uid).toArray()) for (const o of this.clients.values()) if (o.uid === r.fid && o.v2 && o.ch && o !== c) friendList(this, o); } catch (e) { console.error(e); }
+  }
   enterMap(c, mi, x) {
+    tradeCancel(this, c, 'Đổi bản đồ, giao dịch bị hủy.');
     if (c.inst) { c.inst.leave(c); this.gcInst(c.inst); }
     if (c.map >= 0) this.toMap(c, c.map, { t: 'gone', id: c.id }, c);
     mi = Math.max(0, Math.min(R.D.maps.length - 1, mi | 0)); c.ch.map = mi; c.map = mi;
     c.inst = this.instOf(c.srv, mi); c.inst.join(c, x); c.dirty = true;
+    this.friendsChanged(c);
   }
   meOf(c, full) {
     const ch = c.ch, f = c.f;
@@ -356,6 +364,7 @@ export class World extends DurableObject {
       return this.enterMap(c, 0, null);
     }
     if (!c.ch || !c.inst) return;
+    if (onSocial(this, c, m)) return;
     const I = c.inst;
     switch (m.t) {
       case 'in': return I.move(c, m);
@@ -368,7 +377,13 @@ export class World extends DurableObject {
       case 'chat': {
         const text = clean(m.text, 120).trim(); if (!text || now - c.lastChat < 700) return; c.lastChat = now;
         const msg = { t: 'chat', id: c.id, n: c.ch.name, text, all: !!m.all };
-        if (m.all) return this.toSrv(c.srv, msg);
+        if (m.all) {
+          // nhắn cả máy chủ tốn vàng
+          if (c.ch.gold < R.WORLD_CHAT_COST) return this.sendTo(c, { t: 'res', op: 'chat', ok: false, msg: 'Nhắn cả máy chủ cần ' + R.WORLD_CHAT_COST + ' vàng.' });
+          c.ch.gold -= R.WORLD_CHAT_COST; c.dirty = true; c.meDirty = true;
+          for (const o of this.clients.values()) if (o.srv === c.srv) this.sendTo(o, o.v2 ? msg : { t: 'chat', id: c.id, n: c.ch.name, text, all: true });
+          return;
+        }
         for (const o of this.clients.values()) if (o.srv === c.srv && o.map === c.map) this.sendTo(o, msg);
         return;
       }

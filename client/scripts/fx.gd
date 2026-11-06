@@ -8,6 +8,22 @@ var sprs: Array = []      # {img:{u,w,h}, p, h, t, max, a, flip, rot, follow(Nod
 var projs: Array = []     # {p, v, range, trav, img, len, col, r}
 var breaths: Array = []   # {m: Mon, tgt: Node2D, t, parts:[], kn}
 var _soft: Texture2D
+var parts: Array = []     # hạt sáng: {p, v, life, max, s, col, g}
+var rings: Array = []     # sóng tròn: {p, r0, r1, t, max, col, w}
+var shake = 0.0           # rung màn hình (giây còn lại × biên độ)
+var add_layer: Node2D
+
+## lớp vẽ cộng sáng (ánh sáng, hạt, vệt đạn, sóng) nằm trên lớp thường
+class AddLayer extends Node2D:
+	var fx
+	func _ready() -> void:
+		var m = CanvasItemMaterial.new()
+		m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		material = m
+	func _process(_dt: float) -> void:
+		queue_redraw()
+	func _draw() -> void:
+		fx.draw_add(self)
 const BRK := {
 	"dragon": {"col": ["fffadc", "ffd65a", "ff8c1e", "e64614", "5a281e"], "rise": -70.0},
 	"dragon2": {"col": ["ebffbe", "befa5a", "78d732", "46a028", "3c5028"], "rise": -25.0},
@@ -27,9 +43,31 @@ func _ready() -> void:
 	gt.height = 64
 	_soft = gt
 	z_index = 50
+	add_layer = AddLayer.new()
+	add_layer.fx = self
+	add_child(add_layer)
 
 func text(p: Vector2, s: String, col: Color, big := false) -> void:
 	texts.append({"p": p + Vector2(randf_range(-8, 8), 0), "s": s, "col": col, "big": big, "t": 0.0, "max": 0.9 if big else 0.75})
+
+## chùm hạt sáng bung ra (trúng đòn, nổ, tung chiêu)
+func burst(p: Vector2, col: Color, n := 10, spd := 220.0, sz := 1.0, up := 0.0) -> void:
+	for i in n:
+		var a = randf() * TAU
+		var v = Vector2(cos(a), sin(a) * 0.7 - up) * spd * randf_range(0.4, 1.0)
+		var l = randf_range(0.25, 0.55)
+		parts.append({"p": p, "v": v, "life": l, "max": l, "s": randf_range(6, 14) * sz, "col": col, "g": 260.0})
+
+func ring(p: Vector2, r1: float, col: Color, mx := 0.4, w := 6.0) -> void:
+	rings.append({"p": p, "r0": 8.0, "r1": r1, "t": 0.0, "max": mx, "col": col, "w": w})
+
+func hit_spark(p: Vector2, crit: bool) -> void:
+	burst(p, Color(1, 0.85, 0.3) if crit else Color(1, 0.95, 0.85), 14 if crit else 7, 260.0 if crit else 170.0, 1.3 if crit else 0.9)
+	if crit:
+		ring(p, 46, Color(1, 0.8, 0.25), 0.25, 4)
+		shake = max(shake, 0.12)
+
+const CLS_COL = {"sword": Color(0.45, 0.65, 1.0), "mage": Color(1.0, 0.5, 0.2), "archer": Color(0.45, 0.95, 0.45), "fighter": Color(1.0, 0.6, 0.2)}
 
 func fx_img(c: String, n: int) -> Dictionary:
 	var a = Data.A.get("fx", {}).get(c, [])
@@ -38,12 +76,14 @@ func fx_img(c: String, n: int) -> Dictionary:
 func spr(img: Dictionary, p: Vector2, h: float, mx: float, a := "pop", o := {}) -> void:
 	if img.is_empty():
 		return
-	var d = {"img": img, "p": p, "h": h, "t": 0.0, "max": mx, "a": a, "flip": false, "rot": 0.0, "follow": null, "off": Vector2.ZERO, "glow": 0.0, "px": 0.5, "py": 0.5, "dl": 0.0}
+	var d = {"img": img, "p": p, "h": h, "t": 0.0, "max": mx, "a": a, "flip": false, "rot": 0.0, "follow": null, "off": Vector2.ZERO, "glow": 0.55, "px": 0.5, "py": 0.5, "dl": 0.0, "spin": 0.0}
+	if a == "aura" and not o.has("spin"):
+		d.spin = 0.25
 	d.merge(o, true)
 	sprs.append(d)
 
 func proj(p: Vector2, ang: float, sp: float, rng: float, kind: String, sz := 1.0) -> void:
-	projs.append({"p": p, "v": Vector2(cos(ang), sin(ang)) * sp, "range": rng, "trav": 0.0, "kind": kind, "sz": sz, "ang": ang})
+	projs.append({"p": p, "v": Vector2(cos(ang), sin(ang)) * sp, "range": rng, "trav": 0.0, "kind": kind, "sz": sz, "ang": ang, "hist": []})
 
 func breath(m: Node2D, tgt: Node2D, kind: String) -> void:
 	for b in breaths:
@@ -55,6 +95,12 @@ func breath(m: Node2D, tgt: Node2D, kind: String) -> void:
 func skill(cls: String, i: int, who: Node2D, aim: float, tgt: Node2D, face: int) -> void:
 	var p = who.position
 	var im = fx_img(cls, i)
+	# ánh sáng tung chiêu quanh người
+	var cc: Color = CLS_COL.get(cls, Color.WHITE)
+	ring(p + Vector2(0, -30), 70 + i * 14, cc, 0.35, 5)
+	burst(p + Vector2(0, -30), cc, 8 + i * 2, 160, 0.9, 0.4)
+	if i >= 4:
+		shake = max(shake, 0.18)
 	var fl = cos(aim) < 0
 	var tp: Vector2 = tgt.position if tgt else p + Vector2(cos(aim) * 240, 0)
 	match cls + str(i):
@@ -122,12 +168,44 @@ func _process(dt: float) -> void:
 			s.p = s.follow.position + s.off
 		if s.t >= s.max:
 			sprs.remove_at(i)
+	var g = get_parent()
 	for i in range(projs.size() - 1, -1, -1):
 		var q = projs[i]
 		q.p += q.v * dt if q.trav >= 0 else Vector2.ZERO
 		q.trav += q.v.length() * dt
-		if q.trav >= q.range:
+		if q.trav >= 0:
+			q.hist.push_front(q.p)
+			if q.hist.size() > 10:
+				q.hist.pop_back()
+		var hit = false
+		if q.trav > 20 and g and "mons" in g:
+			for m in g.mons.values():
+				if m.dead():
+					continue
+				if (m.position + Vector2(0, -float(Mon.MH.get(m._k, 80)) * 0.35)).distance_to(q.p) < float(m._info.get("r", 30)) + 10:
+					hit = true
+					break
+		if hit and q.kind != "ki":
+			var col = {"fire": Color(1, 0.55, 0.15), "boom": Color(1, 0.6, 0.2), "arrow": Color(1, 1, 0.8)}.get(q.kind, Color.WHITE)
+			burst(q.p, col, 16 if q.kind != "arrow" else 6, 240 if q.kind != "arrow" else 140, 1.4 if q.kind != "arrow" else 0.7)
+			if q.kind != "arrow":
+				ring(q.p, 60 * q.sz, col, 0.3, 5)
 			projs.remove_at(i)
+		elif q.trav >= q.range:
+			projs.remove_at(i)
+	for i in range(parts.size() - 1, -1, -1):
+		var pp = parts[i]
+		pp.life -= dt
+		pp.v *= pow(0.12, dt)
+		pp.v.y += pp.g * dt
+		pp.p += pp.v * dt
+		if pp.life <= 0:
+			parts.remove_at(i)
+	for i in range(rings.size() - 1, -1, -1):
+		rings[i].t += dt
+		if rings[i].t >= rings[i].max:
+			rings.remove_at(i)
+	shake = max(0.0, shake - dt)
 	for i in range(breaths.size() - 1, -1, -1):
 		var b = breaths[i]
 		b.t += dt
@@ -209,8 +287,8 @@ func _draw() -> void:
 		var img: Dictionary = s.img
 		match s.a:
 			"pop":
-				sc = 0.55 + 0.45 * _ease(min(1.0, u * 2.4))
-				al = 1.0 if u < 0.65 else 1.0 - (u - 0.65) / 0.35
+				sc = 0.6 + 0.4 * _back(min(1.0, u * 2.2))
+				al = min(1.0, u * 10.0) * (1.0 if u < 0.6 else 1.0 - (u - 0.6) / 0.4)
 			"grow":
 				sc = 0.25 + 1.05 * _ease(u)
 				al = 1.0 - u * u
@@ -237,7 +315,7 @@ func _draw() -> void:
 			continue
 		var h: float = s.h * sc
 		var w: float = h * float(img.w) / float(img.h)
-		draw_set_transform(pos, s.rot, Vector2(-1 if s.flip else 1, 1))
+		draw_set_transform(pos, s.rot + s.spin * s.t, Vector2(-1 if s.flip else 1, 1))
 		draw_texture_rect(tx, Rect2(-w * s.px, -h * s.py, w, h), false, Color(1, 1, 1, al))
 	draw_set_transform(Vector2.ZERO)
 	# luồng khạc
@@ -272,5 +350,55 @@ func _draw() -> void:
 		draw_string_outline(f, x.p - Vector2(w / 2, 0), x.s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 6, Color(UI.INK, c.a))
 		draw_string(f, x.p - Vector2(w / 2, 0), x.s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, c)
 
+func _back(u: float) -> float:
+	var c = 1.70158
+	return 1.0 + (c + 1.0) * pow(u - 1.0, 3) + c * pow(u - 1.0, 2)
+
 func _ease(u: float) -> float:
 	return 1.0 - pow(1.0 - u, 3)
+
+
+## vẽ phần cộng sáng: vệt đạn, ánh chiêu, hạt, sóng tròn
+func draw_add(L: Node2D) -> void:
+	for q in projs:
+		if q.trav < 0:
+			continue
+		var col = {"fire": Color(1, 0.5, 0.15), "boom": Color(1, 0.55, 0.2), "ki": Color(0.45, 0.75, 1.0), "arrow": Color(0.9, 1, 0.8)}.get(q.kind, Color.WHITE)
+		var n = q.hist.size()
+		for k in n:
+			var f = 1.0 - float(k) / n
+			var r = (16.0 if q.kind != "arrow" else 6.0) * q.sz * (0.35 + 0.65 * f)
+			var c = col
+			c.a = f * (0.55 if q.kind != "arrow" else 0.35)
+			L.draw_texture_rect(_soft, Rect2(q.hist[k] - Vector2(r, r), Vector2(r, r) * 2), false, c)
+	for s in sprs:
+		if s.dl > 0 or s.glow <= 0:
+			continue
+		var img: Dictionary = s.img
+		if s.a == "seq":
+			continue
+		var tx = Data.tex(img.get("u", ""))
+		if tx == null:
+			continue
+		var u: float = clampf(s.t / s.max, 0, 1)
+		var al = sin(u * PI) * s.glow * 0.6
+		var sc = 1.0 + 0.12 * u
+		var h: float = s.h * sc
+		var w: float = h * float(img.w) / float(img.h)
+		L.draw_set_transform(s.p, s.rot + s.spin * s.t, Vector2(-1 if s.flip else 1, 1))
+		L.draw_texture_rect(tx, Rect2(-w * s.px, -h * s.py, w, h), false, Color(1, 1, 1, al))
+	L.draw_set_transform(Vector2.ZERO)
+	for pp in parts:
+		var f = pp.life / pp.max
+		var r = pp.s * (0.5 + 0.5 * f)
+		var c: Color = pp.col
+		c.a = f
+		L.draw_texture_rect(_soft, Rect2(pp.p - Vector2(r, r), Vector2(r, r) * 2), false, c)
+	for rg in rings:
+		var u = rg.t / rg.max
+		var r = lerpf(rg.r0, rg.r1, _ease(u))
+		var c: Color = rg.col
+		c.a = (1.0 - u) * 0.9
+		L.draw_arc(rg.p, r, 0, TAU, 48, c, rg.w * (1.0 - u * 0.6), true)
+		c.a *= 0.35
+		L.draw_arc(rg.p, r * 0.92, 0, TAU, 48, c, rg.w * 2.2, true)
