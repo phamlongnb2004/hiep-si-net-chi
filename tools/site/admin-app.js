@@ -206,7 +206,7 @@ const VIEWS = {
       h('tr', null, h('th', null, 'Tài khoản'), h('th', null, 'Nhân vật'), h('th', null, 'Máy chủ'), h('th', null, 'Bản đồ'), h('th', null, 'Ứng dụng'), h('th', null, '')),
       r.list.length ? null : h('tr', null, h('td', { class: 'empty', colspan: 6 }, 'Hiện không có ai online.')),
       r.list.map(c => h('tr', null, h('td', null, h('a', { href: '#', onclick: e => { e.preventDefault(); openPlayer(c.uid); } }, c.user)), h('td', null, (c.name || '—') + (c.lv ? ' · Cấp ' + c.lv : ''), c.hidden ? h('span', { class: 'pill warn' }, ' Tàng hình') : ''),
-        h('td', null, 'S' + c.srv), h('td', null, MAPS[c.map] || '—'), h('td', null, c.v2 ? (c.app || 'pc') : 'Bản cũ'),
+        h('td', null, 'S' + c.srv), h('td', null, (MAPS[c.map] || '—') + (c.khu ? ' · Khu ' + c.khu : '')), h('td', null, c.v2 ? (c.app || 'pc') : 'Bản cũ'),
         h('td', null, can('gm') ? h('button', { class: 'btn sm red', onclick: async () => { if (await confirmBox('Đá khỏi game', 'Mời ' + c.user + ' ra khỏi game?', 'Đá')) { await run('kick', { uid: c.uid }, 'Đã đá.'); layout(); } } }, 'Đá') : '')))))));
   },
   async ops(body) {
@@ -245,9 +245,11 @@ const VIEWS = {
       h('div', { class: 'row', style: 'margin-top:8px' }, h('button', { class: 'btn sky', disabled: !can('owner'), onclick: () => { list.push({ id: Math.max(...list.map(x => x.id)) + 1, name: 'Server ' + (list.length + 1), tag: 'Mới', open: true }); draw(); } }, '+ Thêm máy chủ'),
         h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('servers_set', { list }, 'Đã lưu danh sách máy chủ.'); layout(); } }, 'Lưu'))));
     // ứng dụng
-    const ma = inp({ value: c.min_app || '', placeholder: 'vd 2.1.0', maxlength: 16 }), v1 = h('select', null, h('option', { value: 'on', selected: c.v1 !== 'off' }, 'Còn cho vào'), h('option', { value: 'off', selected: c.v1 === 'off' }, 'Tắt hẳn'));
+    const km = inp({ type: 'number', min: 1, max: 100, value: c.khuMax || 15, style: 'width:110px' }), ma = inp({ value: c.min_app || '', placeholder: 'vd 2.1.0', maxlength: 16 }), v1 = h('select', null, h('option', { value: 'on', selected: c.v1 !== 'off' }, 'Còn cho vào'), h('option', { value: 'off', selected: c.v1 === 'off' }, 'Tắt hẳn'));
     body.append(card(['phone', 'c-sky', 'Ứng dụng'], h('div', { class: 'row' }, field('Phiên bản tối thiểu (cũ hơn bị buộc cập nhật)', ma), field('Bản cũ (web / ứng dụng vỏ)', v1),
       h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { if (v1.value === 'off' && c.v1 !== 'off' && !await confirmBox('Tắt bản cũ', 'Người đang dùng bản web hoặc ứng dụng vỏ cũ sẽ bị đưa ra và phải tải ứng dụng mới.', 'Tắt bản cũ')) return; await run('app_cfg', { min_app: ma.value, v1: v1.value }, 'Đã lưu.'); layout(); } }, 'Lưu'))));
+    body.append(card(['users', 'c-mint', 'Khu trong bản đồ'], h('p', { class: 'note' }, 'Mỗi bản đồ chia nhiều khu như Ngọc Rồng Online, mỗi khu có quái và đồ rơi riêng. Khu đầy thì người mới tự vào khu khác. Người chơi đổi khu bằng nút Khu dưới tên bản đồ.'),
+      h('div', { class: 'row' }, field('Số người tối đa mỗi khu', km), h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('app_cfg', { khuMax: +km.value }, 'Đã lưu. Áp dụng cho lượt vào khu tiếp theo.'); layout(); } }, 'Lưu'))));
   },
   async tune(body) {
     const r = await run('tune_get'); if (!r) return;

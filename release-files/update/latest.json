@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.3.0",
+  "version": "2.4.0",
   "min": "2.1.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "75778352cf5db0a0a6169a4c5da652bb62f1558b9ae7100c496744addddf17b8",
-   "size": 54126851
+   "sha256": "3859c17fceb8e3cc8f5dfd60912e74da1558e986b3c008543f5ef6ceddbeb143",
+   "size": 54130848
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "729c3f10a160463cb892cf0bcd8471afae5933b7330c70ee9a49485f3a0928cb",
+   "sha256": "a7fb0f84d9becbfdb4c201153e9ab566d7648a641931755612bc853a749f482a",
    "size": 81840808
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "7007de6efb9744620cc553a0332d79e4e4ea8b46b42d617fb6493dd118d85ac6",
-   "size": 56316184
+   "sha256": "8bfbbc3c73bbd03612e9948ee1c5dce5b7d7f030f6f4156fa542819b78b99594",
+   "size": 56318638
   }
  },
  "assets": {
@@ -26,9 +26,9 @@
   "size": 29165352
  },
  "changelog": [
-  "Chỉ số mới giống Ngọc Rồng Online: Máu, KI, Sức đánh, Giáp, Chí mạng, Tốc chạy, Né tránh, Hút máu, Xuyên giáp",
-  "Mỗi lần lên cấp nhận 5 điểm tiềm năng để tự cộng (Túi đồ → Chỉ số); tẩy điểm lần đầu miễn phí",
-  "Kỹ năng tốn KI, thanh KI dưới thanh máu"
+  "Mỗi bản đồ chia nhiều khu như Ngọc Rồng Online, mỗi khu tối đa 15 người",
+  "Bấm nút Khu dưới tên bản đồ để xem số người và đổi khu",
+  "Mỗi khu có quái, đồ rơi và trò chuyện riêng"
  ],
- "updated": "2026-11-06T18:09:17.170Z"
+ "updated": "2026-11-06T18:24:22.311Z"
 }

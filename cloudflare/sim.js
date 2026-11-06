@@ -26,7 +26,7 @@ export function refreshStats(f, ch, keepRatio) {
 export class MapInst {
   // hooks: send(c,obj), dirty(c), log(c,text,col)
   constructor(srv, mi, hooks) {
-    this.srv = srv; this.mi = mi; this.M = D.maps[mi]; this.h = hooks;
+    this.srv = srv; this.mi = mi; this.khu = 1; this.M = D.maps[mi]; this.h = hooks;
     this.players = new Map(); this.mons = []; this.drops = []; this.projs = []; this.timers = []; this.ev = [];
     this.seq = 1; this.tk = 0; this.spawnAll();
   }
@@ -55,7 +55,7 @@ export class MapInst {
   join(c, x) {
     const f = c.f, p = x != null ? x : this.M.spawn.x; f.x = p; f.y = this.gY(p); f.air = 0; f.moveAt = Date.now();
     this.players.set(c.id, c);
-    this.h.send(c, { t: 'map', m: this.mi, x: Math.round(f.x), y: Math.round(f.y), mons: this.mons.map(m => this.monInfo(m)), drops: this.drops.map(d => this.dropInfo(d)) });
+    this.h.send(c, { t: 'map', m: this.mi, k: this.khu, x: Math.round(f.x), y: Math.round(f.y), mons: this.mons.map(m => this.monInfo(m)), drops: this.drops.map(d => this.dropInfo(d)) });
   }
   leave(c) { this.players.delete(c.id); for (const m of this.mons) if (m.tgt === c.id) { m.tgt = 0; if (m.state === 'chase') m.state = 'return'; } }
 

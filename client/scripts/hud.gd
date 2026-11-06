@@ -29,6 +29,8 @@ var ev_l: Label
 var fr_badge: Label
 var potb
 var pt_badge: Label
+var khu_b: Button
+var khu_pop: Control
 
 class SkillBtn extends Control:
 	var tex: Texture2D
@@ -176,6 +178,13 @@ func setup(g: Game) -> void:
 	map_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	map_l.custom_minimum_size = Vector2(220, 0)
 	tr.add_child(map_l)
+	# nút đổi khu (giống Ngọc Rồng Online)
+	khu_b = UI.button("Khu 1", UI.SKY, 15)
+	khu_b.custom_minimum_size = Vector2(0, 34)
+	khu_b.size_flags_horizontal = Control.SIZE_SHRINK_END
+	khu_b.tooltip_text = "Đổi khu"
+	khu_b.pressed.connect(func(): Net.send({"t": "khu"}))
+	tr.add_child(khu_b)
 	mini = MiniMap.new()
 	mini.game = g
 	mini.custom_minimum_size = Vector2(220, 70)
@@ -319,7 +328,8 @@ func setup(g: Game) -> void:
 	g.me_changed.connect(refresh)
 	g.log_line.connect(add_log)
 	g.npc_near.connect(func(id): talk_btn.visible = id != "")
-	g.map_changed.connect(func(n): map_l.text = n; show_banner(n))
+	g.map_changed.connect(func(n): map_l.text = n; khu_b.text = "Khu %d  ▾" % g.khu; show_banner("%s · Khu %d" % [n, g.khu]); if khu_pop and is_instance_valid(khu_pop): khu_pop.queue_free())
+	g.khu_list.connect(open_khu)
 	Net.status.connect(_net)
 	root.visible = false
 	g.map_changed.connect(func(_n): root.visible = true)
@@ -455,3 +465,48 @@ func _cfg() -> void:
 		ev_l.text = ""
 	gm_b.visible = game.staff in ["gm", "owner"]
 
+
+# bảng chọn khu: số người mỗi khu, khu đầy không vào được
+func open_khu(m: Dictionary) -> void:
+	if khu_pop and is_instance_valid(khu_pop):
+		khu_pop.queue_free()
+	khu_pop = Control.new()
+	khu_pop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	khu_pop.theme = UI.theme()
+	root.add_child(khu_pop)
+	var dim = ColorRect.new()
+	dim.color = Color(0.03, 0.05, 0.13, 0.55)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(ev): if (ev is InputEventMouseButton or ev is InputEventScreenTouch) and ev.pressed: khu_pop.queue_free())
+	khu_pop.add_child(dim)
+	var card = UI.card(Vector2(560, 0))
+	khu_pop.add_child(UI.center(card))
+	var v = UI.vbox(12)
+	card.add_child(v)
+	var head = UI.hbox(10)
+	v.add_child(head)
+	var t = UI.label("Chọn khu · %s" % str(game.M.get("name", "")), 26, UI.INK, "title")
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	var x = UI.button("✕", UI.RED, 20)
+	x.custom_minimum_size = Vector2(48, 44)
+	x.pressed.connect(func(): khu_pop.queue_free())
+	head.add_child(x)
+	var mx = int(m.get("max", 15))
+	v.add_child(UI.label("Mỗi khu tối đa %d người. Mỗi khu có quái và đồ rơi riêng." % mx, 16, Color("5a6b8c"), "semi"))
+	var g = GridContainer.new()
+	g.columns = 5
+	g.add_theme_constant_override("h_separation", 10)
+	g.add_theme_constant_override("v_separation", 10)
+	v.add_child(g)
+	var cur = int(m.get("cur", 1))
+	for e in m.get("list", []):
+		var k = int(e[0])
+		var n = int(e[1])
+		var col = UI.GOLD if k == cur else (UI.RED if n >= mx else (Color("ffd98a") if n >= mx * 0.7 else UI.GREEN))
+		var b = UI.button("Khu %d\n%d/%d" % [k, n, mx], col, 17)
+		b.custom_minimum_size = Vector2(96, 70)
+		b.disabled = k == cur or n >= mx
+		b.pressed.connect(func(): Net.send({"t": "khu", "k": k}); khu_pop.queue_free())
+		g.add_child(b)
+	v.add_child(UI.label("Đang ở khu %d." % cur, 16, UI.INK, "semi"))

@@ -21,7 +21,7 @@ export function friendList(w, c) {
   const list = w.sql.exec('SELECT fid FROM friends WHERE uid=? ORDER BY at', c.uid).toArray().map(r => {
     const ch = nameOn(w, r.fid, c.srv), on = onlineC(w, r.fid, c.srv);
     const u = ch ? null : w.one('SELECT username FROM users WHERE id=?', r.fid);
-    return { uid: r.fid, name: ch ? ch.name : (u ? u.username : '?'), lv: ch ? ch.lv | 0 : 0, cls: ch ? ch.cls : '', online: on ? 1 : 0, map: on && on.map >= 0 ? on.map : -1, id: on ? on.id : 0 };
+    return { uid: r.fid, name: ch ? ch.name : (u ? u.username : '?'), lv: ch ? ch.lv | 0 : 0, cls: ch ? ch.cls : '', online: on ? 1 : 0, map: on && on.map >= 0 ? on.map : -1, khu: on && on.inst ? on.inst.khu : 0, id: on ? on.id : 0 };
   });
   const req = w.sql.exec('SELECT from_uid FROM friend_req WHERE to_uid=? ORDER BY at', c.uid).toArray().map(r => {
     const ch = nameOn(w, r.from_uid, c.srv), u = w.one('SELECT username FROM users WHERE id=?', r.from_uid);
@@ -91,7 +91,7 @@ const tradeOf = (w, c) => c.trade ? w.trades.get(c.trade) : null;
 const other = (T, c) => T.a === c ? T.b : T.a;
 function tradeAsk(w, c, m) {
   const o = w.clients.get(m.id | 0);
-  if (!o || !o.v2 || !o.ch || o === c || o.srv !== c.srv || o.map !== c.map) return w.sendTo(c, { t: 'res', op: 'tr_ask', ok: false, msg: 'Người này không ở cùng bản đồ.' });
+  if (!o || !o.v2 || !o.ch || o === c || o.srv !== c.srv || o.inst !== c.inst) return w.sendTo(c, { t: 'res', op: 'tr_ask', ok: false, msg: 'Người này không ở cùng bản đồ và khu.' });
   if (c.trade || o.trade) return w.sendTo(c, { t: 'res', op: 'tr_ask', ok: false, msg: 'Một trong hai người đang giao dịch.' });
   c.tradeAsk = { to: o.id, at: Date.now() };
   w.sendTo(o, { t: 'tr_ask', id: c.id, n: c.ch.name, lv: c.ch.lv });
@@ -99,7 +99,7 @@ function tradeAsk(w, c, m) {
 }
 function tradeYes(w, c, m) {
   const o = w.clients.get(m.id | 0);
-  if (!o || !o.tradeAsk || o.tradeAsk.to !== c.id || Date.now() - o.tradeAsk.at > 60000 || o.map !== c.map || o.trade || c.trade) return w.sendTo(c, { t: 'res', op: 'tr_yes', ok: false, msg: 'Lời mời đã hết hạn.' });
+  if (!o || !o.tradeAsk || o.tradeAsk.to !== c.id || Date.now() - o.tradeAsk.at > 60000 || o.inst !== c.inst || o.trade || c.trade) return w.sendTo(c, { t: 'res', op: 'tr_yes', ok: false, msg: 'Lời mời đã hết hạn.' });
   o.tradeAsk = null;
   const T = { id: w.tradeSeq++, a: o, b: c, offer: new Map([[o.id, { items: [], gold: 0 }], [c.id, { items: [], gold: 0 }]]), lock: new Set(), ok: new Set() };
   w.trades.set(T.id, T); o.trade = T.id; c.trade = T.id; sendTrade(w, T);

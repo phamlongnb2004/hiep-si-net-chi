@@ -9,6 +9,7 @@ import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
 import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaff, maintOn, maintMsg, banInfo, mutedUntil } from './admin.js';
 
 const TICK_MS = 100;
+const KHU_MAX = 15, KHU_SHOW = 5, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
 const MAX_SAVE = 300 * 1024;
 const TOKEN_IDLE = 30 * 86400e3; // phiên đăng nhập hết hạn sau 30 ngày không dùng
 const SAVE_EVERY = 15000;
@@ -266,7 +267,7 @@ export class World extends DurableObject {
   sendTo(c, obj) { try { c.ws.send(typeof obj === 'string' ? obj : JSON.stringify(obj)); } catch (e) {} }
   count(srv) { let n = 0; for (const c of this.clients.values()) if (c.srv === srv) n++; return n; }
   // chỉ gửi cho người chơi cùng máy chủ (và cùng bản đồ)
-  toMap(from, map, obj, except) { const s = JSON.stringify(obj); for (const c of this.clients.values()) if (c.srv === from.srv && c.map === map && c !== except) this.sendTo(c, s); }
+  toMap(from, map, obj, except) { const s = JSON.stringify(obj); for (const c of this.clients.values()) if (c.srv === from.srv && c.map === map && c !== except && (!c.v2 || !c.inst || c.inst.khu === 1)) this.sendTo(c, s); }
   toSrv(srv, obj) { const s = JSON.stringify(obj); for (const c of this.clients.values()) if (c.srv === srv) this.sendTo(c, s); }
 
   writeSave(c) {
@@ -314,14 +315,15 @@ export class World extends DurableObject {
     const byMap = new Map();
     for (const c of this.clients.values()) if (!c.v2 && c.st && c.map >= 0) { const k = c.srv * 100 + c.map; if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(c.st); }
     // bản đồ v2: máy chủ chạy quái, đòn đánh; gửi ảnh chụp cho người chơi v2 và vị trí cho người chơi v1 cùng bản đồ
-    for (const [k, inst] of this.insts) {
+    for (const inst of this.insts.values()) {
       inst.tick(TICK_MS / 1000);
-      const sn = inst.snap(byMap.get(k)), s = JSON.stringify(sn);
+      const k = inst.srv * 100 + inst.mi, k1 = inst.khu === 1;
+      const sn = inst.snap(k1 ? byMap.get(k) : null), s = JSON.stringify(sn);
       for (const c of inst.players.values()) {
         this.sendTo(c, s);
         if (c.meDirty || c.bagDirty) this.sendMe(c);
       }
-      if (sn.p.length) { const v2 = sn.p.filter(q => inst.players.has(q[0])); if (v2.length) { if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(...v2); } }
+      if (k1 && sn.p.length) { const v2 = sn.p.filter(q => inst.players.has(q[0])); if (v2.length) { if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(...v2); } }
     }
     const now = Date.now();
     if (++this._tk % 10 === 0) adminTick(this);
@@ -352,19 +354,33 @@ export class World extends DurableObject {
     if (bad.length) this.sql.exec('INSERT INTO anomalies(user_id,srv,flags,at) VALUES(?,?,?,?) ON CONFLICT(user_id,srv) DO UPDATE SET flags=excluded.flags, at=excluded.at', c.uid, c.srv, bad.join(' | ').slice(0, 2000), Date.now());
     c.ch = ch; c.f = makeFighter(ch);
   }
-  instOf(srv, mi) { const k = srv * 100 + mi; let i = this.insts.get(k); if (!i) { i = new MapInst(srv, mi, this.hooks()); this.insts.set(k, i); } return i; }
-  gcInst(inst) { if (!inst.players.size) this.insts.delete(inst.srv * 100 + inst.mi); }
+  // mỗi bản đồ chia nhiều khu (như Ngọc Rồng Online), mỗi khu tối đa KHU_MAX người; khu là một bản sao bản đồ riêng (quái, đồ rơi riêng)
+  instOf(srv, mi, k) { const key = srv * 10000 + mi * 100 + k; let i = this.insts.get(key); if (!i) { i = new MapInst(srv, mi, this.hooks()); i.khu = k; this.insts.set(key, i); } return i; }
+  gcInst(inst) { if (!inst.players.size) this.insts.delete(inst.srv * 10000 + inst.mi * 100 + inst.khu); }
+  khuN(srv, mi, k) { const i = this.insts.get(srv * 10000 + mi * 100 + k); return i ? i.players.size : 0; }
+  khuMax() { return Math.max(1, Math.min(100, (this.cfg && this.cfg.khuMax) | 0 || KHU_MAX)); }
+  // chọn khu: giữ số khu mong muốn nếu còn chỗ, không thì khu nhỏ nhất còn chỗ
+  pickKhu(srv, mi, want) { const mx = this.khuMax(); if (want && want <= KHU_CAP && this.khuN(srv, mi, want) < mx) return want; for (let k = 1; k <= KHU_CAP; k++) if (this.khuN(srv, mi, k) < mx) return k; return KHU_CAP; }
+  khuList(c) {
+    const mx = this.khuMax(); let hi = 0; for (const i of this.insts.values()) if (i.srv === c.srv && i.mi === c.map && i.players.size) hi = Math.max(hi, i.khu);
+    const n = Math.min(KHU_CAP, Math.max(KHU_SHOW, hi + 1)), list = [];
+    for (let k = 1; k <= n; k++) list.push([k, this.khuN(c.srv, c.map, k)]);
+    return { t: 'khu', cur: c.inst ? c.inst.khu : 1, max: mx, list };
+  }
   hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (c, d) => glog(this, 'drop', c, d) }; }
   // báo cho bạn bè đang online cập nhật danh sách (online/offline, bản đồ)
   friendsChanged(c) {
     try { for (const r of this.sql.exec('SELECT fid FROM friends WHERE uid=?', c.uid).toArray()) for (const o of this.clients.values()) if (o.uid === r.fid && o.v2 && o.ch && o !== c) friendList(this, o); } catch (e) { console.error(e); }
   }
-  enterMap(c, mi, x) {
+  // khu: số khu muốn vào; force: vào đúng khu đó dù đầy (quản trị dịch chuyển tới người chơi)
+  enterMap(c, mi, x, khu, force) {
     tradeCancel(this, c, 'Đổi bản đồ, giao dịch bị hủy.');
+    const want = khu || (c.inst ? c.inst.khu : 1);
     if (c.inst) { c.inst.leave(c); this.gcInst(c.inst); }
     if (c.map >= 0) this.toMap(c, c.map, { t: 'gone', id: c.id }, c);
     mi = Math.max(0, Math.min(R.D.maps.length - 1, mi | 0)); c.ch.map = mi; c.map = mi;
-    c.inst = this.instOf(c.srv, mi); c.inst.join(c, x); c.dirty = true;
+    const k = force && khu ? Math.max(1, Math.min(KHU_CAP, khu | 0)) : this.pickKhu(c.srv, mi, want);
+    c.inst = this.instOf(c.srv, mi, k); c.inst.join(c, x); c.dirty = true;
     this.friendsChanged(c);
   }
   meOf(c, full) {
@@ -405,6 +421,16 @@ export class World extends DurableObject {
       case 'in': return I.move(c, m);
       case 'atk': return I.attack(c, m);
       case 'sk': return I.skill(c, m);
+      case 'khu': {
+        if (m.k == null) return this.sendTo(c, this.khuList(c));
+        const k = m.k | 0, now = Date.now();
+        if (k < 1 || k > KHU_CAP || k === I.khu) return;
+        if (c.f.dead > 0) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Đang gục ngã, chưa đổi khu được.' });
+        if (now - (c.khuAt || 0) < 5000) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Chờ vài giây rồi đổi khu.' });
+        if (this.khuN(c.srv, c.map, k) >= this.khuMax() && !isStaff(this, c.uid)) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Khu ' + k + ' đã đầy (' + this.khuMax() + ' người).' });
+        c.khuAt = now; this.enterMap(c, c.map, c.f.x, k, true);
+        return this.sendTo(c, { t: 'res', op: 'khu', ok: true, msg: 'Đã vào khu ' + k + '.' });
+      }
       case 'warp': {
         const p = I.M.portals[m.p | 0]; if (!p || c.f.dead > 0 || Math.abs(c.f.x - p.x) > 70) return this.sendTo(c, { t: 'res', op: 'warp', ok: false });
         return this.enterMap(c, p.to, p.tx);
@@ -421,7 +447,7 @@ export class World extends DurableObject {
           for (const o of this.clients.values()) if (o.srv === c.srv) this.sendTo(o, o.v2 ? msg : { t: 'chat', id: c.id, n: c.ch.name, text, all: true });
           return;
         }
-        for (const o of this.clients.values()) if (o.srv === c.srv && o.map === c.map) this.sendTo(o, msg);
+        for (const o of this.clients.values()) if (o.srv === c.srv && o.map === c.map && (o.v2 ? o.inst === c.inst : c.inst.khu === 1)) this.sendTo(o, msg);
         return;
       }
       default: {

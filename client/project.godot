@@ -4,7 +4,7 @@ config_version=5
 [application]
 config/name="Hiệp Sĩ Nét Chì"
 config/description="Game nhập vai cuộn ngang online"
-config/version="2.3.0"
+config/version="2.4.0"
 run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.png"

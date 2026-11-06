@@ -268,7 +268,7 @@ const ACT = {
     };
   },
   async online(w) {
-    return { list: [...w.clients.values()].map(c => ({ id: c.id, uid: c.uid, user: c.user, srv: c.srv, v2: !!c.v2, app: c.app || (c.v2 ? '' : 'v1'), name: c.ch ? c.ch.name : (c.st ? c.st[8] : ''), lv: c.ch ? c.ch.lv : (c.st ? c.st[7] : 0), map: c.map, hidden: !!c.hidden, gm: !!(c.gm && c.gm.until > Date.now()) })) };
+    return { list: [...w.clients.values()].map(c => ({ id: c.id, uid: c.uid, user: c.user, srv: c.srv, v2: !!c.v2, app: c.app || (c.v2 ? '' : 'v1'), name: c.ch ? c.ch.name : (c.st ? c.st[8] : ''), lv: c.ch ? c.ch.lv : (c.st ? c.st[7] : 0), map: c.map, khu: c.inst ? c.inst.khu : 0, hidden: !!c.hidden, gm: !!(c.gm && c.gm.until > Date.now()) })) };
   },
   async players(w, A, b) {
     const q = '%' + clean(b.q, 32).trim().toLowerCase().replace(/[%_]/g, '') + '%';
@@ -434,7 +434,7 @@ const ACT = {
     return { ok: true };
   },
   async event_stop(w) { setCfg(w, 'event', null); applyEvent(w); w.broadcastCfg(); return { ok: true }; },
-  async cfg_get(w) { return { servers: w.servers(), min_app: w.cfg.min_app || w.env.MIN_APP || '', v1: w.cfg.v1 || w.env.V1 || 'on', maint: w.cfg.maint || { on: false }, ann: w.cfg.ann || null, event: w.cfg.event || null }; },
+  async cfg_get(w) { return { servers: w.servers(), min_app: w.cfg.min_app || w.env.MIN_APP || '', v1: w.cfg.v1 || w.env.V1 || 'on', maint: w.cfg.maint || { on: false }, ann: w.cfg.ann || null, event: w.cfg.event || null, khuMax: w.khuMax() }; },
   async servers_set(w, A, b) {
     if (!Array.isArray(b.list) || !b.list.length || b.list.length > 20) bad('Danh sách máy chủ không hợp lệ.');
     const seen = new Set(), list = b.list.map(s => { const id = int(s.id, 1, 99); if (seen.has(id)) bad('Trùng số máy chủ.'); seen.add(id); return { id, name: clean(s.name, 24) || 'Server ' + id, tag: clean(s.tag, 12), open: s.open !== false }; });
@@ -443,6 +443,7 @@ const ACT = {
   async app_cfg(w, A, b) {
     if (b.min_app != null) { const v = clean(b.min_app, 16).trim(); if (v && !/^\d+(\.\d+){0,3}$/.test(v)) bad('Phiên bản dạng 2.1.0'); setCfg(w, 'min_app', v); }
     if (b.v1 != null) setCfg(w, 'v1', b.v1 === 'off' ? 'off' : 'on');
+    if (b.khuMax != null) setCfg(w, 'khuMax', int(b.khuMax, 1, 100));
     if (b.v1 === 'off') for (const c of [...w.clients.values()]) if (!c.v2) { w.sendTo(c, { t: 'err', code: 'app', msg: 'Bản này đã ngừng. Hãy tải ứng dụng mới tại trang /tai-game.' }); try { c.ws.close(4005, 'app'); } catch (e) {} w.drop(c); }
     return { ok: true };
   },
@@ -515,8 +516,8 @@ export async function onGM(w, c, m) {
   if (m.name && !target) return reply(false, 'Không thấy người chơi "' + clean(m.name, 20) + '" đang online trên máy chủ này.');
   switch (cmd) {
     case 'tp': { const mi = int(m.map, 0, R.D.maps.length - 1); w.enterMap(c, mi, m.x != null ? int(m.x, 40, R.D.maps[mi].w - 40) : null); log({ map: mi }); return reply(true, 'Đã tới ' + R.D.maps[mi].name); }
-    case 'goto': { if (!target || target === c) return reply(false, 'Nhập tên người chơi.'); w.enterMap(c, target.map, target.f.x); log({ target: target.uid }); return reply(true, 'Đã tới chỗ ' + target.ch.name); }
-    case 'pull': { if (!target || target === c) return reply(false, 'Nhập tên người chơi.'); w.enterMap(target, c.map, c.f.x); w.sendTo(target, { t: 'log', text: 'Bạn được quản trị đưa tới.', col: '#8fb4ff' }); log({ target: target.uid }); return reply(true, 'Đã kéo ' + target.ch.name + ' tới.'); }
+    case 'goto': { if (!target || target === c) return reply(false, 'Nhập tên người chơi.'); w.enterMap(c, target.map, target.f.x, target.inst ? target.inst.khu : 1, true); log({ target: target.uid }); return reply(true, 'Đã tới chỗ ' + target.ch.name); }
+    case 'pull': { if (!target || target === c) return reply(false, 'Nhập tên người chơi.'); w.enterMap(target, c.map, c.f.x, c.inst ? c.inst.khu : 1, true); w.sendTo(target, { t: 'log', text: 'Bạn được quản trị đưa tới.', col: '#8fb4ff' }); log({ target: target.uid }); return reply(true, 'Đã kéo ' + target.ch.name + ' tới.'); }
     case 'hide': { c.hidden = !!m.on; log({ on: c.hidden }); return reply(true, c.hidden ? 'Đang tàng hình: người chơi và quái không thấy bạn.' : 'Đã hiện hình.', { hidden: c.hidden }); }
     case 'heal': { const t = target || c; t.f.hp = t.f.maxHp; t.f.dead = 0; t.meDirty = true; log({ target: t.uid }); return reply(true, 'Đã hồi đầy máu cho ' + t.ch.name); }
     case 'spawn': {

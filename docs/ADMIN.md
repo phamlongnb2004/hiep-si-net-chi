@@ -72,6 +72,14 @@ Bấm món đồ để bỏ vào **giỏ quà**, rồi chỉnh từng món: rèn
 
 Chỉ Chủ được tặng; GM và Chỉ xem chỉ xem danh mục. Máy chủ kiểm tra lại mọi thứ, lưu bản trước khi tặng (khôi phục được), ghi nhật ký, và báo người nhận trong game "🎁 Quản trị tặng bạn: …".
 
+## Khu (từ 2.4.0)
+
+Mỗi bản đồ chia nhiều khu giống Ngọc Rồng Online. Mỗi khu tối đa **15 người** và có quái, đồ rơi, trò chuyện bản đồ riêng.
+- Vào bản đồ: giữ số khu đang ở nếu còn chỗ, không thì vào khu nhỏ nhất còn chỗ. Tối đa 40 khu mỗi bản đồ.
+- Người chơi bấm nút **Khu N ▾** dưới tên bản đồ để xem số người từng khu và đổi khu (chờ 5 giây giữa hai lần đổi).
+- Giao dịch chỉ với người cùng khu. GM dịch chuyển/kéo người chơi thì vào đúng khu của người đó, kể cả khi khu đầy.
+- Đổi số người tối đa: **Vận hành → Khu trong bản đồ** (chỉ Chủ).
+
 ## Cân bằng
 
 Các tham số trong `shared/rules.js` → `TUNE`:

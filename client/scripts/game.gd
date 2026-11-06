@@ -12,6 +12,7 @@ signal player_tapped(id: int, name: String)
 signal announce(text: String)
 signal cfg_changed
 signal gm_reply(m: Dictionary)
+signal khu_list(m: Dictionary)
 
 const GRAV := 2100.0
 const JUMP := 760.0
@@ -29,6 +30,7 @@ var heroes = {}                 # id -> Hero (người khác)
 var mons = {}                   # id -> Mon
 var drops = {}                  # id -> Drop
 var mi = -1
+var khu = 1                   # khu đang ở trong bản đồ (mỗi khu tối đa 15 người)
 var M: Dictionary = {}
 var ready_map = false
 
@@ -118,6 +120,8 @@ func _on_msg(m: Dictionary) -> void:
 			announce.emit(str(m.get("text", "")))
 		"gm":
 			gm_reply.emit(m)
+		"khu":
+			khu_list.emit(m)
 		"res":
 			if m.get("msg"):
 				log_line.emit(str(m.msg), Color("9be05a") if m.get("ok") else Color("ffb347"))
@@ -159,6 +163,7 @@ func _look(d: Dictionary) -> int:
 
 func _build_map(m: Dictionary) -> void:
 	mi = int(m.m)
+	khu = int(m.get("k", 1))
 	M = Data.D.maps[mi]
 	world.setup(mi)
 	for h in heroes.values(): h.queue_free()

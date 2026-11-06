@@ -108,6 +108,12 @@ func run() -> void:
 	await wait(1.0)
 	await shot("11-friends")
 	main.social.open_friends()
+	Net.send({"t": "khu"})
+	await wait(1.0)
+	await shot("11b-khu")
+	Net.send({"t": "khu", "k": 2})
+	await wait(1.5)
+	await shot("11c-khu2")
 	# ô đồ cường hóa: +3 +6 +9 +12 +15
 	var box = HBoxContainer.new()
 	box.position = Vector2(200, 250)
