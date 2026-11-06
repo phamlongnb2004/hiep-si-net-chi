@@ -21,6 +21,7 @@ const gearAssets = opt('gear-assets.json'), layerAssets = opt('layer-assets.json
 const sideJs = fs.readFileSync(path.join(root, 'tools', 'side.js'), 'utf8');
 const gearJs = fs.readFileSync(path.join(root, 'tools', 'gear.js'), 'utf8');
 const vfxJs = fs.readFileSync(path.join(root, 'tools', 'vfx.js'), 'utf8');
+const bagJs = fs.readFileSync(path.join(root, 'tools', 'bag.js'), 'utf8');
 
 // font: bỏ Google Fonts (không cần mạng ngoài), dùng font nhúng
 html = html.replace(/<link rel="preconnect"[^>]*>\s*/g, '').replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>\s*/g, '');
@@ -32,7 +33,7 @@ const anchor = "\nnew ResizeObserver(resize).observe($('app'));";
 if (html.split(anchor).length !== 2) throw new Error('Không tìm thấy điểm chèn');
 const inject = '\nwindow.HSNC_UI=' + uiAssets + ';\nwindow.HSNC_ANIM=' + animAssets + ';\nwindow.HSNC_HUD=' + hudAssets
   + ';\nwindow.HSNC_SIDE=' + sideAssets + ';\nwindow.HSNC_MON=' + monAssets + ';\nwindow.HSNC_GEAR=' + gearAssets + ';\nwindow.HSNC_LAYER=' + layerAssets + ';\nwindow.HSNC_FX=' + fxAssets + ';\n'
-  + sideJs + '\n' + gearJs + '\n' + animJs + '\n' + vfxJs + '\n' + net + '\n' + uiJs + '\n' + hudJs + anchor;
+  + sideJs + '\n' + gearJs + '\n' + animJs + '\n' + vfxJs + '\n' + net + '\n' + uiJs + '\n' + hudJs + '\n' + bagJs + anchor;
 html = html.replace(anchor, () => inject);
 html = html.replace('Bản này chơi một mình và lưu tiến trình ngay trên trình duyệt. Chế độ nhiều người chơi cần thêm máy chủ riêng.', 'Đang kết nối máy chủ…');
 

@@ -4,7 +4,7 @@ try{
 const GA=window.HSNC_GEAR||{};
 const SLOTI={hat:0,armor:1,cape:2,weapon:3};
 // tên bộ đồ theo phái và cấp hiếm
-const SETN={
+window.SETN_=null;const SETN={
   sword:['Tân Binh','Lam Ưng','Tử Vương','Long Thần'],
   archer:['Lá Rừng','Ngân Diệp','Tinh Dạ','Phượng Hoàng'],
   mage:['Tập Sự','Băng Tuyết','Nguyệt Ảnh','Thái Dương'],
@@ -14,7 +14,7 @@ const NOUN={
   archer:{hat:'Mũ Trùm',armor:'Áo Giáp Lá',cape:'Áo Choàng',weapon:'Cung'},
   mage:{hat:'Nón Phép',armor:'Pháp Bào',cape:'Khăn Choàng',weapon:'Trượng'},
   fighter:{hat:'Khăn Đầu',armor:'Võ Phục',cape:'Khăn Choàng',weapon:'Găng Vuốt'}};
-const CLSK=Object.keys(SETN);
+const CLSK=Object.keys(SETN);window.SETN_=SETN;
 // tỉ lệ hiếm: quái thường rất ít ra đồ xịn, trùm dễ hơn
 const W_MOB=[80,16.5,3.1,.4],W_BOSS=[30,48,18.5,3.5];
 RAR.forEach((r,i)=>{r.w=W_MOB[i];});
