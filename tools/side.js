@@ -116,7 +116,9 @@ function themedSign(d){const th=MAP.theme;if(th==='grass')return null;const key=
     g.putImageData(im,0,0);}catch(e){return null;}
   const o={c,w:sp.w,h:sp.h,ax:sp.ax,ay:sp.ay};SGN.set(key,o);return o;}
 const _ddi=drawDecorItem;
-drawDecorItem=function(d){if(d.gy==null)return _ddi(d);
+const DSC={house:1.3,npc:.74};   // cân kích thước: nhà to hơn nhân vật ~2,5 lần, người bán hàng cỡ người thường
+drawDecorItem=function(d){if(d.gy==null)return _ddi(d);const sc=DSC[d.k];if(sc){ctx.save();ctx.translate(d.x,d.gy);ctx.scale(sc,sc);ctx.translate(-d.x,-d.gy);try{_ddi2(d);}finally{ctx.restore();}return;}return _ddi2(d);};
+const _ddi2=function(d){
   if(d.k==='sign'){const t=themedSign(d);if(t){ctx.drawImage(t.c,d.x-t.ax,d.gy-t.ay,t.w,t.h);return;}}const y=d.y;d.y=d.gy;try{_ddi(d);}finally{d.y=y;}};
 spawnAll=function(){
   G.mons=[];
@@ -137,7 +139,13 @@ bakeMini=function(){
 };
 
 /* --- nền: trời + núi xa + lớp giữa (cuộn chậm), mặt đất, bậc đá --- */
-const CAPW=118;   // bề ngang mảnh mép khối (đơn vị thế giới), cùng tỉ lệ với dải mặt đất
+const GRD_H=250;   // chiều cao dải mặt đất khi vẽ (đơn vị thế giới): cỏ/đá/hoa cân với nhân vật, phía dưới lát tiếp phần đất
+const CAPW=118*GRD_H/415;   // bề ngang mảnh mép khối, cùng tỉ lệ với dải mặt đất
+const BODY=new Map();
+function bodyOf(gr,flip){const key=gr.i.src.length+'|'+flip;if(BODY.has(key))return BODY.get(key);
+  const nw=gr.i.naturalWidth,nh=gr.i.naturalHeight,y0=Math.round(nh*.45),c=document.createElement('canvas');c.width=nw;c.height=nh-y0;const g=c.getContext('2d');
+  if(flip){g.translate(0,c.height);g.scale(1,-1);}g.drawImage(gr.i,0,y0,nw,nh-y0,0,0,nw,nh-y0);
+  const o={i:c,w:gr.w,h:gr.h*(nh-y0)/nh};BODY.set(key,o);return o;}
 const SKY={grass:['#7cc8ff','#d9f1ff'],snow:['#a9cbe6','#eef6fb'],lava:['#3a1414','#a2462a']};
 function tileX(im,x0,y,h,vw){const w=h*im.w/im.h;let x=Math.floor(x0/w)*w;for(;x<x0+vw+w;x+=w)ctx.drawImage(im.i,x,y,w+1,h);}
 drawGround=function(vw,vh){
@@ -160,7 +168,7 @@ drawGround=function(vw,vh){
     const k=(y1-y0)/(x1-x0),a0=Math.max(x0,cx-4),a1=Math.min(x1,cx+vw+4);
     ctx.save();ctx.beginPath();ctx.rect(a0-.6,cy-50,a1-a0+1.2,vh+300);ctx.clip();
     ctx.translate(x0,y0-GY);ctx.transform(1,k,0,1,0,0);ctx.translate(-x0,0);
-    if(gr){const h=hh/(1-gr.top),y=GY-h*gr.top+4;tileX(gr,a0-2,y,h,a1-a0+4);}
+    if(gr){const h=GRD_H,y=GY-h*gr.top+4;tileX(gr,a0-2,y,h,a1-a0+4);let yb=y+h-2,f=false;const lim=cy+vh+30-(y0-GY);while(yb<lim){const bt=bodyOf(gr,f=!f),bh=h*bt.h/gr.h;tileX(bt,a0-2,yb,bh,a1-a0+4);yb+=bh-1;}}
     else{ctx.fillStyle=MAP.base;ctx.fillRect(a0-1,GY,a1-a0+2,hh);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(a0-1,GY,a1-a0+2,6);}
     ctx.restore();
   }
@@ -172,7 +180,7 @@ drawGround=function(vw,vh){
     // bóng đổ trên nền thấp, sát chân vách
     const sh=ctx.createRadialGradient(x0-dir*6,bot,2,x0-dir*6,bot,46);sh.addColorStop(0,'rgba(0,0,0,.28)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(x0-dir*14,bot+2,48,9,0,0,TAU);ctx.fill();
     // mép khối đất vẽ sẵn (vách + cỏ chìa ra), mặt trên khớp đúng mặt đất của khối cao
-    if(cap){const wc=cap.tk&&gr?cap.w*(hh/(1-gr.top))/gr.h/cap.tk:CAPW,Hc=wc*cap.h/cap.w,dx=x0-cap.wall*wc+(dir>0?-3:3);ctx.drawImage(cap.i,dx,top-cap.top*Hc,wc,Hc);ctx.restore();continue;}
+    if(cap){const wc=cap.tk&&gr?cap.w*GRD_H/gr.h/cap.tk:CAPW,Hc=Math.max(wc*cap.h/cap.w,bot-top+70),dx=x0-cap.wall*wc+(dir>0?-3:3);ctx.drawImage(cap.i,dx,top-cap.top*Hc,wc,Hc);ctx.restore();continue;}
     // mặt vách: dải tối ở mép khối cao
     const g=ctx.createLinearGradient(x0,0,x0+dir*22,0);g.addColorStop(0,'rgba(20,12,6,.55)');g.addColorStop(1,'rgba(20,12,6,0)');
     ctx.fillStyle=g;ctx.fillRect(dir>0?x0:x0-22,top+10,22,bot-top+30);
