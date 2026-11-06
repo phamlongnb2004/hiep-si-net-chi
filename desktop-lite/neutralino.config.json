@@ -1,15 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
   "applicationId": "vn.hiepsinetchi.game",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "defaultMode": "window",
   "port": 47321,
   "documentRoot": "/resources/",
-  "url": "/",
+  "url": "https://hiep-si-net-chi.phamthanhlong-contact.workers.dev/?app=pc",
   "enableServer": true,
   "enableNativeAPI": false,
   "tokenSecurity": "one-time",
-  "logging": { "enabled": false, "writeToLogFile": false },
+  "logging": {
+    "enabled": false,
+    "writeToLogFile": false
+  },
   "nativeAllowList": [],
   "modes": {
     "window": {

@@ -51,6 +51,12 @@ const out = path.join(root, 'public', 'index.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
 for (const f of fs.readdirSync(path.join(root, 'tools', 'pwa'))) fs.copyFileSync(path.join(root, 'tools', 'pwa', f), path.join(root, 'public', f));
+// file cài đặt (Windows, Android) để trang tải game phục vụ ngay trên máy chủ này; cả hai mở thẳng máy chủ game nên luôn là bản mới
+for (const f of ['HiepSiNetChi-Windows.zip', 'HiepSiNetChi.apk']) { const p = path.join(root, 'release-files', f); if (fs.existsSync(p)) fs.copyFileSync(p, path.join(root, 'public', f)); }
+// dấu phiên bản: ghi lại mỗi lần đóng gói (Cloudflare tự đóng gói mỗi lần đẩy cập nhật)
+{ const sha = (process.env.WORKERS_CI_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || '').slice(0, 7), d = new Date();
+  const v = d.toISOString().slice(0, 10).replace(/-/g, '.') + (sha ? '-' + sha : '');
+  fs.writeFileSync(path.join(root, 'public', 'version.json'), JSON.stringify({ v, built: d.toISOString(), commit: sha })); }
 // trang tải game (/tai-game) và ảnh của nó
 for (const f of fs.readdirSync(path.join(root, 'tools', 'site'))) fs.copyFileSync(path.join(root, 'tools', 'site', f), path.join(root, 'public', f));
 console.log('Đã tạo', path.relative(root, out), (html.length / 1048576).toFixed(2) + ' MB', 'máy chủ:', server || '(cùng địa chỉ trang)');

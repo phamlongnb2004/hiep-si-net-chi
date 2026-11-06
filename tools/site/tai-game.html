@@ -81,26 +81,26 @@ footer a{color:#fff}
 
   <section class="card" aria-labelledby="t1">
     <h2 id="t1">Tải game miễn phí</h2>
-    <p class="sub">Luôn là bản mới nhất – mỗi lần game cập nhật, nút tải tự trỏ tới bản mới.</p>
+    <p class="sub">Cài một lần là xong – mỗi lần game cập nhật, ứng dụng trên máy tính và điện thoại tự có nội dung mới, nút tải cũng luôn là bản mới nhất.</p>
     <div class="dl">
       <div class="plat win" id="pWin">
         <div class="ph">
           <div class="ic"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7H3zM11.5 4.3 21 3v8.4h-9.5zM3 12.6h7.5v7L3 18.5zM11.5 12.6H21V21l-9.5-1.3z"/></svg></div>
           <div><h3>Máy tính Windows</h3><p class="meta" id="mWin">Windows 10 / 11 · 64-bit</p></div>
         </div>
-        <a class="btn gold" id="aWin" href="https://github.com/phamlongnb2004/hiep-si-net-chi/releases/latest/download/HiepSiNetChi-Windows.zip">
+        <a class="btn gold" id="aWin" href="HiepSiNetChi-Windows.zip" download>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 10l6 6 6-6M4 20h16"/></svg>Tải cho Windows</a>
         <ol class="steps">
-          <li>Giải nén file <b>.zip</b>, mở <b>HiepSiNetChi-win_x64.exe</b>.</li>
+          <li>Giải nén file <b>.zip</b>, mở <b>HiepSiNetChi-win_x64.exe</b> (cần mạng, mỗi lần mở là bản game mới nhất).</li>
           <li>Nếu Windows báo "đã bảo vệ máy tính": bấm <b>Thông tin thêm → Vẫn chạy</b>.</li>
         </ol>
       </div>
       <div class="plat and" id="pAnd">
         <div class="ph">
           <div class="ic"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M7.2 9h9.6v8.2a1.3 1.3 0 0 1-1.3 1.3h-1v2.4a1.2 1.2 0 0 1-2.4 0v-2.4h-.2v2.4a1.2 1.2 0 0 1-2.4 0v-2.4h-1a1.3 1.3 0 0 1-1.3-1.3zM4.6 9.2a1.2 1.2 0 0 1 1.2 1.2v4.8a1.2 1.2 0 0 1-2.4 0v-4.8a1.2 1.2 0 0 1 1.2-1.2zm14.8 0a1.2 1.2 0 0 1 1.2 1.2v4.8a1.2 1.2 0 0 1-2.4 0v-4.8a1.2 1.2 0 0 1 1.2-1.2zM7.3 8.2a4.8 4.8 0 0 1 2.4-3.6l-.9-1.6a.3.3 0 0 1 .5-.3l.9 1.6a5.2 5.2 0 0 1 3.6 0l.9-1.6a.3.3 0 0 1 .5.3l-.9 1.6a4.8 4.8 0 0 1 2.4 3.6zM10 6.3a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2zm4 0a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z"/></svg></div>
-          <div><h3>Điện thoại Android</h3><p class="meta" id="mAnd">Android 7 trở lên · tự cập nhật nội dung</p></div>
+          <div><h3>Điện thoại Android</h3><p class="meta" id="mAnd">Android 7 trở lên · tự có nội dung mới</p></div>
         </div>
-        <a class="btn green" id="aAnd" href="https://github.com/phamlongnb2004/hiep-si-net-chi/releases/latest/download/HiepSiNetChi.apk">
+        <a class="btn green" id="aAnd" href="HiepSiNetChi.apk" download>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 10l6 6 6-6M4 20h16"/></svg>Tải cho Android</a>
         <ol class="steps">
           <li>Mở file <b>HiepSiNetChi.apk</b> vừa tải.</li>
@@ -128,17 +128,14 @@ footer a{color:#fff}
   const ua=navigator.userAgent||'';const me=/Android/i.test(ua)?'pAnd':/Windows/i.test(ua)?'pWin':null;
   if(me){const p=document.getElementById(me);p.classList.add('me');const t=document.createElement('span');t.className='tag';t.textContent='Máy của bạn';p.prepend(t);
     if(me==='pAnd'){const dl=document.querySelector('.dl');dl.prepend(p);}}
-  // thông tin bản mới nhất lấy thẳng từ trang phát hành (tự đổi mỗi lần cập nhật)
+  // thông tin bản mới nhất: mỗi lần máy chủ cập nhật game, version.json được ghi lại lúc đóng gói
   const mb=n=>(n/1048576).toFixed(n>10485760?0:1)+' MB';
   const dt=s=>{try{return new Date(s).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return s;}};
-  fetch('https://api.github.com/repos/phamlongnb2004/hiep-si-net-chi/releases/latest',{headers:{Accept:'application/vnd.github+json'}})
-    .then(r=>r.ok?r.json():Promise.reject(r.status)).then(rel=>{
-      const a=n=>(rel.assets||[]).find(x=>x.name===n);const w=a('HiepSiNetChi-Windows.zip'),d=a('HiepSiNetChi.apk');
-      if(w){document.getElementById('aWin').href=w.browser_download_url;document.getElementById('mWin').textContent='Windows 10 / 11 · 64-bit · '+mb(w.size);}
-      if(d){document.getElementById('aAnd').href=d.browser_download_url;document.getElementById('mAnd').textContent='Android 7 trở lên · '+mb(d.size);}
-      const up=[w,d].filter(Boolean).map(x=>x.updated_at).sort().pop()||rel.published_at;
-      document.getElementById('ver').innerHTML='<span class="dot"></span><span>Bản mới nhất: <b>'+(rel.name||rel.tag_name)+'</b></span><span>Cập nhật lúc <b>'+dt(up)+'</b></span>';
-    }).catch(()=>{document.getElementById('ver').innerHTML='<span class="dot"></span><span>Nút tải luôn trỏ tới bản mới nhất</span>';});
+  const size=(u,id,pre)=>fetch(u,{method:'HEAD',cache:'no-store'}).then(r=>{const n=+r.headers.get('content-length');if(n)document.getElementById(id).textContent=pre+' · '+mb(n);}).catch(()=>{});
+  size('HiepSiNetChi-Windows.zip','mWin','Windows 10 / 11 · 64-bit');size('HiepSiNetChi.apk','mAnd','Android 7 trở lên');
+  fetch('version.json?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(v=>{
+    document.getElementById('ver').innerHTML='<span class="dot"></span><span>Bản game mới nhất: <b>'+(v.v||'')+'</b></span><span>Cập nhật lúc <b>'+dt(v.built)+'</b></span>';
+  }).catch(()=>{document.getElementById('ver').innerHTML='<span class="dot"></span><span>Nút tải luôn là bản mới nhất</span>';});
 })();
 </script>
 </body>

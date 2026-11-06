@@ -3,10 +3,9 @@
 # Bản Android (APK) mở thẳng máy chủ game nên tự có nội dung mới; file APK lấy từ release-files/.
 name: Build game
 
+# Tạm chỉ chạy tay (tài khoản GitHub đang bị khoá Actions). Trang /tai-game không cần bước này:
+# file cài đặt nằm ngay trên máy chủ và cả hai ứng dụng mở thẳng máy chủ game nên luôn là bản mới.
 on:
-  push:
-    branches: [main]
-    paths: ['tools/**', 'desktop-lite/**', 'release-files/**', '.github/workflows/build.yml']
   workflow_dispatch:
 
 permissions:
