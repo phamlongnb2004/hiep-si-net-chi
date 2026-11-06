@@ -284,19 +284,14 @@ function drawBreath(f){
     const r=(8+u*40)*q.s*.8;ctx.globalAlpha=.3*Math.sin((u-.12)/.73*Math.PI);ctx.drawImage(brSprite(kn,u<.45?2:3),q.x-r,q.y-r,r*2,r*2);}
   ctx.restore();
   ctx.save();ctx.globalCompositeOperation='lighter';
-  // lõi luồng: dải sáng liền mạch từ miệng tới đầu luồng (thon dần), làm luồng không bị rời rạc
-  if(b.reach>4&&fade>0){const R=b.reach;
-    ctx.save();ctx.translate(g.mo.x,g.mo.y);if(g.face<0)ctx.scale(-1,1);ctx.rotate(g.a);
-    const lg=ctx.createLinearGradient(0,0,R,0);lg.addColorStop(0,'rgba('+k.core+','+(.55*fade)+')');lg.addColorStop(.5,'rgba('+k.c1+','+(.22*fade)+')');lg.addColorStop(1,'rgba('+k.c2+',0)');
-    ctx.fillStyle=lg;ctx.beginPath();ctx.moveTo(0,-7);ctx.quadraticCurveTo(R*.5,-7-R*.07,R,-R*.1);ctx.lineTo(R,R*.1);ctx.quadraticCurveTo(R*.5,7+R*.07,0,7);ctx.closePath();ctx.fill();ctx.restore();}
   // hạt: lửa/khí nở to dần, đổi màu theo tuổi
   for(const q of b.parts){
     if(q.pull){const a=q.life/q.max;ctx.globalAlpha=.9*(1-a)+.1;const r=q.s*(.6+a);ctx.drawImage(brSprite(kn,1),q.x-r,q.y-r,r*2,r*2);continue;}
     const u=1-q.life/q.max,ci=Math.min(3,Math.floor(u*4.6)),r=(8+u*40)*q.s;
     ctx.globalAlpha=Math.min(1,(1-u)*1.6)*(kn==='dragon3'?.2:.28);ctx.drawImage(brSprite(kn,ci),q.x-r,q.y-r,r*2,r*2);
     if(kn==='dragon3'&&u>.25&&(q.spin*10|0)%3===0){ctx.globalAlpha=(1-u);ctx.fillStyle='#fff';const s=2.2;ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.spin+u*4);ctx.fillRect(-s*2,-s*.3,s*4,s*.6);ctx.fillRect(-s*.3,-s*2,s*.6,s*4);ctx.restore();}}
-  // ánh sáng ở miệng: mạnh dần khi lấy hơi, giữ đều khi khạc
-  const glow=t<BR_C?t/BR_C:fade;
+  // ánh sáng ở miệng: chỉ khi lấy hơi sắp khạc, khạc ra thì tắt nhanh
+  const glow=t<BR_C?t/BR_C:Math.max(0,1-(t-BR_C)/.12);
   if(glow>0){const R=24+glow*30+Math.sin(G.time*9)*2,e=ctx.createRadialGradient(g.mo.x,g.mo.y,0,g.mo.x,g.mo.y,R);e.addColorStop(0,'rgba(255,255,255,'+(.85*glow)+')');e.addColorStop(.35,'rgba('+k.c1+','+(.6*glow)+')');e.addColorStop(1,'rgba('+k.c2+',0)');ctx.globalAlpha=1;ctx.fillStyle=e;ctx.beginPath();ctx.arc(g.mo.x,g.mo.y,R,0,TAU);ctx.fill();}
   ctx.restore();
 }
