@@ -61,6 +61,17 @@ Thêm GM: vào **Quản trị viên → Thêm quản trị**, nhập tên tài k
 
 Bảng `users` có thêm các cột: `banned_until`, `ban_reason`, `muted_until`, `last_login`, `last_ip`.
 
+## Kho vật phẩm
+
+Tab **Kho vật phẩm** trên trang `/admin` liệt kê mọi món đang có trong game, kèm ảnh:
+- 64 trang bị (4 phái × 4 ô × 4 độ hiếm), lọc theo phái, ô, độ hiếm, chọn cấp đồ;
+- bình máu, đá cường hóa, vàng, kinh nghiệm;
+- 6 sách kỹ năng của mỗi phái (có thể cho học luôn nếu đủ cấp).
+
+Bấm món đồ để bỏ vào **giỏ quà**, rồi chỉnh từng món: rèn +, số lượng, chỉ số (mặc định / tối đa như đồ rơi tốt nhất / tự nhập, không vượt mức tối đa của game), khóa giao dịch. Người nhận là một nhân vật (tìm theo tên, hoặc bấm **Tặng vật phẩm…** ở trang người chơi) hoặc **mọi người đang online** trên một máy chủ.
+
+Chỉ Chủ được tặng; GM và Chỉ xem chỉ xem danh mục. Máy chủ kiểm tra lại mọi thứ, lưu bản trước khi tặng (khôi phục được), ghi nhật ký, và báo người nhận trong game "🎁 Quản trị tặng bạn: …".
+
 ## Cân bằng
 
 Các tham số trong `shared/rules.js` → `TUNE`:

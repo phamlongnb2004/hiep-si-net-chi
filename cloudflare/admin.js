@@ -10,7 +10,7 @@ const BOOT_HASH = '8589c830546d707be0f730af2652f3faeea08b28318a5973c78fbd9d79e4c
 const ROLE = { viewer: 1, gm: 2, owner: 3 };
 const ROLE_N = { viewer: 'Chỉ xem', gm: 'GM hỗ trợ', owner: 'Chủ' };
 const NEED = { // quyền tối thiểu cho mỗi thao tác
-  me: 1, overview: 1, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
+  me: 1, overview: 1, catalog: 1, give: 3, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
   ban: 2, unban: 2, mute: 2, kick: 2, announce: 2,
   // đụng tới tài sản/tài khoản người chơi: chỉ chủ (GM có lạm quyền cũng không tự làm giàu hay chiếm tài khoản được)
   char_edit: 3, item_add: 3, item_del: 3, restore: 3, reset_pw: 3, maint: 3, event: 3, event_stop: 3, servers_set: 3, app_cfg: 3, tune_set: 3, tune_reset: 3,
@@ -251,7 +251,7 @@ const userRow = (w, uid) => { const u = w.one('SELECT id, username, created, ban
 const charSummary = d => ({ name: d.name, cls: d.cls, lv: d.lv, exp: d.exp, gold: d.gold, stones: d.stones, pots: d.pots, kills: d.kills, map: d.map, inv: d.inv || [], eq: d.eq || {}, sk: d.sk, bad: d.bad || null });
 
 const ACT = {
-  async me(w, A) { return { user: A.user, role: A.role, roleName: ROLE_N[A.role], uid: A.uid }; },
+  async me(w, A) { return { user: A.user, role: A.role, roleName: ROLE_N[A.role], uid: A.uid, servers: w.servers().map(x => ({ id: x.id, name: x.name })) }; },
   async overview(w) {
     const now = Date.now(), n = s => (w.one(s) || {}).n | 0;
     const online = {}; let v2 = 0; for (const c of w.clients.values()) { online[c.srv] = (online[c.srv] || 0) + 1; if (c.v2) v2++; }
@@ -316,6 +316,63 @@ const ACT = {
       ch.inv.push(it);
     });
     return { ok: true, char: charSummary(d) };
+  },
+  // danh mục mọi vật phẩm đang có trong game (để chọn và tặng)
+  async catalog(w, A, b) {
+    const lvl = int(b.lvl || 1, 1, R.MAX_LV), gear = [];
+    for (const cls of R.CLS_KEYS) for (let r = 0; r < 4; r++) R.SLOTS.forEach((slot, si) => {
+      const base = R.shopItem(cls, slot, r, lvl, 'x'), mx = {};
+      for (const k in base.st) mx[k] = Math.round(R.baseStats(slot, lvl, r)[k] * 1.25);
+      gear.push({ cls, slot, r, si, name: base.name, st: base.st, max: mx, icon: `admin-icons/gear/${cls}/${r}/${si}.webp` });
+    });
+    const books = {}; for (const cls of R.CLS_KEYS) books[cls] = R.D.skills[cls].map((s, i) => ({ i, n: s.n, d: s.d, req: s.req, price: s.price, icon: `admin-icons/skills/${cls}/${i}.webp` }));
+    return { lvl, gear, books, cls: Object.fromEntries(R.CLS_KEYS.map(k => [k, R.D.cls[k].n])), rar: R.D.rar.map(x => ({ n: x.n, c: x.c })),
+      max: { lv: R.MAX_LV, up: R.D.forge.max, inv: R.INV_MAX, pots: R.POT_MAX },
+      misc: [{ k: 'pots', n: 'Bình máu', icon: 'admin-icons/pot.webp' }, { k: 'stones', n: 'Đá cường hóa', icon: 'admin-icons/stone.webp' }, { k: 'gold', n: 'Vàng', icon: 'admin-icons/gold.webp' }, { k: 'exp', n: 'Kinh nghiệm', icon: 'admin-icons/exp.webp' }] };
+  },
+  // tặng nhiều vật phẩm một lần: cho một nhân vật, hoặc cho mọi người đang online trên một máy chủ
+  async give(w, A, b) {
+    const gear = Array.isArray(b.gear) ? b.gear.slice(0, 30) : [], books = Array.isArray(b.books) ? b.books.slice(0, 6) : [];
+    const n = k => int(b[k] || 0, 0, k === 'exp' ? 1e12 : k === 'gold' ? 1e10 : 1e6);
+    const make = g => {
+      const cls = String(g.cls), slot = String(g.slot), r = int(g.r, 0, 3), lvl = int(g.lvl, 1, R.MAX_LV);
+      if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot)) bad('Món đồ không hợp lệ.');
+      const it = R.shopItem(cls, slot, r, lvl, 'a' + Date.now().toString(36) + rnd(4)); delete it.shop;
+      const mx = R.maxItemStat(it);
+      if (g.q === 'max') for (const k in it.st) it.st[k] = Math.round(R.baseStats(slot, lvl, r)[k] * 1.25);
+      else if (g.q === 'custom' && g.st) for (const k in it.st) it.st[k] = int(g.st[k] ?? it.st[k], 1, mx[k]);
+      const up = int(g.up, 0, R.D.forge.max); if (up) it.up = up;
+      if (g.lock) it.lock = 1;
+      return it;
+    };
+    const items = []; for (const g of gear) { const q = int(g.qty || 1, 1, 30); for (let i = 0; i < q; i++) items.push(g); }
+    if (!items.length && !books.length && !['pots', 'stones', 'gold', 'exp'].some(k => n(k))) bad('Chưa chọn vật phẩm nào.');
+    const note = clean(b.note, 120);
+    const apply = (ch) => {
+      const room = R.INV_MAX - (ch.inv || []).length; if (items.length > room) bad('Túi của ' + ch.name + ' chỉ còn ' + Math.max(0, room) + ' ô trống.');
+      const got = [];
+      for (const g of items) { const it = make(g); ch.inv.push(it); got.push((it.up ? '+' + it.up + ' ' : '') + it.name); }
+      if (n('pots')) { const add = Math.min(n('pots'), R.POT_MAX - (ch.pots | 0)); ch.pots = (ch.pots | 0) + Math.max(0, add); got.push(Math.max(0, add) + ' bình máu'); }
+      if (n('stones')) { ch.stones = (ch.stones | 0) + n('stones'); got.push(n('stones') + ' đá cường hóa'); }
+      if (n('gold')) { ch.gold = (ch.gold | 0) + n('gold'); got.push(n('gold') + ' vàng'); }
+      if (n('exp')) { R.addExp(ch, n('exp')); got.push(n('exp') + ' kinh nghiệm'); }
+      for (const x of books) { const i = int(x.i ?? x, 0, 5); if (!ch.books[i]) { ch.books[i] = 1; got.push('sách ' + R.D.skills[ch.cls][i].n); } if (x.learn && ch.lv >= R.D.skills[ch.cls][i].req) ch.sk[i] = 1; }
+      return got;
+    };
+    const tell = (uid, srv, got) => { for (const c of w.clients.values()) if (c.uid === uid && c.srv === srv) w.sendTo(c, { t: 'log', text: '🎁 Quản trị tặng bạn: ' + got.join(', ') + (note ? ' — ' + note : ''), col: '#ffd23f' }); };
+    if (b.online) {
+      const srv = b.srv | 0, done = [], fail = [];
+      for (const c of [...w.clients.values()]) if (c.srv === srv && c.v2 && c.ch) {
+        try { let got; editChar(w, A, c.uid, srv, 'Quà cho mọi người', ch => { got = apply(ch); }); tell(c.uid, srv, got); done.push(c.ch.name); }
+        catch (e) { fail.push((c.ch && c.ch.name) + ': ' + (e.user || 'lỗi')); }
+      }
+      if (!done.length && !fail.length) bad('Không có ai đang online trên máy chủ này.');
+      return { ok: true, n: done.length, done, fail };
+    }
+    const uid = userRow(w, b.uid).id, srv = b.srv | 0; let got;
+    const d = editChar(w, A, uid, srv, 'Tặng vật phẩm', ch => { got = apply(ch); });
+    tell(uid, srv, got);
+    return { ok: true, n: 1, got, char: charSummary(d) };
   },
   async item_del(w, A, b) {
     const d = editChar(w, A, userRow(w, b.uid).id, b.srv | 0, 'Xóa đồ', ch => {

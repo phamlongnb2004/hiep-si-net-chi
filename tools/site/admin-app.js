@@ -24,7 +24,7 @@ const IC = {
   key: 'M15 7a4 4 0 1 1-3.5 6L4 20.5 2.5 19 3 17l2 .5L6 16l-.5-2 2-.5L10 11A4 4 0 0 1 15 7z', out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11', search: 'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM21 21l-5-5',
   sword: 'M14.5 3H21v6.5L9 21.5 2.5 15zM5 13l6 6M3 21l3-3', star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z', alert: 'M12 3l10 18H2zM12 10v5M12 18h.01',
   users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-4 3-6 7-6s7 2 7 6M17 3.5a4 4 0 0 1 0 7.5M22 21c0-3-1.5-5-4-5.6', plus: 'M12 5v14M5 12h14', clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
-  gem: 'M6 3h12l4 6-10 12L2 9zM2 9h20M12 21L8 9l4-6 4 6z', ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8', box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10'
+  gem: 'M6 3h12l4 6-10 12L2 9zM2 9h20M12 21L8 9l4-6 4 6z', gift: 'M3 9h18v4H3zM5 13h14v8H5zM12 9v12M12 9c-2-4-6-4-6-1.5S9 9 12 9zM12 9c2-4 6-4 6-1.5S15 9 12 9z', trash: 'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14', box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10', ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8', box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10'
 };
 function icon(n) { const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'i'); const p = document.createElementNS(NS, 'path'); p.setAttribute('d', IC[n] || IC.star); s.append(p); return s; }
 const badge = (n, c) => { const b = document.createElement('span'); b.className = 'badge ' + (c || 'c-sun'); b.append(icon(n)); return b; };
@@ -131,7 +131,7 @@ function stepSetup(box, pre) {
 }
 
 /* ---------- khung chính ---------- */
-const TABS = [['overview', 'chart', 'Tổng quan', 'c-sun'], ['players', 'user', 'Người chơi', 'c-sky'], ['online', 'wifi', 'Đang online', 'c-mint'], ['ops', 'tool', 'Vận hành', 'c-red'], ['tune', 'scale', 'Cân bằng', 'c-vio'], ['logs', 'scroll', 'Nhật ký', 'c-ink'], ['admins', 'shield', 'Quản trị viên', 'c-red']];
+const TABS = [['overview', 'chart', 'Tổng quan', 'c-sun'], ['players', 'user', 'Người chơi', 'c-sky'], ['online', 'wifi', 'Đang online', 'c-mint'], ['ops', 'tool', 'Vận hành', 'c-red'], ['items', 'gift', 'Kho vật phẩm', 'c-sun'], ['tune', 'scale', 'Cân bằng', 'c-vio'], ['logs', 'scroll', 'Nhật ký', 'c-ink'], ['admins', 'shield', 'Quản trị viên', 'c-red']];
 async function start() { try { ME = await api('me'); } catch (e) { if (e.message !== 'auth') showLogin(); return; } layout(); }
 let mainEl;
 function layout() {
@@ -310,6 +310,87 @@ const VIEWS = {
   }
 };
 
+/* ---------- kho vật phẩm: chọn bất kỳ món nào trong game và tặng ---------- */
+const GIFT = { to: null, online: false, srv: 1, cart: [], misc: { pots: 0, stones: 0, gold: 0, exp: 0 }, books: {}, lvl: 10, f: { cls: '', slot: '', r: -1 }, cat: null, note: '' };
+function giftTo(uid, srv, ch) { GIFT.to = { uid, srv, name: ch.name, cls: ch.cls, lv: ch.lv, free: (GIFT.cat ? GIFT.cat.max.inv : 30) - (ch.inv || []).length }; GIFT.online = false; GIFT.lvl = Math.max(1, ch.lv | 0); GIFT.cart = []; GIFT.books = {}; GIFT.misc = { pots: 0, stones: 0, gold: 0, exp: 0 }; TAB = 'items'; layout(); }
+const RCOL = ['#8a93a8', '#2f6fed', '#a54be0', '#e69a00'];
+VIEWS.items = async function (body) {
+  const G = GIFT, own = can('owner');
+  if (!G.cat || G.cat.lvl !== G.lvl) { const c = await run('catalog', { lvl: G.lvl }); if (!c) return; G.cat = c; }
+  const C = G.cat, ST = { atk: 'Công', def: 'Thủ', hp: 'Máu', spd: 'Tốc' };
+  const stTxt = st => Object.entries(st).map(([k, v]) => ST[k] + ' ' + v).join(' · ');
+  const chips = (list, cur, set) => h('div', { class: 'sub' }, list.map(([v, n]) => h('button', { class: 'btn sm ' + (String(v) === String(cur) ? '' : 'sky'), onclick: () => { set(v); layout(); } }, n)));
+  // người nhận
+  const rc = card(['user', 'c-sky', 'Người nhận']);
+  if (G.online) rc.append(h('div', { class: 'row' }, h('span', { class: 'chip' }, icon('users'), 'Mọi người đang online'), field('Máy chủ', h('select', { onchange: e => G.srv = +e.target.value }, (ME.servers || [{ id: 1, name: 'Server 1' }]).map(x => h('option', { value: x.id, selected: x.id === G.srv }, x.name)))),
+    h('button', { class: 'btn sm sky', onclick: () => { G.online = false; layout(); } }, 'Chọn một người')));
+  else if (G.to) rc.append(h('div', { class: 'row' }, h('span', { class: 'chip' }, icon('sword'), G.to.name + ' · ' + (CLS[G.to.cls] || '') + ' · Cấp ' + G.to.lv + ' · Máy chủ ' + G.to.srv), h('span', { class: 'note' }, 'Túi còn ' + G.to.free + ' ô'),
+    h('button', { class: 'btn sm sky', onclick: () => { G.to = null; layout(); } }, 'Đổi người')));
+  else {
+    const q = inp({ placeholder: 'Tên tài khoản hoặc nhân vật…', maxlength: 32 }), res = h('div', { class: 'row', style: 'margin-top:8px' });
+    const find = async () => { const r = await run('players', { q: q.value }); if (!r) return; res.replaceChildren(...r.list.flatMap(u => u.chars.map(c => h('button', { class: 'btn sm sky', onclick: async () => { const p = await run('player', { uid: u.id }); if (!p) return; const ch = p.chars.find(x => x.srv === c.srv); giftTo(u.id, c.srv, ch); } }, u.username + ' → ' + c.name + ' (S' + c.srv + ', cấp ' + c.lv + ')'))), r.list.length ? null : h('span', { class: 'note' }, 'Không tìm thấy.')); };
+    q.onkeydown = e => { if (e.key === 'Enter') find(); };
+    rc.append(h('div', { class: 'row' }, h('label', { style: 'flex:1' }, 'Tìm người nhận', q), h('button', { class: 'btn', onclick: find }, 'Tìm'), h('button', { class: 'btn sky', onclick: () => { G.online = true; layout(); } }, icon('users'), 'Tặng mọi người đang online')), res);
+  }
+  body.append(rc);
+  // trang bị
+  const lv = inp({ type: 'number', min: 1, max: C.max.lv, value: G.lvl, style: 'width:110px' });
+  lv.onchange = () => { G.lvl = Math.max(1, Math.min(C.max.lv, +lv.value || 1)); layout(); };
+  const list = C.gear.filter(g => (!G.f.cls || g.cls === G.f.cls) && (!G.f.slot || g.slot === G.f.slot) && (G.f.r < 0 || g.r === G.f.r));
+  const add = g => { G.cart.push({ cls: g.cls, slot: g.slot, r: g.r, lvl: G.lvl, up: 0, q: 'base', st: { ...g.st }, lock: false, qty: 1, name: g.name, icon: g.icon, base: g.st, max: g.max }); layout(); toast('Đã thêm ' + g.name + ' vào giỏ quà.'); };
+  body.append(card(['sword', 'c-vio', 'Trang bị (' + list.length + ' món)'],
+    chips([['', 'Mọi phái'], ...Object.entries(C.cls)], G.f.cls, v => G.f.cls = v),
+    chips([['', 'Mọi ô'], ...Object.entries(SLOT)], G.f.slot, v => G.f.slot = v),
+    chips([[-1, 'Mọi độ hiếm'], ...C.rar.map((r, i) => [i, r.n])], G.f.r, v => G.f.r = +v),
+    h('div', { class: 'row', style: 'margin-bottom:10px' }, field('Cấp đồ (chỉ số theo cấp)', lv)),
+    h('div', { class: 'cat' }, list.map(g => h('button', { class: 'gi r' + g.r, onclick: () => add(g), title: 'Thêm vào giỏ' },
+      h('img', { src: g.icon, alt: '', loading: 'lazy' }), h('b', { style: 'color:' + RCOL[g.r] }, g.name), h('span', { class: 'note' }, C.rar[g.r].n + ' · ' + SLOT[g.slot] + ' · ' + C.cls[g.cls]), h('span', null, stTxt(g.st)), h('span', { class: 'plus' }, icon('plus')))))));
+  // vật phẩm khác + sách
+  const misc = card(['box', 'c-sun', 'Vật phẩm khác']);
+  misc.append(h('div', { class: 'cat' }, C.misc.map(m => { const i = inp({ type: 'number', min: 0, value: G.misc[m.k] || 0 }); i.oninput = () => G.misc[m.k] = Math.max(0, +i.value || 0);
+    return h('div', { class: 'gi' }, m.icon && m.k !== 'exp' ? h('img', { src: m.icon, alt: '' }) : badge('star', 'c-sky'), h('b', null, m.n), m.k === 'pots' ? h('span', { class: 'note' }, 'Tối đa mang ' + C.max.pots + ' bình') : null, i); })));
+  body.append(misc);
+  const bcls = G.to ? [G.to.cls] : Object.keys(C.cls);
+  const bk = card(['scroll', 'c-mint', 'Sách kỹ năng' + (G.to ? ' (phái ' + C.cls[G.to.cls] + ')' : '')]);
+  if (G.online) bk.append(h('p', { class: 'note' }, 'Mỗi người nhận sách đúng phái của mình theo số thứ tự (1–6).'));
+  for (const c of (G.online ? [bcls[0]] : bcls)) bk.append(h('div', { class: 'cat' }, C.books[c].map(b => { const k = b.i, on = G.books[k];
+    return h('button', { class: 'gi' + (on ? ' sel' : ''), onclick: () => { G.books[k] = on ? null : { i: k, learn: false }; layout(); } }, h('img', { src: b.icon, alt: '' }), h('b', null, (k + 1) + '. ' + (G.online ? 'Kỹ năng ' + (k + 1) : b.n)), h('span', { class: 'note' }, 'Cấp ' + b.req + (b.price ? ' · ' + fmt(b.price) + ' vàng' : '')),
+      on ? h('label', { class: 'chk', onclick: e => e.stopPropagation() }, h('input', { type: 'checkbox', checked: on.learn, onchange: e => on.learn = e.target.checked }), 'Học luôn (nếu đủ cấp)') : null); })));
+  body.append(bk);
+  // giỏ quà
+  const cart = card(['gift', 'c-red', 'Giỏ quà (' + G.cart.reduce((a, x) => a + (+x.qty || 1), 0) + ' món đồ)']);
+  if (!G.cart.length) cart.append(h('p', { class: 'empty' }, 'Bấm vào món đồ ở trên để thêm vào giỏ.'));
+  G.cart.forEach((x, idx) => {
+    const sel = h('select', { onchange: e => { x.q = e.target.value; if (x.q === 'base') x.st = { ...x.base }; if (x.q === 'max') x.st = { ...x.max }; layout(); } }, [['base', 'Mặc định'], ['max', 'Tối đa (như đồ rơi tốt nhất)'], ['custom', 'Tự nhập']].map(([v, n]) => h('option', { value: v, selected: x.q === v }, n)));
+    const stIn = x.q === 'custom' ? Object.keys(x.st).map(k => field(ST[k], inp({ type: 'number', min: 1, value: x.st[k], oninput: e => x.st[k] = +e.target.value }))) : [];
+    cart.append(h('div', { class: 'cart-row r' + x.r }, h('img', { src: x.icon, alt: '' }),
+      h('div', { class: 'grow' }, h('b', { style: 'color:' + RCOL[x.r] }, (x.up ? '+' + x.up + ' ' : '') + x.name + ' · cấp ' + x.lvl), h('span', { class: 'note' }, x.q === 'custom' ? 'Chỉ số tự nhập (không vượt mức tối đa của game)' : stTxt(x.q === 'max' ? x.max : x.base)),
+        h('div', { class: 'row' }, field('Rèn +', inp({ type: 'number', min: 0, max: C.max.up, value: x.up, style: 'width:80px', oninput: e => x.up = Math.max(0, Math.min(C.max.up, +e.target.value || 0)) })),
+          field('Số lượng', inp({ type: 'number', min: 1, max: 30, value: x.qty, style: 'width:80px', oninput: e => x.qty = Math.max(1, Math.min(30, +e.target.value || 1)) })),
+          field('Chỉ số', sel), ...stIn,
+          h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: x.lock, onchange: e => x.lock = e.target.checked }), 'Khóa (không giao dịch được)'))),
+      h('button', { class: 'btn sm red', title: 'Bỏ khỏi giỏ', onclick: () => { G.cart.splice(idx, 1); layout(); } }, icon('trash'))));
+  });
+  const note = inp({ maxlength: 120, placeholder: 'Lời nhắn kèm quà (không bắt buộc)', value: G.note, oninput: e => G.note = e.target.value });
+  const send = h('button', { class: 'btn green big', disabled: !own }, icon('gift'), own ? 'Tặng ngay' : 'Chỉ chủ mới tặng được');
+  send.onclick = async () => {
+    if (!G.online && !G.to) return toast('Chọn người nhận trước.', true);
+    const gear = G.cart.map(x => ({ cls: x.cls, slot: x.slot, r: x.r, lvl: x.lvl, up: x.up, q: x.q, st: x.st, lock: x.lock, qty: x.qty }));
+    const books = Object.values(G.books).filter(Boolean);
+    const sum = [...G.cart.map(x => (x.qty > 1 ? x.qty + '× ' : '') + (x.up ? '+' + x.up + ' ' : '') + x.name), ...C.misc.filter(m => G.misc[m.k]).map(m => fmt(G.misc[m.k]) + ' ' + m.n.toLowerCase()), ...books.map(b => 'sách kỹ năng ' + (b.i + 1))];
+    if (!sum.length) return toast('Giỏ quà đang trống.', true);
+    const who = G.online ? 'MỌI NGƯỜI đang online trên máy chủ ' + G.srv : G.to.name;
+    if (!await confirmBox('Tặng quà', 'Tặng cho ' + who + ': ' + sum.join(', ') + '.', 'Tặng', 'green')) return;
+    const r = await run('give', { ...(G.online ? { online: 1, srv: G.srv } : { uid: G.to.uid, srv: G.to.srv }), gear, books, ...G.misc, note: G.note });
+    if (!r) return;
+    toast(G.online ? 'Đã tặng cho ' + r.n + ' người' + (r.fail.length ? ' (' + r.fail.length + ' người túi đầy)' : '') + '.' : 'Đã tặng: ' + r.got.join(', '));
+    if (r.char && G.to) G.to.free = C.max.inv - r.char.inv.length;
+    G.cart = []; G.books = {}; G.misc = { pots: 0, stones: 0, gold: 0, exp: 0 }; G.note = ''; layout();
+  };
+  cart.append(h('div', { class: 'row', style: 'margin-top:12px' }, h('label', { style: 'flex:1' }, 'Lời nhắn', note), send, G.cart.length ? h('button', { class: 'btn sky', onclick: () => { G.cart = []; layout(); } }, 'Xóa giỏ') : null));
+  body.append(cart);
+};
+
 /* ---------- chi tiết người chơi ---------- */
 async function openPlayer(uid) {
   TAB = 'players'; layout(); const body = mainEl.querySelector('.grid'); body.replaceChildren(h('p', { style: 'color:#fff' }, 'Đang tải…'));
@@ -359,8 +440,7 @@ function charCard(uid, c, p, reload) {
   if (own) {
     const cls = h('select', null, Object.entries(CLS).map(([k, n]) => h('option', { value: k, selected: k === c.cls }, n))), slot = h('select', null, Object.entries(SLOT).map(([k, n]) => h('option', { value: k }, n))),
       r = h('select', null, RAR.map((n, i) => h('option', { value: i }, n))), lvl = inp({ type: 'number', min: 1, max: 100, value: Math.max(1, Math.floor(c.lv / 5) * 5) }), up = inp({ type: 'number', min: 0, max: 15, value: 0 });
-    el.append(h('h3', null, 'Tặng đồ'), h('div', { class: 'row' }, field('Phái', cls), field('Ô', slot), field('Độ hiếm', r), field('Cấp đồ', lvl), field('Rèn +', up),
-      h('button', { class: 'btn sm', onclick: async () => { if (await confirmBox('Tặng đồ', 'Tặng 1 món ' + RAR[r.value] + ' cấp ' + lvl.value + (+up.value ? ' +' + up.value : '') + '?', 'Tặng', 'green')) { await run('item_add', { uid, srv: c.srv, cls: cls.value, slot: slot.value, r: +r.value, lvl: +lvl.value, up: +up.value }, 'Đã tặng.'); reload(); } } }, 'Tặng')));
+    el.append(h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', onclick: () => giftTo(uid, c.srv, c) }, icon('gift'), 'Tặng vật phẩm…')));
     const snapsBox = h('div');
     el.append(h('h3', null, 'Khôi phục'), h('div', { class: 'row' },
       h('button', { class: 'btn sm sky', onclick: async () => { const s = await run('snaps', { uid }); if (!s) return; const l = s.list.filter(x => x.srv === c.srv);
