@@ -107,14 +107,29 @@ genDecor=function(){
   for(const p of M.portals)add({k:'portal',x:p.x,p},GY);
 };
 const SGN=new Map();
-function themedSign(d){const th=MAP.theme;if(th==='grass')return null;const key=th+'|'+d.txt;if(SGN.has(key))return SGN.get(key);
-  const sp=getSpr('sign|'+d.txt,d.txt);if(!sp||!sp.c||!sp.c.width)return null;
-  const c=document.createElement('canvas');c.width=sp.c.width;c.height=sp.c.height;const g=c.getContext('2d');g.drawImage(sp.c,0,0);
-  try{const im=g.getImageData(0,0,c.width,c.height),a=im.data;
-    for(let i=0;i<a.length;i+=4){const r=a[i],gg=a[i+1],b=a[i+2];if(a[i+3]<8||!(gg>r*1.12&&gg>b*1.05&&gg>50))continue;const l=(r+gg+b)/3;
-      if(th==='lava'){a[i]=Math.min(255,l*.55+30);a[i+1]=l*.32;a[i+2]=l*.3;}else{const v=Math.min(255,l*1.15+70);a[i]=v*.93;a[i+1]=v*.97;a[i+2]=v;}}
-    g.putImageData(im,0,0);}catch(e){return null;}
-  const o={c,w:sp.w,h:sp.h,ax:sp.ax,ay:sp.ay};SGN.set(key,o);return o;}
+// biển tên khu: chỉ kéo dài tấm ván cho vừa chữ (cột giữ nguyên), tên và cấp hai dòng nằm giữa tấm ván
+function themedSign(d){const th=MAP.theme,key=th+'|'+d.txt;if(SGN.has(key))return SGN.get(key);
+  const a=(window.HSNC_AI||{}).sign;if(!a||!a.i.complete||!a.i.naturalWidth)return null;
+  const [n1,n2]=String(d.txt).split(' · '),R=2,iw=a.i.naturalWidth,ih=a.i.naturalHeight,W=a.w,H=a.h;
+  const f1='bold 13px "Baloo 2","Patrick Hand",sans-serif',f2='bold 11px "Baloo 2","Patrick Hand",sans-serif';
+  const mc=document.createElement('canvas').getContext('2d');mc.font=f1;const t1=mc.measureText(n1||'').width;mc.font=f2;const t2=mc.measureText(n2||'').width;
+  const bw0=W*.86,bw=Math.max(bw0,Math.max(t1,t2)+26),cw=Math.max(W,bw+8);   // bề ngang tấm ván cần có
+  const c=document.createElement('canvas');c.width=Math.ceil(cw*R);c.height=Math.ceil(H*R);const g=c.getContext('2d');g.scale(R,R);
+  const ox=(cw-W)/2;g.drawImage(a.i,ox,0,W,H);                       // cột, lá, chân (giữ nguyên tỉ lệ)
+  // tấm ván: 3 mảnh (đầu trái, giữa kéo dài, đầu phải) theo vùng ván trong ảnh (26%..58% chiều cao)
+  const sy=ih*.24,sh=ih*.36,dy=H*.24,dh=H*.36,cap=iw*.26,dcap=W*.26,bx=(cw-bw)/2-W*.035;
+  g.drawImage(a.i,0,sy,cap,sh,bx,dy,dcap,dh);
+  g.drawImage(a.i,cap,sy,iw-2*cap,sh,bx+dcap,dy,bw-2*dcap,dh);
+  g.drawImage(a.i,iw-cap,sy,cap,sh,bx+bw-dcap,dy,dcap,dh);
+  g.textAlign='center';g.textBaseline='middle';const mx=cw/2-W*.02,my=dy+dh*.5;
+  g.lineJoin='round';g.lineWidth=3;g.strokeStyle='rgba(255,236,200,.55)';g.fillStyle='#3a2410';
+  if(n2){g.font=f1;g.strokeText(n1,mx,my-7);g.fillText(n1,mx,my-7);g.font=f2;g.fillStyle='#7a3b10';g.strokeText(n2,mx,my+8);g.fillText(n2,mx,my+8);}
+  else{g.font=f1;g.strokeText(n1,mx,my);g.fillText(n1,mx,my);}
+  if(th!=='grass')try{const im=g.getImageData(0,0,c.width,c.height),q=im.data;
+    for(let i=0;i<q.length;i+=4){const r=q[i],gg=q[i+1],b=q[i+2];if(q[i+3]<8||!(gg>r*1.12&&gg>b*1.05&&gg>50))continue;const l=(r+gg+b)/3;
+      if(th==='lava'){q[i]=Math.min(255,l*.55+30);q[i+1]=l*.32;q[i+2]=l*.3;}else{const v=Math.min(255,l*1.15+70);q[i]=v*.93;q[i+1]=v*.97;q[i+2]=v;}}
+    g.putImageData(im,0,0);}catch(e){}
+  const o={c,w:cw,h:H,ax:cw/2,ay:H*.96};SGN.set(key,o);return o;}
 const _ddi=drawDecorItem;
 const DSC={house:1.3,npc:.74};   // cân kích thước: nhà to hơn nhân vật ~2,5 lần, người bán hàng cỡ người thường
 drawDecorItem=function(d){if(d.gy==null)return _ddi(d);const sc=DSC[d.k];if(sc){ctx.save();ctx.translate(d.x,d.gy);ctx.scale(sc,sc);ctx.translate(-d.x,-d.gy);try{_ddi2(d);}finally{ctx.restore();}return;}return _ddi2(d);};
@@ -180,7 +195,7 @@ drawGround=function(vw,vh){
     // bóng đổ trên nền thấp, sát chân vách
     const sh=ctx.createRadialGradient(x0-dir*6,bot,2,x0-dir*6,bot,46);sh.addColorStop(0,'rgba(0,0,0,.28)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(x0-dir*14,bot+2,48,9,0,0,TAU);ctx.fill();
     // mép khối đất vẽ sẵn (vách + cỏ chìa ra), mặt trên khớp đúng mặt đất của khối cao
-    if(cap){const wc=cap.tk&&gr?cap.w*GRD_H/gr.h/cap.tk:CAPW,Hc=Math.max(wc*cap.h/cap.w,bot-top+70),dx=x0-cap.wall*wc+(dir>0?-3:3);ctx.drawImage(cap.i,dx,top-cap.top*Hc,wc,Hc);ctx.restore();continue;}
+    if(cap){const tk=cap.tk&&gr,wc=tk?cap.w*GRD_H/gr.h/cap.tk:CAPW,Hc=tk?wc*cap.h/cap.w:Math.max(wc*cap.h/cap.w,bot-top+70),dx=x0-cap.wall*wc+(dir>0?-1:1);ctx.drawImage(cap.i,dx,top+(tk?4:0)-cap.top*Hc,wc,Hc);ctx.restore();continue;}
     // mặt vách: dải tối ở mép khối cao
     const g=ctx.createLinearGradient(x0,0,x0+dir*22,0);g.addColorStop(0,'rgba(20,12,6,.55)');g.addColorStop(1,'rgba(20,12,6,0)');
     ctx.fillStyle=g;ctx.fillRect(dir>0?x0:x0-22,top+10,22,bot-top+30);

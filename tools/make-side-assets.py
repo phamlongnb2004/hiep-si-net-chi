@@ -107,18 +107,20 @@ def caps(path):
         sub = Image.fromarray(arr.clip(0, 255).astype(np.uint8), 'RGBA')
         sub, u = enc(sub, 300, 82)
         k = sub.width / w2
-        res[side] = {'u': u, 'w': sub.width, 'h': sub.height, 'top': round(top / h2, 4), 'wall': round(wall / w2, 4)}
+        res[side] = {'u': u, 'w': sub.width, 'h': sub.height, 'top': round(top / h2, 4), 'wall': round(wall / w2, 4), 'oy': int(ys[0]), 'hh': h2}
     return res
 
 
 # mảnh dựng từ chính dải mặt đất: tk = số điểm ảnh mảnh / 1 điểm ảnh dải đất (để vẽ đúng tỉ lệ)
-TK = {'lava': 4}
+TK = {'grass': 4, 'snow': 4, 'lava': 4}
 for th in ['grass', 'snow', 'lava']:
     p = os.path.join(SRC, 'side', f'cap_{th}.webp')
     if os.path.exists(p):
         c = caps(p)
-        if th in TK:
-            c['L']['tk'] = c['R']['tk'] = TK[th]
+        for v in c.values():
+            oy, hh = v.pop('oy'), v.pop('hh')
+            if th in TK:   # mảnh dựng từ dải đất: đặt mặt trên đúng hàng mặt đất của dải
+                v['tk'] = TK[th]; v['top'] = round((out['ground_' + th]['top'] * out['ground_' + th]['h'] * TK[th] - oy) / hh, 4)
         out['capL_' + th] = c['L']; out['capR_' + th] = c['R']
         print('cap', th, {k: (v['w'], v['h'], v['top'], v['wall']) for k, v in c.items()})
 with open(OUT, 'w') as f:
