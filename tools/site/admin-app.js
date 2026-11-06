@@ -14,6 +14,25 @@ const ACT_N = { login: 'Đăng nhập', login_fail: 'Đăng nhập sai', otp_fai
   restore: 'Khôi phục nhân vật', announce: 'Thông báo', maint: 'Bảo trì', event: 'Bật sự kiện', event_stop: 'Tắt sự kiện', servers_set: 'Sửa máy chủ', app_cfg: 'Cấu hình ứng dụng',
   tune_set: 'Chỉnh cân bằng', tune_reset: 'Khôi phục cân bằng', admin_add: 'Thêm quản trị', admin_role: 'Đổi quyền', admin_del: 'Xóa quản trị', admin_reset2fa: 'Đặt lại mã 2 lớp' };
 let ME = null, TAB = 'overview';
+// biểu tượng nét (vẽ bằng SVG, không tải gì từ ngoài)
+const IC = {
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2', user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6', wifi: 'M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01M2 9a15 15 0 0 1 20 0',
+  tool: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.8-.7-.7-2.8z', scale: 'M12 3v18M5 7h14M5 7l-3 7a4 4 0 0 0 6 0zM19 7l-3 7a4 4 0 0 0 6 0zM8 21h8',
+  scroll: 'M8 3h11a2 2 0 0 1 2 2v2h-4M8 3a2 2 0 0 0-2 2v12a2 2 0 0 1-2 2h11a2 2 0 0 0 2-2V7M9 9h5M9 13h5', shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
+  lock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4', bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4', party: 'M4 20l4-12 8 8zM14 4l1 2M19 5l-2 2M20 10l-2 0M10 3l.5 2',
+  server: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01', phone: 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',
+  key: 'M15 7a4 4 0 1 1-3.5 6L4 20.5 2.5 19 3 17l2 .5L6 16l-.5-2 2-.5L10 11A4 4 0 0 1 15 7z', out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11', search: 'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM21 21l-5-5',
+  sword: 'M14.5 3H21v6.5L9 21.5 2.5 15zM5 13l6 6M3 21l3-3', star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z', alert: 'M12 3l10 18H2zM12 10v5M12 18h.01',
+  users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-4 3-6 7-6s7 2 7 6M17 3.5a4 4 0 0 1 0 7.5M22 21c0-3-1.5-5-4-5.6', plus: 'M12 5v14M5 12h14', clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  gem: 'M6 3h12l4 6-10 12L2 9zM2 9h20M12 21L8 9l4-6 4 6z', ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8', box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10'
+};
+function icon(n) { const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'i'); const p = document.createElementNS(NS, 'path'); p.setAttribute('d', IC[n] || IC.star); s.append(p); return s; }
+const badge = (n, c) => { const b = document.createElement('span'); b.className = 'badge ' + (c || 'c-sun'); b.append(icon(n)); return b; };
+function logoEl(sm) {
+  const line = (cls, t) => { const d = document.createElement('span'); d.className = cls; const o = document.createElement('span'); o.className = 'o'; o.textContent = t; const f = document.createElement('span'); f.className = 'f'; f.textContent = t; d.append(o, f); return d; };
+  const l = document.createElement('div'); l.className = 'logo' + (sm ? ' sm' : ''); l.append(line('l1', 'Hiệp Sĩ'), line('l2', 'Nét Chì'));
+  const r = document.createElement('div'); r.className = 'ribbon'; r.textContent = 'KHU QUẢN TRỊ'; l.append(r); return l;
+}
 
 /* ---------- tiện ích ---------- */
 function h(tag, attrs, ...kids) {
@@ -33,7 +52,7 @@ function toast(msg, bad) { const t = h('div', { class: 'toast' + (bad ? ' bad' :
 async function api(act, body) {
   const r = await fetch('/api/admin/' + act, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-HSNC-Admin': '1' }, body: JSON.stringify(body || {}) });
   let j = {}; try { j = await r.json(); } catch (e) {}
-  if (r.status === 401 && j.error === 'auth') { ME = null; showLogin('Phiên quản trị đã hết hạn, hãy đăng nhập lại.'); throw new Error('auth'); }
+  if (r.status === 401 && j.error === 'auth') { const was = ME; ME = null; showLogin(was ? 'Phiên quản trị đã hết hạn, hãy đăng nhập lại.' : ''); throw new Error('auth'); }
   if (!r.ok) { const e = new Error(j.error || 'Lỗi ' + r.status); e.status = r.status; e.j = j; throw e; }
   return j;
 }
@@ -49,19 +68,20 @@ function modal(title, body, actions) {
 }
 const confirmBox = (title, text, t, cls) => modal(title, h('p', null, text), [{ t: t || 'Đồng ý', cls: cls || 'red' }]);
 function showSecret(title, text, secret) { return modal(title, h('div', { class: 'grid' }, h('p', null, text), h('div', { class: 'secret mono' }, secret), h('p', { class: 'note' }, 'Chỉ hiện một lần. Hãy chép lại ngay.')), [{ t: 'Đã chép', cls: 'green' }]); }
-const card = (title, ...kids) => h('div', { class: 'card' }, title ? h('h2', null, title) : null, ...kids);
+const card = (title, ...kids) => { let ic = null, c = null; if (Array.isArray(title)) { [ic, c, title] = title; } return h('div', { class: 'card' }, title ? h('h2', null, ic ? badge(ic, c) : null, title) : null, ...kids); };
 const field = (label, input) => h('label', null, label, input);
 const inp = (o) => h('input', o);
 
 /* ---------- đăng nhập 2 lớp ---------- */
 function showLogin(msg) {
-  root.replaceChildren();
+  root.replaceChildren(); document.body.classList.remove('in');
   const err = h('div', { class: 'err' }, msg || '');
   const box = h('div', { class: 'card' });
-  root.append(h('div', { class: 'login' }, h('div', null, h('div', { class: 'logo' }, 'Hiệp Sĩ Nét Chì', h('small', null, 'Khu quản trị')), box)));
+  root.append(h('div', { class: 'login' }, logoEl(), box));
   const u = inp({ autocomplete: 'username', maxlength: 32 }), p = inp({ type: 'password', autocomplete: 'current-password', maxlength: 100 });
   const go = h('button', { class: 'btn' }, 'Tiếp tục');
-  box.append(h('h2', null, 'Đăng nhập quản trị'), field('Tài khoản', u), field('Mật khẩu', p), err, go,
+  go.classList.add('big');
+  box.append(h('div', { class: 'lock' }, badge('lock', 'c-red')), h('div', { class: 'steps' }, h('span', { class: 'on' }), h('span'), h('span')), h('h2', null, 'Đăng nhập quản trị'), field('Tài khoản game', u), field('Mật khẩu', p), err, go,
     h('p', { class: 'note' }, 'Chỉ tài khoản được cấp quyền mới vào được. Cần thêm mã 2 lớp trên điện thoại (Google Authenticator, Microsoft Authenticator…). Sai nhiều lần sẽ bị khóa 15 phút.'));
   const submit = async () => {
     err.textContent = ''; go.disabled = true;
@@ -81,7 +101,7 @@ function stepOtp(box, pre) {
   const err = h('div', { class: 'err' });
   const send = async v => { err.textContent = ''; try { await api('otp', { pre, otp: v }); start(); } catch (e) { err.textContent = e.message; o.value = ''; if (e.status === 401 && /hết hạn/.test(e.message)) setTimeout(() => showLogin(e.message), 1200); } };
   const o = otpInput(send);
-  box.append(h('h2', null, 'Mã 2 lớp'), h('p', { class: 'note' }, 'Mở ứng dụng xác thực trên điện thoại, nhập mã 6 số của "Hiệp Sĩ Nét Chì".'), o, err,
+  box.append(h('div', { class: 'lock' }, badge('key', 'c-sun')), h('div', { class: 'steps' }, h('span', { class: 'on' }), h('span', { class: 'on' }), h('span')), h('h2', null, 'Mã 2 lớp'), h('p', { class: 'note' }, 'Mở ứng dụng xác thực trên điện thoại, nhập mã 6 số của "Hiệp Sĩ Nét Chì".'), o, err,
     h('button', { class: 'btn sky', onclick: () => showLogin() }, 'Quay lại'));
   o.focus();
 }
@@ -89,7 +109,7 @@ function stepSetup(box, pre) {
   box.replaceChildren();
   const err = h('div', { class: 'err' }), code = inp({ placeholder: 'XXXXX-XXXXX-XXXXX-XXXXX', maxlength: 32, autocomplete: 'off', class: 'mono' });
   const go = h('button', { class: 'btn' }, 'Kiểm tra mã');
-  box.append(h('h2', null, 'Bật mã 2 lớp (lần đầu)'), h('p', { class: 'note' }, 'Nhập mã kích hoạt dùng một lần. Chủ game dùng mã gốc được gửi riêng; GM dùng mã mời do chủ tạo (hết hạn sau 48 giờ).'),
+  box.append(h('div', { class: 'lock' }, badge('shield', 'c-mint')), h('div', { class: 'steps' }, h('span', { class: 'on' }), h('span', { class: 'on' }), h('span')), h('h2', null, 'Bật mã 2 lớp (lần đầu)'), h('p', { class: 'note' }, 'Nhập mã kích hoạt dùng một lần. Chủ game dùng mã gốc được gửi riêng; GM dùng mã mời do chủ tạo (hết hạn sau 48 giờ).'),
     field('Mã kích hoạt', code), err, go);
   go.onclick = async () => {
     err.textContent = ''; go.disabled = true;
@@ -99,7 +119,7 @@ function stepSetup(box, pre) {
       const qr = qrcode(0, 'M'); qr.addData(r.uri); qr.make();
       const err2 = h('div', { class: 'err' });
       const o = otpInput(async v => { err2.textContent = ''; try { await api('setup_ok', { pre, otp: v }); toast('Đã bật mã 2 lớp.'); start(); } catch (e) { err2.textContent = e.message; o.value = ''; } });
-      box.append(h('h2', null, 'Quét mã bằng điện thoại'),
+      box.append(h('div', { class: 'lock' }, badge('phone', 'c-sky')), h('div', { class: 'steps' }, h('span', { class: 'on' }), h('span', { class: 'on' }), h('span', { class: 'on' })), h('h2', null, 'Quét mã bằng điện thoại'),
         h('p', { class: 'note' }, '1. Cài Google Authenticator hoặc Microsoft Authenticator. 2. Bấm "+" → Quét mã QR. 3. Nhập mã 6 số hiện ra để xác nhận.'),
         h('div', { class: 'qr' }, h('img', { src: qr.createDataURL(5, 2), alt: 'Mã QR' })),
         h('p', { class: 'note' }, 'Không quét được? Nhập khóa này bằng tay:'), h('div', { class: 'secret mono', style: 'font-size:15px' }, r.secret.replace(/(.{4})/g, '$1 ').trim()),
@@ -111,18 +131,19 @@ function stepSetup(box, pre) {
 }
 
 /* ---------- khung chính ---------- */
-const TABS = [['overview', '📊', 'Tổng quan'], ['players', '🧑', 'Người chơi'], ['online', '🟢', 'Đang online'], ['ops', '🛠️', 'Vận hành'], ['tune', '⚖️', 'Cân bằng'], ['logs', '📜', 'Nhật ký'], ['admins', '🔐', 'Quản trị viên']];
+const TABS = [['overview', 'chart', 'Tổng quan', 'c-sun'], ['players', 'user', 'Người chơi', 'c-sky'], ['online', 'wifi', 'Đang online', 'c-mint'], ['ops', 'tool', 'Vận hành', 'c-red'], ['tune', 'scale', 'Cân bằng', 'c-vio'], ['logs', 'scroll', 'Nhật ký', 'c-ink'], ['admins', 'shield', 'Quản trị viên', 'c-red']];
 async function start() { try { ME = await api('me'); } catch (e) { if (e.message !== 'auth') showLogin(); return; } layout(); }
 let mainEl;
 function layout() {
-  root.replaceChildren();
-  const side = h('nav', { class: 'side' }, h('div', { class: 'logo' }, 'Hiệp Sĩ Nét Chì', h('small', null, 'Quản trị')));
-  for (const [k, ic, n] of TABS) side.append(h('button', { class: 'nav' + (k === TAB ? ' on' : ''), onclick: () => { TAB = k; layout(); } }, h('span', { class: 'ic' }, ic), n));
-  side.append(h('div', { class: 'who' }, h('b', null, ME.user), ME.roleName, h('div', { style: 'margin-top:8px' }, h('button', { class: 'btn sm sky', onclick: async () => { await run('logout'); ME = null; showLogin('Đã đăng xuất.'); } }, 'Đăng xuất'))));
+  root.replaceChildren(); document.body.classList.add('in');
+  const side = h('nav', { class: 'side' }, logoEl(true));
+  for (const [k, ic, n, c] of TABS) side.append(h('button', { class: 'nav' + (k === TAB ? ' on' : ''), onclick: () => { TAB = k; layout(); } }, badge(ic, c), n));
+  side.append(h('div', { class: 'who' }, badge('user', 'c-sky'), h('div', null, h('b', null, ME.user), h('small', null, ME.roleName)),
+    h('button', { class: 'btn sm sky', title: 'Đăng xuất', onclick: async () => { await run('logout'); ME = null; showLogin('Đã đăng xuất.'); } }, icon('out'))));
   mainEl = h('main');
   root.append(h('div', { class: 'app' }, side, mainEl));
   const t = TABS.find(x => x[0] === TAB);
-  mainEl.append(h('div', { class: 'top' }, h('h1', null, t[2]), h('div', { style: 'flex:1' }), h('span', { class: 'pill blue' }, ME.user + ' · ' + ME.roleName)));
+  mainEl.append(h('div', { class: 'top' }, h('h1', null, badge(t[1], t[3]), t[2]), h('div', { class: 'sp' }), h('span', { class: 'chip' }, icon('user'), ME.user + ' · ' + ME.roleName)));
   const body = h('div', { class: 'grid' }); mainEl.append(body);
   VIEWS[TAB](body);
 }
@@ -148,22 +169,22 @@ function evRow(e) { return h('tr', null, h('td', null, dt(e.at)), h('td', null, 
 const VIEWS = {
   async overview(body) {
     const o = await run('overview'); if (!o) return;
-    const tile = (k, v, hot) => h('div', { class: 'tile' + (hot ? ' hot' : '') }, h('div', { class: 'v' }, v), h('div', { class: 'k' }, k));
-    body.append(h('div', { class: 'tiles' }, tile('Đang online', fmt(o.online), true), tile('Ứng dụng mới (v2)', fmt(o.onlineV2)), tile('Tài khoản', fmt(o.users)), tile('Nhân vật', fmt(o.chars)),
-      tile('Đăng ký 24 giờ', fmt(o.new24)), tile('Đăng ký 7 ngày', fmt(o.new7)), tile('Chơi trong 24 giờ', fmt(o.active24)), tile('Đang bị khóa', fmt(o.banned)), tile('Bản lưu bất thường', fmt(o.anomalies))));
+    const tile = (k, v, ic, c, hot) => h('div', { class: 'tile' + (hot ? ' hot' : '') }, badge(ic, c), h('div', null, h('div', { class: 'v' }, v), h('div', { class: 'k' }, k)));
+    body.append(h('div', { class: 'tiles' }, tile('Đang online', fmt(o.online), 'wifi', 'c-mint', true), tile('Dùng ứng dụng mới', fmt(o.onlineV2), 'phone', 'c-sky'), tile('Tài khoản', fmt(o.users), 'users', 'c-sun'), tile('Nhân vật', fmt(o.chars), 'sword', 'c-vio'),
+      tile('Đăng ký 24 giờ', fmt(o.new24), 'plus', 'c-mint'), tile('Đăng ký 7 ngày', fmt(o.new7), 'plus', 'c-sky'), tile('Chơi trong 24 giờ', fmt(o.active24), 'clock', 'c-sun'), tile('Đang bị khóa', fmt(o.banned), 'ban', 'c-red'), tile('Bản lưu bất thường', fmt(o.anomalies), 'alert', 'c-red')));
     const st = [];
     if (o.maint && o.maint.on) st.push(h('span', { class: 'pill off' }, '🛠️ Đang bảo trì'));
     if (o.cfg.ev) st.push(h('span', { class: 'pill warn' }, '🎉 ' + o.cfg.ev.name + ' đến ' + dt(o.cfg.ev.until)));
     if (o.cfg.ann) st.push(h('span', { class: 'pill blue' }, '📢 ' + o.cfg.ann.text));
-    if (st.length) body.append(card('Đang áp dụng', h('div', { class: 'row' }, st)));
+    if (st.length) body.append(card(['bell', 'c-sun', 'Đang áp dụng'], h('div', { class: 'row' }, st)));
     body.append(h('div', { class: 'grid g2' },
-      card('Người online 24 giờ qua', chart(o.hist)),
-      card('Máy chủ', h('table', null, h('tr', null, h('th', null, 'Máy chủ'), h('th', null, 'Trạng thái'), h('th', null, 'Online')),
+      card(['chart', 'c-sky', 'Người online 24 giờ qua'], chart(o.hist)),
+      card(['server', 'c-ink', 'Máy chủ'], h('table', null, h('tr', null, h('th', null, 'Máy chủ'), h('th', null, 'Trạng thái'), h('th', null, 'Online')),
         o.bySrv.map(s => h('tr', null, h('td', null, s.name), h('td', null, h('span', { class: 'pill ' + (s.open ? 'on' : 'off') }, s.open ? 'Mở' : 'Đóng')), h('td', null, fmt(s.online))))))));
     body.append(h('div', { class: 'grid g2' },
-      card('Top 10 cấp cao', h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, '#'), h('th', null, 'Nhân vật'), h('th', null, 'Phái'), h('th', null, 'Cấp'), h('th', null, 'Quái')),
+      card(['star', 'c-sun', 'Top 10 cấp cao'], h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, '#'), h('th', null, 'Nhân vật'), h('th', null, 'Phái'), h('th', null, 'Cấp'), h('th', null, 'Quái')),
         o.top.map((t, i) => h('tr', { class: 'click', onclick: () => openPlayer(t.uid) }, h('td', null, i + 1), h('td', null, t.name), h('td', null, CLS[t.cls] || t.cls), h('td', null, t.lv), h('td', null, fmt(t.kills))))))),
-      card('Sự kiện gần đây', h('div', { class: 'scroll' }, h('table', null, o.events.length ? o.events.map(evRow) : h('tr', null, h('td', null, 'Chưa có.')))))));
+      card(['gem', 'c-vio', 'Sự kiện gần đây'], h('div', { class: 'scroll' }, h('table', null, o.events.length ? o.events.map(evRow) : h('tr', null, h('td', { class: 'empty' }, 'Chưa có.')))))));
   },
   async players(body) {
     const q = inp({ placeholder: 'Tên tài khoản hoặc tên nhân vật…', maxlength: 32 }), res = h('div');
@@ -173,12 +194,12 @@ const VIEWS = {
         h('td', null, dt(u.created)), h('td', null, ago(u.last_login)), h('td', null, u.online ? h('span', { class: 'pill on' }, 'Online') : '', ' ', u.banned ? h('span', { class: 'pill off' }, 'Bị khóa') : '', ' ', u.staff ? h('span', { class: 'pill blue' }, ROLE_N[u.staff]) : '')))
         : h('tr', null, h('td', null, 'Không tìm thấy.'))))); };
     q.onkeydown = e => { if (e.key === 'Enter') search(); };
-    body.append(card('Tìm người chơi', h('div', { class: 'row' }, h('label', { style: 'flex:1' }, 'Tìm', q), h('button', { class: 'btn', onclick: search }, 'Tìm'))), card(null, res));
+    body.append(card(['search', 'c-sky', 'Tìm người chơi'], h('div', { class: 'row' }, h('label', { style: 'flex:1' }, 'Tìm', q), h('button', { class: 'btn', onclick: search }, 'Tìm'))), card(null, res));
     search(); q.focus();
   },
   async online(body) {
     const r = await run('online'); if (!r) return;
-    body.append(card('Đang online: ' + r.list.length, h('div', { class: 'scroll' }, h('table', null,
+    body.append(card(['wifi', 'c-mint', 'Đang online: ' + r.list.length], h('div', { class: 'scroll' }, h('table', null,
       h('tr', null, h('th', null, 'Tài khoản'), h('th', null, 'Nhân vật'), h('th', null, 'Máy chủ'), h('th', null, 'Bản đồ'), h('th', null, 'Ứng dụng'), h('th', null, '')),
       r.list.map(c => h('tr', null, h('td', null, h('a', { href: '#', onclick: e => { e.preventDefault(); openPlayer(c.uid); } }, c.user)), h('td', null, (c.name || '—') + (c.lv ? ' · Cấp ' + c.lv : ''), c.hidden ? h('span', { class: 'pill warn' }, ' Tàng hình') : ''),
         h('td', null, 'S' + c.srv), h('td', null, MAPS[c.map] || '—'), h('td', null, c.v2 ? (c.app || 'pc') : 'Bản cũ'),
@@ -188,20 +209,20 @@ const VIEWS = {
     const c = await run('cfg_get'); if (!c) return;
     // thông báo
     const at = h('textarea', { maxlength: 200, placeholder: 'Nội dung thông báo hiện cho mọi người chơi…' }), am = inp({ type: 'number', value: 60, min: 1, max: 10080 });
-    body.append(card('📢 Thông báo toàn máy chủ', c.ann && c.ann.until > Date.now() ? h('p', null, 'Đang ghim: "' + c.ann.text + '" đến ' + dt(c.ann.until)) : null,
+    body.append(card(['bell', 'c-sun', 'Thông báo toàn máy chủ'], c.ann && c.ann.until > Date.now() ? h('p', null, 'Đang ghim: "' + c.ann.text + '" đến ' + dt(c.ann.until)) : null,
       field('Nội dung', at), h('div', { class: 'row' }, field('Ghim trong (phút)', am),
         h('button', { class: 'btn', disabled: !can('gm'), onclick: async () => { if (!at.value.trim()) return toast('Nhập nội dung.', true); await run('announce', { text: at.value, minutes: +am.value }, 'Đã gửi thông báo.'); layout(); } }, 'Gửi ngay'),
         c.ann ? h('button', { class: 'btn sky', disabled: !can('gm'), onclick: async () => { await run('announce', { text: '' }, 'Đã gỡ thông báo.'); layout(); } }, 'Gỡ ghim') : null)));
     // sự kiện
     const en = inp({ value: 'Sự kiện cuối tuần', maxlength: 60 }), ee = inp({ type: 'number', step: .5, min: 1, max: 10, value: 2 }), eg = inp({ type: 'number', step: .5, min: 1, max: 10, value: 1 }), ed = inp({ type: 'number', step: .25, min: 1, max: 5, value: 1 }), eh = inp({ type: 'number', min: .25, max: 336, step: .25, value: 24 });
     const on = c.event && c.event.until > Date.now();
-    body.append(card('🎉 Sự kiện nhân thưởng', on ? h('p', null, h('span', { class: 'pill warn' }, 'Đang chạy'), ' ' + c.event.name + ': x' + c.event.exp + ' kinh nghiệm, x' + c.event.gold + ' vàng, x' + c.event.drop + ' rơi đồ — đến ' + dt(c.event.until)) : h('p', { class: 'note' }, 'Không có sự kiện nào đang chạy.'),
+    body.append(card(['party', 'c-vio', 'Sự kiện nhân thưởng'], on ? h('p', null, h('span', { class: 'pill warn' }, 'Đang chạy'), ' ' + c.event.name + ': x' + c.event.exp + ' kinh nghiệm, x' + c.event.gold + ' vàng, x' + c.event.drop + ' rơi đồ — đến ' + dt(c.event.until)) : h('p', { class: 'note' }, 'Không có sự kiện nào đang chạy.'),
       h('div', { class: 'row' }, field('Tên', en), field('x Kinh nghiệm', ee), field('x Vàng', eg), field('x Rơi đồ', ed), field('Kéo dài (giờ)', eh)),
       h('div', { class: 'row', style: 'margin-top:8px' }, h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('event', { name: en.value, exp: +ee.value, gold: +eg.value, drop: +ed.value, hours: +eh.value }, 'Đã bật sự kiện.'); layout(); } }, 'Bật sự kiện'),
         on ? h('button', { class: 'btn red', disabled: !can('owner'), onclick: async () => { await run('event_stop', {}, 'Đã tắt sự kiện.'); layout(); } }, 'Tắt ngay') : null)));
     // bảo trì
     const mm = inp({ value: (c.maint && c.maint.msg) || 'Máy chủ đang bảo trì, vui lòng quay lại sau ít phút.', maxlength: 200 });
-    body.append(card('🛠️ Bảo trì', h('p', null, 'Trạng thái: ', h('span', { class: 'pill ' + (c.maint.on ? 'off' : 'on') }, c.maint.on ? 'Đang bảo trì — chỉ quản trị vào được' : 'Bình thường')),
+    body.append(card(['tool', 'c-red', 'Bảo trì'], h('p', null, 'Trạng thái: ', h('span', { class: 'pill ' + (c.maint.on ? 'off' : 'on') }, c.maint.on ? 'Đang bảo trì — chỉ quản trị vào được' : 'Bình thường')),
       field('Lời nhắn cho người chơi', mm),
       h('div', { class: 'row', style: 'margin-top:8px' }, c.maint.on
         ? h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('maint', { on: false }, 'Đã mở lại máy chủ.'); layout(); } }, 'Kết thúc bảo trì')
@@ -215,13 +236,13 @@ const VIEWS = {
       h('td', null, h('select', { onchange: e => s.open = e.target.value === '1' }, h('option', { value: 1, selected: s.open !== false }, 'Mở'), h('option', { value: 0, selected: s.open === false }, 'Đóng'))),
       h('td', null, list.length > 1 ? h('button', { class: 'btn sm sky', onclick: () => { list.splice(i, 1); draw(); } }, 'Bỏ') : ''))));
     draw();
-    body.append(card('🌐 Máy chủ', h('p', { class: 'note' }, 'Máy chủ đóng: người chơi không thấy và không vào được (quản trị vẫn vào được). Bỏ một máy chủ không xóa nhân vật trên đó.'),
+    body.append(card(['server', 'c-ink', 'Máy chủ'], h('p', { class: 'note' }, 'Máy chủ đóng: người chơi không thấy và không vào được (quản trị vẫn vào được). Bỏ một máy chủ không xóa nhân vật trên đó.'),
       h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Số'), h('th', null, 'Tên'), h('th', null, 'Nhãn'), h('th', null, 'Trạng thái'), h('th', null, ''))), tb)),
       h('div', { class: 'row', style: 'margin-top:8px' }, h('button', { class: 'btn sky', disabled: !can('owner'), onclick: () => { list.push({ id: Math.max(...list.map(x => x.id)) + 1, name: 'Server ' + (list.length + 1), tag: 'Mới', open: true }); draw(); } }, '+ Thêm máy chủ'),
         h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('servers_set', { list }, 'Đã lưu danh sách máy chủ.'); layout(); } }, 'Lưu'))));
     // ứng dụng
     const ma = inp({ value: c.min_app || '', placeholder: 'vd 2.1.0', maxlength: 16 }), v1 = h('select', null, h('option', { value: 'on', selected: c.v1 !== 'off' }, 'Còn cho vào'), h('option', { value: 'off', selected: c.v1 === 'off' }, 'Tắt hẳn'));
-    body.append(card('📱 Ứng dụng', h('div', { class: 'row' }, field('Phiên bản tối thiểu (cũ hơn bị buộc cập nhật)', ma), field('Bản cũ (web / ứng dụng vỏ)', v1),
+    body.append(card(['phone', 'c-sky', 'Ứng dụng'], h('div', { class: 'row' }, field('Phiên bản tối thiểu (cũ hơn bị buộc cập nhật)', ma), field('Bản cũ (web / ứng dụng vỏ)', v1),
       h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { if (v1.value === 'off' && c.v1 !== 'off' && !await confirmBox('Tắt bản cũ', 'Người đang dùng bản web hoặc ứng dụng vỏ cũ sẽ bị đưa ra và phải tải ứng dụng mới.', 'Tắt bản cũ')) return; await run('app_cfg', { min_app: ma.value, v1: v1.value }, 'Đã lưu.'); layout(); } }, 'Lưu'))));
   },
   async tune(body) {
@@ -230,7 +251,7 @@ const VIEWS = {
     const num = (v, o) => inp({ type: 'number', value: v, step: o.step || .1, min: o.min, max: o.max, disabled: ro });
     const G = { exp: num(t.exp, { min: .1, max: 20 }), gold: num(t.gold, { min: .1, max: 20 }), drop: num(t.drop, { min: .1, max: 10 }), potPrice: num(t.potPrice, { step: 1, min: 1, max: 100000 }),
       shopMul: num(t.shopMul, { min: .1, max: 20 }), forgeBonus: num(t.forgeBonus, { step: 1, min: -50, max: 50 }), eliteChance: num(t.eliteChance, { step: .01, min: 0, max: .5 }) };
-    body.append(card('Toàn game', h('p', { class: 'note' }, 'Áp dụng ngay trên máy chủ, không cần ra bản ứng dụng mới. 1 = như gốc.' + (ro ? ' (Chỉ chủ mới sửa được.)' : '')),
+    body.append(card(['scale', 'c-vio', 'Toàn game'], h('p', { class: 'note' }, 'Áp dụng ngay trên máy chủ, không cần ra bản ứng dụng mới. 1 = như gốc.' + (ro ? ' (Chỉ chủ mới sửa được.)' : '')),
       h('div', { class: 'row' }, field('x Kinh nghiệm', G.exp), field('x Vàng', G.gold), field('x Tỉ lệ rơi đồ', G.drop), field('Giá bình máu (vàng)', G.potPrice)),
       h('div', { class: 'row', style: 'margin-top:8px' }, field('x Giá đồ cửa hàng', G.shopMul), field('Cộng tỉ lệ rèn (%)', G.forgeBonus), field('Tỉ lệ quái tinh anh (0–0,5)', G.eliteChance))));
     const M = {}, tb = h('tbody');
@@ -239,7 +260,7 @@ const VIEWS = {
       const cells = ['hp', 'atk', 'def', 'exp', 'gold', 'drop'].map(f => { const i = num(o[f] || 1, { min: .1, max: 20 }); i.style.width = '76px'; M[k][f] = i; return h('td', null, i); });
       tb.append(h('tr', null, h('td', null, h('b', null, m.n), m.boss ? h('span', { class: 'pill warn' }, ' Trùm') : '', h('div', { class: 'note' }, 'Máu ' + m.hp + ' · Công ' + m.atk + ' · KN ' + m.exp + ' · Rơi ' + Math.round(m.drop * 100) + '%')), cells));
     }
-    body.append(card('Từng loại quái (hệ số nhân)', h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Quái'), ...['Máu', 'Công', 'Thủ', 'Kinh nghiệm', 'Vàng', 'Rơi đồ'].map(x => h('th', null, x)))), tb))));
+    body.append(card(['sword', 'c-red', 'Từng loại quái (hệ số nhân)'], h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Quái'), ...['Máu', 'Công', 'Thủ', 'Kinh nghiệm', 'Vàng', 'Rơi đồ'].map(x => h('th', null, x)))), tb))));
     if (!ro) body.append(h('div', { class: 'row' },
       h('button', { class: 'btn green', onclick: async () => {
         const tune = Object.fromEntries(Object.entries(G).map(([k, i]) => [k, +i.value])); tune.mon = {};
@@ -266,10 +287,10 @@ const VIEWS = {
   },
   async admins(body) {
     const r = await run('admins'); if (!r) return;
-    body.append(card('Vai trò', h('div', { class: 'kv' }, h('span', null, 'Chủ'), h('span', null, 'Toàn quyền: sửa nhân vật, tặng đồ, khôi phục, đặt lại mật khẩu, bảo trì, sự kiện, cân bằng, máy chủ, phân quyền.'),
+    body.append(card(['shield', 'c-mint', 'Vai trò'], h('div', { class: 'kv' }, h('span', null, 'Chủ'), h('span', null, 'Toàn quyền: sửa nhân vật, tặng đồ, khôi phục, đặt lại mật khẩu, bảo trì, sự kiện, cân bằng, máy chủ, phân quyền.'),
       h('span', null, 'GM hỗ trợ'), h('span', null, 'Xem mọi thứ; khóa/mở khóa, cấm chat, đá người chơi, thông báo; lệnh GM trong game (dịch chuyển, tàng hình, gọi quái thử, hồi máu). Không đụng tới vàng/đồ của ai.'),
       h('span', null, 'Chỉ xem'), h('span', null, 'Xem tổng quan, người chơi, nhật ký. Không thay đổi được gì.'))));
-    body.append(card('Danh sách quản trị', h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Tài khoản'), h('th', null, 'Vai trò'), h('th', null, 'Mã 2 lớp'), h('th', null, 'Lần cuối'), h('th', null, '')),
+    body.append(card(['users', 'c-sky', 'Danh sách quản trị'], h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Tài khoản'), h('th', null, 'Vai trò'), h('th', null, 'Mã 2 lớp'), h('th', null, 'Lần cuối'), h('th', null, '')),
       r.list.map(a => h('tr', null, h('td', null, h('b', null, a.user)), h('td', null, can('owner') && a.uid !== ME.uid
         ? h('select', { onchange: async e => { await run('admin_role', { uid: a.uid, role: e.target.value }, 'Đã đổi quyền.'); layout(); } }, Object.entries(ROLE_N).map(([k, n]) => h('option', { value: k, selected: k === a.role }, n)))
         : ROLE_N[a.role]),
@@ -279,7 +300,7 @@ const VIEWS = {
           h('button', { class: 'btn sm red', onclick: async () => { if (await confirmBox('Xóa quyền', 'Bỏ quyền quản trị của ' + a.user + '?', 'Xóa quyền')) { await run('admin_del', { uid: a.uid }, 'Đã xóa quyền.'); layout(); } } }, 'Xóa')) : '')))))));
     if (can('owner')) {
       const u = inp({ placeholder: 'Tên tài khoản trong game', maxlength: 32 }), role = h('select', null, h('option', { value: 'gm' }, 'GM hỗ trợ'), h('option', { value: 'viewer' }, 'Chỉ xem'), h('option', { value: 'owner' }, 'Chủ'));
-      body.append(card('Thêm quản trị', h('p', { class: 'note' }, 'Người đó cần có tài khoản game trước. Sau khi thêm, gửi riêng mã mời cho họ để bật mã 2 lớp ở trang này.'),
+      body.append(card(['plus', 'c-sun', 'Thêm quản trị'], h('p', { class: 'note' }, 'Người đó cần có tài khoản game trước. Sau khi thêm, gửi riêng mã mời cho họ để bật mã 2 lớp ở trang này.'),
         h('div', { class: 'row' }, field('Tài khoản', u), field('Vai trò', role), h('button', { class: 'btn green', onclick: async () => { const x = await run('admin_add', { user: u.value, role: role.value }); if (x) { await showSecret('Mã mời cho ' + x.user, 'Gửi riêng mã này cho ' + x.user + '. Họ đăng nhập trang /admin bằng tài khoản game rồi nhập mã (hết hạn sau 48 giờ):', x.code); layout(); } } }, 'Thêm'))));
     }
   }
@@ -293,7 +314,7 @@ async function openPlayer(uid) {
   const act = (t, cls, f, need) => h('button', { class: 'btn sm ' + (cls || ''), disabled: !can(need || 'gm'), onclick: f }, t);
   const reload = () => openPlayer(uid);
   body.append(h('div', null, h('button', { class: 'btn sm sky', onclick: () => { layout(); } }, '← Danh sách')));
-  body.append(card(h('span', null, '👤 ' + u.username), h('div', { class: 'row', style: 'margin-bottom:10px' },
+  body.append(card(['user', 'c-sky', u.username], h('div', { class: 'row', style: 'margin-bottom:10px' },
       u.banned ? h('span', { class: 'pill off' }, 'Bị khóa đến ' + (u.banned_until > Date.now() + 50 * 365 * 86400e3 ? 'vĩnh viễn' : dt(u.banned_until))) : h('span', { class: 'pill on' }, 'Hoạt động'),
       u.muted ? h('span', { class: 'pill warn' }, 'Cấm chat đến ' + dt(u.muted_until)) : null, u.staff ? h('span', { class: 'pill blue' }, ROLE_N[u.staff]) : null),
     h('div', { class: 'kv' }, h('span', null, 'Mã tài khoản'), h('span', null, '#' + u.id), h('span', null, 'Tạo lúc'), h('span', null, dt(u.created)), h('span', null, 'Đăng nhập cuối'), h('span', null, dt(u.last_login) + (u.last_ip ? ' · IP ' + u.last_ip : '')),
@@ -311,13 +332,13 @@ async function openPlayer(uid) {
       act('Đá khỏi game', 'sky', async () => { if (await confirmBox('Đá khỏi game', 'Mời ' + u.username + ' ra khỏi game?', 'Đá')) await run('kick', { uid }, 'Đã đá.'); }),
       act('Đặt lại mật khẩu', 'sky', async () => { if (!await confirmBox('Đặt lại mật khẩu', 'Tạo mật khẩu tạm mới cho ' + u.username + '. Mọi phiên đang đăng nhập bị đăng xuất.', 'Đặt lại')) return; const r = await run('reset_pw', { uid }); if (r) showSecret('Mật khẩu tạm', 'Gửi riêng cho người chơi, nhắc họ đổi sau khi vào:', r.temp); }, 'owner'))));
   for (const c of p.chars) body.append(charCard(uid, c, p, reload));
-  if (!p.chars.length) body.append(card('Nhân vật', h('p', null, 'Chưa tạo nhân vật.')));
+  if (!p.chars.length) body.append(card(['sword', 'c-vio', 'Nhân vật'], h('p', { class: 'empty' }, 'Chưa tạo nhân vật.')));
   body.append(h('div', { class: 'grid g2' },
-    card('Sự kiện của người chơi', h('div', { class: 'scroll' }, h('table', null, p.events.length ? p.events.map(e => evRow({ ...e, name: 'S' + e.srv })) : h('tr', null, h('td', null, 'Chưa có.'))))),
-    card('Lịch sử quản trị', h('div', { class: 'scroll' }, h('table', null, p.history.length ? p.history.map(x => h('tr', null, h('td', null, dt(x.at)), h('td', null, x.who), h('td', null, ACT_N[x.action] || x.action), h('td', { class: 'mono', style: 'font-size:12px' }, x.detail))) : h('tr', null, h('td', null, 'Chưa có.')))))));
+    card(['gem', 'c-vio', 'Sự kiện của người chơi'], h('div', { class: 'scroll' }, h('table', null, p.events.length ? p.events.map(e => evRow({ ...e, name: 'S' + e.srv })) : h('tr', null, h('td', { class: 'empty' }, 'Chưa có.'))))),
+    card(['scroll', 'c-ink', 'Lịch sử quản trị'], h('div', { class: 'scroll' }, h('table', null, p.history.length ? p.history.map(x => h('tr', null, h('td', null, dt(x.at)), h('td', null, x.who), h('td', null, ACT_N[x.action] || x.action), h('td', { class: 'mono', style: 'font-size:12px' }, x.detail))) : h('tr', null, h('td', { class: 'empty' }, 'Chưa có.')))))));
 }
 function charCard(uid, c, p, reload) {
-  const own = can('owner'), el = card('🗡️ ' + charName(c) + ' — Máy chủ ' + c.srv);
+  const own = can('owner'), el = card(['sword', 'c-vio', charName(c) + ' — Máy chủ ' + c.srv]);
   el.append(h('div', { class: 'row', style: 'margin-bottom:8px' }, c.online ? h('span', { class: 'pill on' }, 'Đang online') : h('span', { class: 'pill' }, 'Lưu lúc ' + dt(c.updated)), h('span', { class: 'pill blue' }, MAPS[c.map] || ''), c.anomalies ? h('span', { class: 'pill off' }, 'Bất thường: ' + c.anomalies) : null, c.bad ? h('span', { class: 'pill warn' }, c.bad.length + ' món hỏng được cất riêng') : null));
   const F = {}; const num = (k, v, max) => (F[k] = inp({ type: 'number', min: 0, max, value: v, disabled: !own }));
   el.append(h('div', { class: 'row' }, field('Cấp', num('lv', c.lv, 100)), field('Kinh nghiệm', num('exp', c.exp)), field('Vàng', num('gold', c.gold)), field('Đá cường hóa', num('stones', c.stones)), field('Bình máu', num('pots', c.pots, 20)), field('Quái đã hạ', num('kills', c.kills))));
