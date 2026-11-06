@@ -80,4 +80,6 @@ Các tham số trong `shared/rules.js` → `TUNE`:
 - cộng tỉ lệ rèn, tỉ lệ quái tinh anh;
 - hệ số máu, công, thủ, kinh nghiệm, vàng, rơi đồ cho từng loại quái.
 
+- hệ số KI kỹ năng tốn (0 = tắt KI), hệ số sức mạnh mỗi điểm tiềm năng.
+
 Chỉnh xong áp dụng ngay, không cần ra bản ứng dụng mới. Ứng dụng nhận giá mới qua tin `cfg` để hiện đúng giá.

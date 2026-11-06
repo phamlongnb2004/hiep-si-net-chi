@@ -13,14 +13,14 @@ export const ELITE_CHANCE = .07;              // quái thường thỉnh thoản
 export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
 // Tham số cân bằng do admin chỉnh trên máy chủ (không cần ra bản ứng dụng mới). Mặc định = luật gốc.
 // ev: sự kiện tạm thời (x2 kinh nghiệm...), máy chủ tự tắt khi hết giờ.
-export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, mon: {} };
+export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, mon: {} };
 export const TUNE = { ...TUNE_DEFAULT, mon: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
 // áp tham số mới (đã kiểm giới hạn) vào TUNE; trả về bản đã chuẩn hóa để lưu
 export function setTune(t) {
   const n = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
   const o = {
     exp: n(t.exp, .1, 20, 1), gold: n(t.gold, .1, 20, 1), drop: n(t.drop, .1, 10, 1), potPrice: Math.round(n(t.potPrice, 1, 100000, POT_PRICE)),
-    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), mon: {} };
+    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), mon: {} };
   for (const k in (t.mon || {})) if (D.mons[k]) { const m = t.mon[k] || {}, q = {};
     for (const f of ['hp', 'atk', 'def', 'exp', 'gold', 'drop']) { const v = n(m[f], .1, 20, 1); if (v !== 1) q[f] = v; }
     if (Object.keys(q).length) o.mon[k] = q; }
@@ -49,12 +49,31 @@ export const expNeed = l => Math.floor(30 * Math.pow(l, 1.45) * expMul(l));
 export const itemStat = (it, k) => Math.round(((it.st && it.st[k]) || 0) * (1 + .12 * (it.up || 0)));
 export const sellPrice = it => Math.round((4 + it.lvl * 2.2) * D.rar[it.r].m * (1 + .35 * (it.up || 0)));
 export const score = it => it ? itemStat(it, 'atk') * 2 + itemStat(it, 'def') * 1.5 + itemStat(it, 'hp') * .1 + itemStat(it, 'spd') * .6 : 0;
+/* ---------- điểm tiềm năng: mỗi lần lên cấp được PT_PER_LV điểm, người chơi tự cộng vào chỉ số ----------
+  v: mỗi điểm cộng bao nhiêu; max: số điểm tối đa được dồn vào chỉ số đó (chỉ số tỉ lệ có trần) */
+export const PT_PER_LV = 5;
+export const PTS = {
+  hp: { n: 'Máu', v: 5 }, atk: { n: 'Sức đánh', v: .7 }, def: { n: 'Giáp', v: .3 }, ki: { n: 'KI', v: 5 },
+  crit: { n: 'Chí mạng', v: .002, max: 150 }, spd: { n: 'Tốc chạy', v: 1, max: 60 }, dodge: { n: 'Né tránh', v: .002, max: 125 },
+  ls: { n: 'Hút máu', v: .001, max: 150 }, pen: { n: 'Xuyên giáp', v: .005, max: 100 }
+};
+export const PT_KEYS = Object.keys(PTS);
+export const ptTotal = ch => Math.max(0, (ch.lv - 1) * PT_PER_LV);
+export const ptUsed = ch => PT_KEYS.reduce((a, k) => a + ((ch.pt && ch.pt[k]) | 0), 0);
+export const ptFree = ch => Math.max(0, ptTotal(ch) - ptUsed(ch));
+// tẩy điểm: lần đầu miễn phí, sau đó tốn vàng theo cấp
+export const resetCost = ch => (ch.ptReset | 0) < 1 ? 0 : 200 * ch.lv;
+// KI: kỹ năng tốn KI, đánh thường không tốn; KI tự hồi (nhanh gấp đôi trong vùng an toàn)
+export const KI_BASE = [8, 14, 20, 26, 32, 40], KI_REGEN = .04;
+export const kiCost = (lv, i) => Math.round((KI_BASE[i] || 20) * (1 + (lv - 1) * .025) * TUNE.kiMul);
 // chỉ số gốc của nhân vật (chưa tính bùa tạm thời)
 export function stats(ch) {
-  const c = D.cls[ch.cls], l = ch.lv - 1;
-  let hp = c.hp + c.hpG * l, atk = c.atk + c.atkG * l, def = c.def + c.defG * l, spd = c.spd;
+  const c = D.cls[ch.cls], l = ch.lv - 1, p = ch.pt || {}, P = k => ((p[k] | 0) * PTS[k].v * (k === 'spd' ? 1 : TUNE.ptMul));
+  let hp = c.hp + c.hpG * l + P('hp'), atk = c.atk + c.atkG * l + P('atk'), def = c.def + c.defG * l + P('def'), spd = c.spd + P('spd');
   for (const k of SLOTS) { const it = ch.eq && ch.eq[k]; if (!it) continue; hp += itemStat(it, 'hp'); atk += itemStat(it, 'atk'); def += itemStat(it, 'def'); spd += itemStat(it, 'spd'); }
-  return { maxHp: Math.round(hp), atk: Math.round(atk), def: Math.round(def), spd, crit: c.crit };
+  const r3 = x => Math.round(x * 1000) / 1000;
+  return { maxHp: Math.round(hp), atk: Math.round(atk), def: Math.round(def), spd: Math.round(spd), crit: r3(c.crit + P('crit')), maxKi: Math.round(60 + 6 * l + P('ki')),
+    dodge: r3(Math.min(.25, P('dodge'))), ls: r3(Math.min(.15, P('ls'))), pen: r3(Math.min(.5, P('pen'))) };
 }
 // cộng kinh nghiệm, trả về số cấp vừa lên
 export function addExp(ch, n) {
@@ -139,8 +158,8 @@ export function monDrops(rng, type, lv, cls, nextId, elite) {
 
 /* ---------- sát thương ---------- */
 // người chơi đánh quái: raw = công * hệ số
-export function dmgToMon(rng, raw, mdef, crit, dot) {
-  let d = dot ? raw : raw * (.9 + rng() * .2) - mdef * .4, c = false;
+export function dmgToMon(rng, raw, mdef, crit, dot, pen) {
+  let d = dot ? raw : raw * (.9 + rng() * .2) - mdef * .4 * (1 - (pen || 0)), c = false;
   if (!dot && rng() < crit) { d *= 1.6; c = true; }
   return { d: Math.max(1, Math.round(d)), c };
 }
@@ -207,7 +226,7 @@ export const inSafe = (map, x) => map.safes.some(z => x > z.x + 8 && x < z.x + z
 
 /* ---------- nhân vật mới ---------- */
 export function newChar(cls, name) {
-  return { cls, name, lv: 1, exp: 0, gold: 0, pots: 5, kills: 0, stones: 0, sk: [1, 0, 0, 0, 0, 0], books: [1, 0, 0, 0, 0, 0], inv: [], eq: { hat: null, armor: null, cape: null, weapon: null }, map: 0, mv: 2 };
+  return { cls, name, lv: 1, exp: 0, gold: 0, pots: 5, kills: 0, stones: 0, sk: [1, 0, 0, 0, 0, 0], books: [1, 0, 0, 0, 0, 0], inv: [], eq: { hat: null, armor: null, cape: null, weapon: null }, map: 0, mv: 2, pt: {}, ptReset: 0 };
 }
 // chuẩn hóa bản lưu cũ để máy chủ dùng: giữ nguyên mọi giá trị, chỉ thêm trường còn thiếu
 export function normalizeChar(d) {
@@ -221,6 +240,11 @@ export function normalizeChar(d) {
   for (const k of ['sk', 'books']) { const a = Array.isArray(c[k]) ? c[k] : []; c[k] = [0, 1, 2, 3, 4, 5].map(i => a[i] ? 1 : 0); c[k][0] = 1; }
   for (const k of ['lv', 'exp', 'gold', 'pots', 'kills', 'stones']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
   c.lv = Math.max(1, c.lv); c.map = clamp(c.map | 0, 0, D.maps.length - 1);
+  // điểm tiềm năng: nhân vật cũ chưa có -> để trống (được cộng bù theo cấp hiện tại); điểm vượt quá số được nhận -> trả lại hết để cộng lại
+  const pt = c.pt && typeof c.pt === 'object' ? c.pt : {}; c.pt = {};
+  for (const k of PT_KEYS) { const v = Math.max(0, Math.min(PTS[k].max || 1e6, Math.floor(+pt[k] || 0))); if (v) c.pt[k] = v; }
+  if (ptUsed(c) > ptTotal(c)) c.pt = {};
+  c.ptReset = Math.max(0, Math.floor(+c.ptReset || 0));
   c.inv.forEach(it => fixItem(it, c.cls)); for (const k of SLOTS) fixItem(c.eq[k], c.cls);
   // đồ khác phái đang mặc (bản cũ): đưa vào túi giống gear.js
   for (const k of SLOTS) { const it = c.eq[k]; if (it && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }

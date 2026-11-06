@@ -371,6 +371,7 @@ export class World extends DurableObject {
     const ch = c.ch, f = c.f;
     const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
       hp: Math.round(f.hp), maxHp: f.maxHp, atk: f.atk, def: f.def, spd: f.spd, crit: f.crit, dead: f.dead > 0 ? 1 : 0,
+      ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5].map(i => R.kiCost(ch.lv, i)),
       cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })) };
     if (full) Object.assign(o, { name: ch.name, cls: ch.cls, inv: ch.inv, eq: ch.eq });
     return o;

@@ -254,6 +254,10 @@ func _event(e: Array) -> void:
 			if w:
 				w.flash = 0.25
 				fx.text(w.position + Vector2(0, -80), "-%d" % int(e[2]), Color("ff5d7d"), int(e[1]) == my_id)
+		"pm":  # người chơi né được đòn
+			var wm = _who(int(e[1]))
+			if wm:
+				fx.text(wm.position + Vector2(0, -80), "Né!", Color("b9a8ff"), int(e[1]) == my_id)
 		"ph":
 			var w2 = _who(int(e[1]))
 			if w2:

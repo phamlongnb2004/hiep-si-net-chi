@@ -27,6 +27,20 @@ export const OPS = {
   sort(c) {
     const ch = c.ch; ch.inv.sort((a, b) => (own(ch, b) - own(ch, a)) || (b.r - a.r) || (ORD[a.slot] - ORD[b.slot]) || (b.lvl - a.lvl)); return { ok: true };
   },
+  // cộng điểm tiềm năng vào một chỉ số
+  stat(c, m) {
+    const ch = c.ch, k = String(m.k), n = Math.max(1, Math.min(100, m.n | 0)), P = R.PTS[k]; if (!P) return { ok: false };
+    ch.pt = ch.pt || {}; const cur = ch.pt[k] | 0, free = R.ptFree(ch);
+    if (free < n) return { ok: false, msg: free ? 'Chỉ còn ' + free + ' điểm.' : 'Hết điểm tiềm năng. Lên cấp để nhận thêm.' };
+    if (P.max && cur + n > P.max) return { ok: false, msg: P.n + ' đã tối đa (' + P.max + ' điểm).' };
+    ch.pt[k] = cur + n; refreshStats(c.f, ch, true); return { ok: true };
+  },
+  // tẩy điểm: trả lại toàn bộ điểm để cộng lại (lần đầu miễn phí)
+  stat_reset(c) {
+    const ch = c.ch, cost = R.resetCost(ch); if (!R.ptUsed(ch)) return { ok: false, msg: 'Chưa cộng điểm nào.' };
+    if (ch.gold < cost) return { ok: false, msg: 'Tẩy điểm cần ' + cost + ' vàng.' };
+    ch.gold -= cost; ch.pt = {}; ch.ptReset = (ch.ptReset | 0) + 1; refreshStats(c.f, ch, true); return { ok: true, cost };
+  },
   pot(c) {
     const ch = c.ch, f = c.f; if (f.dead > 0 || ch.pots <= 0 || f.hp >= f.maxHp || f.potCd > 0) return { ok: false };
     ch.pots--; f.potCd = R.POT_CD; const h = Math.round(f.maxHp * R.POT_HEAL); f.hp = Math.min(f.maxHp, f.hp + h);

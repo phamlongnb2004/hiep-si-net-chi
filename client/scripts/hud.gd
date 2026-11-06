@@ -28,12 +28,14 @@ var ann_l: Label
 var ev_l: Label
 var fr_badge: Label
 var potb
+var pt_badge: Label
 
 class SkillBtn extends Control:
 	var tex: Texture2D
 	var cd = 0.0
 	var mx = 1.0
 	var locked = false
+	var noki = false
 	var key = ""
 	var big = false
 	signal pressed
@@ -50,7 +52,7 @@ class SkillBtn extends Control:
 		var c = size / 2
 		draw_circle(c, r, Color(0.09, 0.13, 0.29, 0.55))
 		if tex:
-			draw_texture_rect(tex, Rect2(c - Vector2(r, r) * 0.92, Vector2(r, r) * 1.84), false, Color(1, 1, 1, 0.45 if locked else 1.0))
+			draw_texture_rect(tex, Rect2(c - Vector2(r, r) * 0.92, Vector2(r, r) * 1.84), false, Color(1, 1, 1, 0.45) if locked else (Color(0.55, 0.7, 1.0, 0.6) if noki else Color.WHITE))
 		if cd > 0.05 and mx > 0:
 			var pts = PackedVector2Array([c])
 			var a0 = -PI / 2
@@ -77,6 +79,8 @@ class SkillBtn extends Control:
 class Bars extends Control:
 	var hp = 1.0
 	var hpm = 1.0
+	var ki = 0.0
+	var kim = 1.0
 	var ex = 0.0
 	var exn = 1.0
 	func _process(_dt: float) -> void:
@@ -86,9 +90,16 @@ class Bars extends Control:
 		draw_rect(Rect2(0, 0, w, 22), UI.INK)
 		draw_rect(Rect2(3, 3, (w - 6) * clampf(hp / hpm, 0, 1), 16), Color("e8546f"))
 		draw_rect(Rect2(3, 3, (w - 6) * clampf(hp / hpm, 0, 1), 6), Color(1, 1, 1, 0.25))
-		draw_rect(Rect2(0, 25, w, 12), UI.INK)
-		draw_rect(Rect2(2, 27, (w - 4) * clampf(ex / exn, 0, 1), 8), Color("5aa8ff"))
+		# KI
+		draw_rect(Rect2(0, 25, w, 15), UI.INK)
+		draw_rect(Rect2(2, 27, (w - 4) * clampf(ki / kim, 0, 1), 11), Color("38c6ff"))
+		draw_rect(Rect2(0, 43, w, 10), UI.INK)
+		draw_rect(Rect2(2, 45, (w - 4) * clampf(ex / exn, 0, 1), 6), Color("ffd23f"))
 		var f: Font = Data.fonts.get("bold")
+		var ks = "KI %d / %d" % [int(ki), int(kim)]
+		var kw = f.get_string_size(ks, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+		draw_string_outline(f, Vector2(w / 2 - kw / 2, 37), ks, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, UI.INK)
+		draw_string(f, Vector2(w / 2 - kw / 2, 37), ks, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 		var s = "%d / %d" % [int(hp), int(hpm)]
 		var sw = f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
 		draw_string_outline(f, Vector2(w / 2 - sw / 2, 17), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 4, UI.INK)
@@ -139,7 +150,7 @@ func setup(g: Game) -> void:
 	info = UI.outlined("", 20)
 	tl.add_child(info)
 	var bars = Bars.new()
-	bars.custom_minimum_size = Vector2(300, 38)
+	bars.custom_minimum_size = Vector2(300, 53)
 	hp_bar = bars
 	tl.add_child(bars)
 	var res = UI.hbox(8)
@@ -151,7 +162,7 @@ func setup(g: Game) -> void:
 	stone_l = UI.outlined("0", 18)
 	res.add_child(stone_l)
 	logbox = UI.vbox(2)
-	logbox.position = Vector2(16, 120)
+	logbox.position = Vector2(16, 136)
 	logbox.custom_minimum_size = Vector2(380, 0)
 	logbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(logbox)
@@ -179,6 +190,9 @@ func setup(g: Game) -> void:
 	var bag_b = UI.icon_button(Data.tex(H.ui.get("bag", "")), 58)
 	bag_b.pressed.connect(func(): g.get_parent().open_bag())
 	tbtn.add_child(bag_b)
+	pt_badge = UI.outlined("", 14, Color("ffd23f"), "bold", 5)
+	pt_badge.position = Vector2(34, -4)
+	bag_b.add_child(pt_badge)
 	var chat_b = UI.icon_button(Data.tex(H.ui.get("chat", "")), 58)
 	chat_b.pressed.connect(_toggle_chat)
 	tbtn.add_child(chat_b)
@@ -328,7 +342,11 @@ func refresh() -> void:
 	var b: Bars = hp_bar
 	b.hp = float(d.get("hp", 1))
 	b.hpm = max(1.0, float(d.get("maxHp", 1)))
+	b.ki = float(d.get("ki", 0))
+	b.kim = max(1.0, float(d.get("maxKi", 1)))
 	b.ex = float(d.get("exp", 0))
+	var pf = int(d.get("ptFree", 0))
+	pt_badge.text = ("+%d" % pf) if pf > 0 else ""
 	b.exn = max(1.0, float(d.get("need", 1)))
 	gold_l.text = UI.fmt(d.get("gold", 0))
 	stone_l.text = str(int(d.get("stones", 0)))
@@ -340,6 +358,8 @@ func refresh() -> void:
 		s.tex = Data.tex(icons[i]) if i < icons.size() else null
 		s.locked = i >= sk.size() or int(sk[i]) == 0
 		s.mx = float(Data.D.skills[c][i].cd)
+		var kc: Array = d.get("kc", [])
+		s.noki = i < kc.size() and float(d.get("ki", 0)) < float(kc[i])
 
 func _process(_dt: float) -> void:
 	if game == null:

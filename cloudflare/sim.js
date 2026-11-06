@@ -14,13 +14,13 @@ const OWN_T = 20, DROP_LIFE = 75, PICK_R = 40;
 // trạng thái chiến đấu của một người chơi (không lưu xuống cơ sở dữ liệu)
 export function makeFighter(ch) {
   const s = R.stats(ch);
-  return Object.assign(s, { hp: s.maxHp, buffs: [], cds: [0, 0, 0, 0, 0, 0], gcd: 0, atkCd: 0, potCd: 0, dead: 0, combo: 0, comboT: 0,
+  return Object.assign(s, { hp: s.maxHp, ki: s.maxKi, lsAcc: 0, kiWarn: 0, buffs: [], cds: [0, 0, 0, 0, 0, 0], gcd: 0, atkCd: 0, potCd: 0, dead: 0, combo: 0, comboT: 0,
     x: 0, y: 0, face: 1, air: 0, mv: 0, sw: 0, moveAt: 0, dashT: 0, dashLen: 0 });
 }
 export const lookN = ch => { const t = it => it && it.cls === ch.cls ? clamp(it.tier | 0, 0, 3) : -1; return (t(ch.eq.armor) + 1) + 5 * (t(ch.eq.hat) + 1) + 25 * (t(ch.eq.cape) + 1); };
 export function refreshStats(f, ch, keepRatio) {
-  const s = R.stats(ch), ratio = f.maxHp > 1 ? f.hp / f.maxHp : 1;
-  Object.assign(f, s); f.hp = keepRatio ? Math.max(1, Math.round(f.maxHp * ratio)) : f.maxHp;
+  const s = R.stats(ch), ratio = f.maxHp > 1 ? f.hp / f.maxHp : 1, kr = f.maxKi > 1 ? f.ki / f.maxKi : 1;
+  Object.assign(f, s); f.hp = keepRatio ? Math.max(1, Math.round(f.maxHp * ratio)) : f.maxHp; f.ki = keepRatio ? f.maxKi * kr : f.maxKi;
 }
 
 export class MapInst {
@@ -89,8 +89,10 @@ export class MapInst {
   }
   hitMon(c, m, raw, o) {
     if (m.dead) return 0; o = o || {}; const f = c.f;
-    const r = R.dmgToMon(rng, raw, m.def, f.crit + R.buffMul(f.buffs, 'crit'), o.dot);
-    m.hp -= r.d; m.dmg.set(c.id, (m.dmg.get(c.id) || 0) + r.d);
+    const r = R.dmgToMon(rng, raw, m.def, f.crit + R.buffMul(f.buffs, 'crit'), o.dot, f.pen);
+    m.hp -= r.d;
+    // hút máu: hồi theo sát thương gây ra (không tính độc)
+    if (f.ls > 0 && !o.dot && f.hp > 0 && f.hp < f.maxHp) { f.lsAcc += Math.min(r.d, m.hp + r.d) * f.ls; if (f.lsAcc >= 1) { const h = Math.floor(f.lsAcc); f.lsAcc -= h; f.hp = Math.min(f.maxHp, f.hp + h); c.meDirty = true; } } m.dmg.set(c.id, (m.dmg.get(c.id) || 0) + r.d);
     if (o.kb) m.kx += Math.sign(m.x - f.x || f.face) * o.kb * (m.t.boss ? .15 : 1);
     if (m.state === 'idle') { m.state = 'chase'; m.tgt = c.id; }
     this.ev.push(['h', m.id, r.d, (r.c ? 1 : 0) | (o.dot ? 2 : 0), c.id]);
@@ -160,7 +162,9 @@ export class MapInst {
     const f = c.f, ch = c.ch, i = m.i | 0, S = D.skills[ch.cls][i]; if (!S || f.dead > 0) return;
     if (!ch.sk[i]) return this.h.log(c, 'Chưa học ' + S.n + (ch.lv < S.req ? ' (cần cấp ' + S.req + ')' : ' — mua sách ở Thương Nhân trong Làng'), '#ffb347');
     if (f.cds[i] > .05 || f.gcd > .05) return;
-    f.cds[i] = S.cd; f.gcd = D.world.gcd;
+    const cost = R.kiCost(ch.lv, i);
+    if (f.ki < cost) { if (f.kiWarn <= 0) { f.kiWarn = 2; this.h.log(c, 'Không đủ KI (cần ' + cost + '). Chờ KI hồi hoặc cộng điểm vào KI.', '#7fc8ff'); } return; }
+    f.ki -= cost; f.cds[i] = S.cd; f.gcd = D.world.gcd;
     const tgt = this.findTarget(f, m.tg | 0, 460), aim = tgt ? Math.atan2(tgt.y - f.y, tgt.x - f.x) : (f.face > 0 ? 0 : Math.PI);
     f.face = Math.cos(aim) >= 0 ? 1 : -1;
     const sx = f.x; this.run(c, R.SKILL_FX[ch.cls][i], aim, tgt, 0);
@@ -170,6 +174,7 @@ export class MapInst {
   }
   hurt(c, raw) {
     const f = c.f; if (f.dead > 0 || f.dashT > .4) return;
+    if (f.dodge > 0 && rng() < f.dodge) { this.ev.push(['pm', c.id]); return; } // né tránh
     const d = R.dmgToPlayer(rng, raw, f.def, R.buffMul(f.buffs, 'def'), R.buffMul(f.buffs, 'take'));
     f.hp -= d; this.ev.push(['p', c.id, d]); c.meDirty = true;
     if (f.hp <= 0) {
@@ -189,7 +194,7 @@ export class MapInst {
     ch.kills++; ch.gold += g;
     const up = R.addExp(ch, e);
     this.h.send(best, { t: 'gain', m: m.id, exp: e, gold: g });
-    if (up) { refreshStats(best.f, ch, false); this.ev.push(['lv', best.id, ch.lv]); this.h.log(best, 'Lên cấp ' + ch.lv + '. Máu, công, thủ đều tăng.', '#ffd23f'); }
+    if (up) { refreshStats(best.f, ch, false); this.ev.push(['lv', best.id, ch.lv]); this.h.log(best, 'Lên cấp ' + ch.lv + ' · +' + up * R.PT_PER_LV + ' điểm tiềm năng (Túi đồ → Chỉ số)', '#ffd23f'); }
     for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
       const o = { id: this.seq++, k: d.k, n: d.n, item: d.item, x: clamp(m.x + rand(-34, 34), 40, this.M.w - 40), y: 0, life: DROP_LIFE, own: best.id, ownT: OWN_T };
       o.y = this.gY(o.x); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
@@ -223,11 +228,13 @@ export class MapInst {
   }
   tickPlayer(c, dt) {
     const f = c.f;
-    if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), respawn: 1 }); c.meDirty = true; } return; }
+    if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), respawn: 1 }); c.meDirty = true; } return; }
     f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.dashT = Math.max(0, f.dashT - dt);
     for (let i = 0; i < 6; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
     const nb = f.buffs.length; f.buffs = f.buffs.filter(b => (b.t -= dt) > 0); if (f.buffs.length !== nb) c.meDirty = true;
     f.comboT -= dt; if (f.comboT <= 0) f.combo = 0;
+    f.kiWarn -= dt;
+    if (f.ki < f.maxKi) { f.ki = Math.min(f.maxKi, f.ki + (f.maxKi * R.KI_REGEN + 1) * dt * (this.safe(f.x) ? 2 : 1)); if (this.tk % 5 === 0 || f.ki >= f.maxKi) c.meDirty = true; }
     if (this.safe(f.x) && f.hp < f.maxHp) { f.hp = Math.min(f.maxHp, f.hp + f.maxHp * R.SAFE_REGEN * dt); if (this.tk % 5 === 0) c.meDirty = true; }
   }
   // chọn người chơi gần nhất trong tầm của quái
