@@ -8,7 +8,7 @@ for(const c in XA)if(Array.isArray(XA[c]))XI[c]=XA[c].map(ld);
 // chuỗi khung theo thời gian (đòn đánh của quái): {claw:[6 khung], bite, hit, fire, poison, ice}
 const XS={};for(const n in (XA.seq||{}))XS[n]=XA.seq[n].map(ld);
 const seqOk=n=>XS[n]&&XS[n].every(f=>f.i.complete&&f.i.naturalWidth);
-window.HSNC_SEQOK=seqOk;
+window.HSNC_SEQOK=seqOk;window.HSNC_SEQ=XS;
 const X=(c,k)=>{const s=XI[c],f=s&&s[k];return f&&f.i.complete&&f.i.naturalWidth?f:null;};
 const ease=u=>1-Math.pow(1-u,3);
 

@@ -73,6 +73,41 @@ for t in TYPES:
                     'hr': round(h / IDLE_PX, 4), 'ar': round(w / h, 4), 'cx': round(cx / IDLE_PX, 4)})
     out[t] = lst; json.dump(lst, open(ck, 'w'))
     print(t, [(f['hr'], f['ar']) for f in lst])
+# khung khạc của rồng (há mồm, không vẽ lửa): cùng cỡ với khung bay, kèm vị trí miệng ở từng khung
+def mouth(sub):
+    H, W = sub.shape
+    top = sub[:int(H * .75)]
+    cols = np.flatnonzero(top.sum(0) >= 2)
+    if not len(cols):
+        return .92, .38
+    xr = cols[-1]; x0 = max(0, xr - int(W * .08))
+    ys = np.flatnonzero(top[:, x0:xr + 1].any(1))
+    return (xr - W * .03) / W, (ys.mean() if len(ys) else H * .38) / H
+
+
+for t in ['dragon', 'dragon2', 'dragon3']:
+    p = os.path.join(SRC, 'mon', f'breath_{t}.webp')
+    if not os.path.exists(p) or t not in out:
+        continue
+    st = os.stat(p); ck = os.path.join(CACHE, f'{t}_br-v1-{int(st.st_mtime)}-{st.st_size}.json')
+    if os.path.exists(ck):
+        out[t + '_br'] = json.load(open(ck)); continue
+    im, core, boxes = frames(p)
+    walk_h = float(np.median([f['hr'] for f in out[t]])) * IDLE_PX
+    s = walk_h / float(np.median([b[3] - b[1] for b in boxes]))
+    lst = []
+    for b in boxes:
+        c = im.crop(b); w, h = max(1, round(c.width * s)), max(1, round(c.height * s))
+        c = c.resize((w, h), Image.LANCZOS)
+        sub = core[b[1]:b[3], b[0]:b[2]]
+        band = sub[int(sub.shape[0] * .3):int(sub.shape[0] * .8)]
+        xs = np.flatnonzero(band.any(0)); cx = ((xs[0] + xs[-1]) / 2 if len(xs) else sub.shape[1] / 2) * s
+        mx, my = mouth(sub)
+        buf = io.BytesIO(); c.save(buf, 'WEBP', quality=84, method=6)
+        lst.append({'u': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode(),
+                    'hr': round(h / IDLE_PX, 4), 'ar': round(w / h, 4), 'cx': round(cx / IDLE_PX, 4), 'mx': round(mx, 4), 'my': round(my, 4)})
+    out[t + '_br'] = lst; json.dump(lst, open(ck, 'w'))
+    print(t + '_br', [(f['mx'], f['my']) for f in lst])
 with open(OUT, 'w') as f:
     json.dump(out, f, separators=(',', ':'))
 print('Đã tạo', OUT, round(os.path.getsize(OUT) / 1024), 'KB')
