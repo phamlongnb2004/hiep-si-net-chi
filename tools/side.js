@@ -106,8 +106,18 @@ genDecor=function(){
   for(const s of M.spots){let sx=s.x+60;while(sx<s.x+s.w/2&&Math.abs(gYm(M,sx-50)-gYm(M,sx+50))>1)sx+=10;add({k:'sign',x:sx,txt:s.n+' · Cấp '+s.lv[0]+(s.lv[1]>s.lv[0]?'-'+s.lv[1]:'')},GY-1);}
   for(const p of M.portals)add({k:'portal',x:p.x,p},GY);
 };
+const SGN=new Map();
+function themedSign(d){const th=MAP.theme;if(th==='grass')return null;const key=th+'|'+d.txt;if(SGN.has(key))return SGN.get(key);
+  const sp=getSpr('sign|'+d.txt,d.txt);if(!sp||!sp.c||!sp.c.width)return null;
+  const c=document.createElement('canvas');c.width=sp.c.width;c.height=sp.c.height;const g=c.getContext('2d');g.drawImage(sp.c,0,0);
+  try{const im=g.getImageData(0,0,c.width,c.height),a=im.data;
+    for(let i=0;i<a.length;i+=4){const r=a[i],gg=a[i+1],b=a[i+2];if(a[i+3]<8||!(gg>r*1.12&&gg>b*1.05&&gg>50))continue;const l=(r+gg+b)/3;
+      if(th==='lava'){a[i]=Math.min(255,l*.55+30);a[i+1]=l*.32;a[i+2]=l*.3;}else{const v=Math.min(255,l*1.15+70);a[i]=v*.93;a[i+1]=v*.97;a[i+2]=v;}}
+    g.putImageData(im,0,0);}catch(e){return null;}
+  const o={c,w:sp.w,h:sp.h,ax:sp.ax,ay:sp.ay};SGN.set(key,o);return o;}
 const _ddi=drawDecorItem;
-drawDecorItem=function(d){if(d.gy==null)return _ddi(d);const y=d.y;d.y=d.gy;try{_ddi(d);}finally{d.y=y;}};
+drawDecorItem=function(d){if(d.gy==null)return _ddi(d);
+  if(d.k==='sign'){const t=themedSign(d);if(t){ctx.drawImage(t.c,d.x-t.ax,d.gy-t.ay,t.w,t.h);return;}}const y=d.y;d.y=d.gy;try{_ddi(d);}finally{d.y=y;}};
 spawnAll=function(){
   G.mons=[];
   for(const s of MAP.spots)for(let i=0;i<s.cnt;i++){
@@ -140,6 +150,10 @@ drawGround=function(vw,vh){
   if(mid){const h=vh*.42,y=GY-h*.94,px=cx*.5;ctx.save();ctx.translate(px,0);tileX(mid,cx-px,y,h,vw);ctx.restore();}
   // mặt đất: dải cắt ngang, mép trên đúng y mặt đất
   const gr=S('ground_'+th);
+  // lớp sương phủ cảnh nền: đẩy núi/vách nền ra xa, mặt đất đi được nổi rõ phía trước
+  {const hz={grass:['rgba(210,235,255,.16)',0],snow:['rgba(225,238,252,.2)',0],lava:['rgba(30,6,8,.42)','rgba(255,90,40,.10)']}[th];
+   if(hz){ctx.fillStyle=hz[0];ctx.fillRect(cx-2,cy-2,vw+4,vh+4);
+     if(hz[1]){const e=ctx.createLinearGradient(0,GY-260,0,GY);e.addColorStop(0,'rgba(255,90,40,0)');e.addColorStop(1,hz[1]);ctx.fillStyle=e;ctx.fillRect(cx-2,GY-260,vw+4,260);}}}
   // mặt đất theo địa hình: mỗi đoạn (bằng/dốc) vẽ dải đất nghiêng theo đoạn đó, mép cỏ bám đúng mặt đất
   const T=MAP.terr||[[0,GY],[WORLD.w,GY]],hh=Math.max(WH-GY+260,(cy+vh-GY)+240);
   for(let i=0;i<T.length-1;i++){const [x0,y0]=T[i],[x1,y1]=T[i+1];if(x1<=x0||x1<cx-4||x0>cx+vw+4)continue;
