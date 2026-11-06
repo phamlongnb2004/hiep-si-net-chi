@@ -52,37 +52,41 @@ MAPS.splice(0,MAPS.length,M0,M1,M2,M3);
 /* --- địa hình nhiều tầng kiểu Ngọc Rồng: bậc cao thấp, đồi, dốc nối nhau (mặt đất không còn là một đường thẳng) --- */
 // mỗi bản đồ có MAP.terr = các điểm [x,y] của mặt đất; giữa hai điểm là đoạn thẳng (bằng hoặc dốc)
 function terrBuild(M,seed){
-  const r=mulberry(seed),pts=[[0,GY]];
-  const lvl=(y,x0,x1)=>{const L=pts[pts.length-1];if(Math.abs(L[1]-y)<1){if(pts.length===1)pts.push([x1,y]);else L[0]=Math.max(L[0],x1);return;}
-    // dốc tối đa ~0,6 (đi bộ lên được), bậc cao hơn thì thêm khoảng dốc
-    const need=Math.abs(L[1]-y)*1.65;let s=Math.max(L[0],x0-need);if(x0-s<need)x0=s+need;x1=Math.max(x1,x0+20);pts.push([s,L[1]]);pts.push([x0,y]);pts.push([x1,y]);};
-  if(M.village){ // làng: hai bên là gò cao có nhà, giữa là quảng trường
-    lvl(GY-58,0,680);lvl(GY,820,1780);lvl(GY-58,1920,M.w);
+  const r=mulberry(seed),pts=[[0,GY]],MAXS=105;   // bậc cao nhất nhảy lên được (nhảy cao ~135)
+  // đoạn bằng ở độ cao y từ x0 tới x1; đổi độ cao bằng vách đứng (như khối đất Ninja School), cao quá thì xếp bậc thang
+  const lvl=(y,x0,x1)=>{const L=pts[pts.length-1];
+    if(Math.abs(L[1]-y)<1){if(pts.length===1)pts.push([x1,y]);else L[0]=Math.max(L[0],x1);return;}
+    let cy=L[1],x=Math.max(L[0],x0-Math.ceil(Math.abs(y-cy)/MAXS-1)*80);
+    if(x>L[0])pts.push([x,cy]);
+    while(Math.abs(y-cy)>MAXS){cy+=Math.sign(y-cy)*Math.round(Math.abs(y-cy)/2);pts.push([x,cy]);x+=80;pts.push([x,cy]);}
+    pts.push([x,y]);pts.push([Math.max(x1,x+40),y]);};
+  if(M.village){ // làng: hai bên là khối đất cao có nhà, giữa là quảng trường
+    lvl(GY-82,0,700);lvl(GY,760,1840);lvl(GY-82,1900,M.w);
   }else{
-    for(const s of M.safes)if(s.x<10)lvl(GY,0,s.x+s.w-80);
-    const H=[0,-70,-140,-205];let cur=0;
+    for(const s of M.safes)if(s.x<10)lvl(GY,0,s.x+s.w-40);
+    const H=[0,-95,-190];let cur=0;
     M.spots.forEach((s,i)=>{
-      // tầng của khu quái: lên xuống so le, không quá 2 bậc một lần
-      const opt=[0,1,2,3].filter(v=>v!==cur&&Math.abs(v-cur)<=2);let n=i===0?1+Math.floor(r()*2):opt[Math.floor(r()*opt.length)];cur=n;
-      const y=GY+H[n],a=s.x+70,b=s.x+s.w-70;
-      if(s.cnt>1&&i%2===1){ // giữa khu có gò nhỏ
-        const m0=a+(b-a)*.36,m1=a+(b-a)*.64,yh=y-(n<3?65:-65);lvl(y,a,m0-90);lvl(yh,m0,m1);lvl(y,m1+90,b);
-      }else lvl(y,a,b);
+      const opt=[0,1,2].filter(v=>v!==cur);let n=i===0?1:opt[Math.floor(r()*opt.length)];cur=n;
+      lvl(GY+H[n],s.x+40,s.x+s.w-20);
     });
-    const last=M.safes.find(s=>s.x>10);if(last)lvl(GY,last.x+60,M.w);
+    const last=M.safes.find(s=>s.x>10);if(last)lvl(GY,last.x+20,M.w);
   }
   const L=pts[pts.length-1];if(L[0]<M.w)pts.push([M.w,L[1]]);
   M.terr=pts;
+  // khối đất nổi kiểu Ninja School trên mỗi khu (thay bậc đá cũ): một tầng thấp, một tầng cao
+  if(M.spots.length){M.platforms=[];M.spots.forEach((s,i)=>{const g=gYm(M,s.x+s.w/2);
+    M.platforms.push({x:s.x+s.w*.12,y:GY-(GY-g)-105,w:200});
+    M.platforms.push({x:s.x+s.w*.55,y:GY-(GY-g)-(i%2?105:205),w:180});});}
 }
 function gYm(M,x){const t=M&&M.terr;if(!t)return GY;if(x<=t[0][0])return t[0][1];
   let lo=0,hi=t.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(t[m][0]<=x)lo=m;else hi=m;}
-  const a=t[lo],b=t[hi];return b[0]===a[0]?Math.min(a[1],b[1]):a[1]+(b[1]-a[1])*clamp((x-a[0])/(b[0]-a[0]),0,1);}
+  const a=t[lo],b=t[hi];return b[0]===a[0]?b[1]:a[1]+(b[1]-a[1])*clamp((x-a[0])/(b[0]-a[0]),0,1);}
 const gY=x=>gYm(MAP,x);
 window.HSNC_gY=x=>gY(x);
 MAPS.forEach((M,i)=>terrBuild(M,977+i*53));
 // đặt lại mọi thứ đứng trên mặt đất theo địa hình
 MAPS.forEach(M=>{
-  for(const p of M.platforms||[]){const off=GY-p.y;p.y=Math.min(gYm(M,p.x),gYm(M,p.x+p.w/2),gYm(M,p.x+p.w))-off;}
+  if(M.village)for(const p of M.platforms||[]){const off=GY-p.y;p.y=Math.min(gYm(M,p.x),gYm(M,p.x+p.w/2),gYm(M,p.x+p.w))-off;}
   for(const n of M.npcs||[])n.y=gYm(M,n.x);
   for(const p of M.portals){p.y=gYm(M,p.x);const D=MAPS[p.to];if(D)p.ty=gYm(D,p.tx);}
   M.spawn.y=gYm(M,M.spawn.x);
@@ -96,7 +100,7 @@ genDecor=function(){
   const add=(o,gy)=>{o.gy=gYm(M,o.x)+(gy==null?0:gy-GY);o.y=BACK+DECOR.length*.001;DECOR.push(o);};
   const busy=x=>M.portals.some(p=>Math.abs(p.x-x)<120)||(M.npcs||[]).some(n=>Math.abs(n.x-x)<130)||(M.fountain&&Math.abs(M.fountain-x)<110)||(M.houses||[]).some(h=>Math.abs(h[0]-x)<110);
   // hàng cây, đá, bụi phía sau
-  for(let x=40;x<M.w-40;x+=70+r()*90){if(busy(x))continue;if(Math.abs(gYm(M,x-26)-gYm(M,x+26))>6)continue;const k=r();
+  for(let x=40;x<M.w-40;x+=70+r()*90){if(busy(x))continue;if(Math.abs(gYm(M,x-46)-gYm(M,x+46))>2)continue;const k=r();
     if(k<.5)add({k:'tree',x,s:.85+r()*.5,v:th.trees[Math.floor(r()*3)]},GY-6-r()*10);
     else if(k<.75)add({k:'bush',x,s:.8+r()*.5},GY-2);else add({k:'rock',x,s:.7+r()*.6},GY-2);}
   (M.houses||[]).forEach(h=>add({k:'house',x:h[0],v:h[1]},GY-4));
@@ -148,6 +152,18 @@ drawGround=function(vw,vh){
     else{ctx.fillStyle=MAP.base;ctx.fillRect(a0-1,GY,a1-a0+2,hh);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(a0-1,GY,a1-a0+2,6);}
     ctx.restore();
   }
+  // vách khối đất (kiểu Ninja School): mặt vách tối dần, mép cỏ chìa ra, bóng đổ xuống nền thấp
+  for(let i=0;i<T.length-1;i++){const [x0,y0]=T[i],[x1,y1]=T[i+1];if(x1!==x0||Math.abs(y1-y0)<2||x0<cx-60||x0>cx+vw+60)continue;
+    const top=Math.min(y0,y1),bot=Math.max(y0,y1),dir=y1<y0?1:-1;   // dir: khối cao nằm bên phải (1) hay trái (-1)
+    ctx.save();
+    // bóng đổ trên nền thấp, sát chân vách
+    const sh=ctx.createRadialGradient(x0-dir*6,bot,2,x0-dir*6,bot,46);sh.addColorStop(0,'rgba(0,0,0,.28)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(x0-dir*14,bot+2,48,9,0,0,TAU);ctx.fill();
+    // mặt vách: dải tối ở mép khối cao
+    const g=ctx.createLinearGradient(x0,0,x0+dir*22,0);g.addColorStop(0,'rgba(20,12,6,.55)');g.addColorStop(1,'rgba(20,12,6,0)');
+    ctx.fillStyle=g;ctx.fillRect(dir>0?x0:x0-22,top+10,22,bot-top+30);
+    ctx.fillStyle='rgba(20,12,6,.5)';ctx.fillRect(dir>0?x0:x0-2.5,top+8,2.5,bot-top+30);
+    ctx.restore();
+  }
   // bậc đá nổi
   const pl=S('plat_'+th);
   for(const p of MAP.platforms||[]){if(p.x+p.w<cx-40||p.x>cx+vw+40)continue;
@@ -156,6 +172,10 @@ drawGround=function(vw,vh){
 };
 
 /* --- người chơi: chạy trái/phải, nhảy, đứng trên bậc đá --- */
+// vách đất: chân thấp hơn mặt khối phía trước thì không đi xuyên qua được
+const wallAt=(x,y)=>gY(x)<y-3;
+let bumpQ=0;
+function moveX(o,nx){nx=clamp(nx,40,WORLD.w-40);if(wallAt(nx,o.y)){bumpQ=.12;return false;}o.x=nx;return true;}
 const platUnder=(x,y0,y1)=>{let best=null;for(const p of MAP.platforms||[])if(x>p.x+6&&x<p.x+p.w-6&&p.y>=y0-1&&p.y<=y1+1&&(!best||p.y<best.y))best=p;return best;};
 let jumpQ=0,jWas=false,dropQ=0;
 window.HSNC_JUMP=()=>{jumpQ=.15;};
@@ -178,7 +198,7 @@ updatePlayer=function(dt){
     if(!p.air&&p.y<g1-1&&!platUnder(p.x,p.y-1,p.y+1))p.air=true;};
   dropQ=Math.max(0,dropQ-dt);jumpQ=Math.max(0,jumpQ-dt);
   if(p.dash){
-    const d=p.dash;p.x=clamp(p.x+d.vx*dt,40,WORLD.w-40);p.moving=true;p.walk+=dt*2;
+    const d=p.dash;moveX(p,p.x+d.vx*dt);p.moving=true;p.walk+=dt*2;
     if(d.mult){for(const m of G.mons){if(m.dead||d.set.has(m))continue;if(Math.abs(m.x-p.x)<60+m.t.r&&Math.abs(m.y-p.y)<110){d.set.add(m);hitMon(m,patk()*d.mult,{kb:180});statusMon(m,{stun:d.stun});}}}
     d.sp-=dt;if(d.sp<=0){d.sp=.045;fx({k:'spark',x:p.x,y:p.y-20,max:.25,col:'#ffffff'});}
     d.t-=dt;if(d.t<=0){const e=d.end;p.dash=null;if(e)e();}
@@ -199,7 +219,7 @@ updatePlayer=function(dt){
   if(down&&!p.air&&p.y<gY(p.x)-2){dropQ=.25;p.y+=2;p.air=true;}
   ground();
   p.moving=dx!==0;
-  if(p.moving){const spd=p.spd*bm('spd')*(p.swing>0?.85:1)*(p.air?.92:1);p.vx=dx*spd;p.x=clamp(p.x+p.vx*dt,40,WORLD.w-40);if(!p.air)p.walk+=dt*Math.abs(dx);if(!p.focus)p.face=dx>0?1:-1;}else p.vx=0;
+  if(p.moving){const spd=p.spd*bm('spd')*(p.swing>0?.85:1)*(p.air?.92:1);p.vx=dx*spd;if(!moveX(p,p.x+p.vx*dt)&&!p.air&&gY(p.x+dx*24)>p.y-125){jumpQ=.15;}if(!p.air)p.walk+=dt*Math.abs(dx);if(!p.focus)p.face=dx>0?1:-1;}else p.vx=0;
   if(p.air){p.moving=true;} // giữ một tư thế khi đang bay lên/rơi xuống
   p.vy=0;
   if(p.focus&&Math.abs(p.focus.x-p.x)>4)p.face=p.focus.x>p.x?1:-1;
@@ -315,7 +335,7 @@ function updBreath(m,dt){
   if(b.t>=BR_T+.9){m.br=null;}
 }
 const _um2=updateMons;
-updateMons=function(dt){_um2(dt);for(const m of G.mons)if(m.br){if(m.dead||m.stun>0&&m.br.t<BR_C){m.br=null;continue;}updBreath(m,dt);}};
+updateMons=function(dt){for(const m of G.mons)m.px=m.x;_um2(dt);for(const m of G.mons){if(m.px==null||m.dead)continue;if(Math.abs(gY(m.x)-gY(m.px))>6){m.x=m.px;m.vx=0;if(m.kx)m.kx=0;}m.y=gY(m.x);}for(const m of G.mons)if(m.br){if(m.dead||m.stun>0&&m.br.t<BR_C){m.br=null;continue;}updBreath(m,dt);}};
 function drawBreath(f){
   const m=f.m,b=m&&m.br;if(!b||m.dead||!b.g)return;
   const g=b.g,k=b.k,t=b.t,kn=b.kn,fade=t<BR_E?1:Math.max(0,1-(t-BR_E)/.35);
