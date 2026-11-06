@@ -1,0 +1,31 @@
+{
+ "app": {
+  "version": "2.0.0",
+  "min": "2.0.0",
+  "windows": {
+   "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
+   "sha256": "60c3a94cc04367f22b738f2b774ebe7f6f4002cc4f5f73551d95001c9fa10b9c",
+   "size": 54083985
+  },
+  "android": {
+   "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
+   "sha256": "b5ccc30d2bc3011f1e028a11539fd3a4df4ff062806dd2446e35b92c376a13ec",
+   "size": 81790925
+  }
+ },
+ "assets": {
+  "version": 1,
+  "min_app": "2.0.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-1.pck",
+  "sha256": "4de44fecc0c75fb3a5e5f1951542f360db646af2a9276b811a3d16a25b0d2df0",
+  "size": 29165192
+ },
+ "changelog": [
+  "Ứng dụng gốc mới cho Windows và Android: mượt hơn, không cần trình duyệt",
+  "Máy chủ tự tính sát thương, rơi đồ, vàng, kinh nghiệm: công bằng cho mọi người",
+  "Quái trên bản đồ dùng chung: nhiều người cùng đánh một con",
+  "Tự tải hình ảnh và dữ liệu mới khi mở game",
+  "Mất mạng thì tự kết nối lại"
+ ],
+ "updated": "2026-11-06T11:40:14.152Z"
+}
