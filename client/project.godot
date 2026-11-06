@@ -1,0 +1,34 @@
+; Hiệp Sĩ Nét Chì — ứng dụng gốc (Godot 4). Dữ liệu và ảnh lấy từ bản game gốc, luật chơi do máy chủ quyết định.
+config_version=5
+
+[application]
+config/name="Hiệp Sĩ Nét Chì"
+config/description="Game nhập vai cuộn ngang online"
+config/version="2.0.0"
+run/main_scene="res://scenes/boot.tscn"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+config/icon="res://icon.png"
+boot_splash/bg_color=Color(0.03, 0.055, 0.13, 1)
+boot_splash/show_image=false
+
+[autoload]
+Data="*res://scripts/data.gd"
+Net="*res://scripts/net.gd"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+window/energy_saving/keep_screen_on=true
+
+[input_devices]
+pointing/emulate_touch_from_mouse=false
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=1
+environment/defaults/default_clear_color=Color(0.03, 0.055, 0.13, 1)
+textures/vram_compression/import_etc2_astc=true

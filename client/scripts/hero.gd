@@ -1,0 +1,142 @@
+extends Node2D
+class_name Hero
+## Vẽ nhân vật theo khung hình gốc: thân theo bộ áo, mũ và áo choàng là lớp riêng (giống tools/anim.js).
+## Gốc toạ độ = giữa hai chân.
+
+var cls = "sword"
+var look = 0            # (áo+1) + 5*(mũ+1) + 25*(choàng+1); -1 = không mặc
+var face = 1
+var moving = false
+var air = false
+var swing = 0.0         # 1 -> 0 khi đang đánh
+var t = 0.0
+var flash = 0.0
+var dead = false
+var nm = ""
+var lv = 0
+var hp = 1.0
+var show_name = true
+var is_me = false
+
+const HS := 0.8
+const FIT := {
+	"sword": {"hx": 3, "hw": 48, "hb": .66, "cx": -2, "cy": .47, "ch": 46},
+	"archer": {"hx": 4, "hw": 44, "hb": .52, "cx": -2, "cy": .49, "ch": 44},
+	"mage": {"hx": 2, "hw": 52, "hb": .42, "cx": -2, "cy": .48, "ch": 46},
+	"fighter": {"hx": 3, "hw": 44, "hb": .74, "cx": -1, "cy": .47, "ch": 44}}
+const BOB := [0.0, 2.2, 0.0, 2.2]
+
+func _process(dt: float) -> void:
+	t += dt
+	flash = max(0.0, flash - dt)
+	queue_redraw()
+
+func _frames() -> Array:
+	var a = look % 5 - 1
+	var k = "body_%s_%s" % [cls, "b" if a < 0 else str(a)]
+	var an: Dictionary = Data.A.get("anim", {})
+	if an.has(k):
+		return an[k]
+	return an.get("body_%s_0" % cls, [])
+
+func _draw() -> void:
+	var set = _frames()
+	if set.is_empty():
+		return
+	var al = 0.45 if dead else 1.0
+	if flash > 0 and int(t * 30) % 2 == 0:
+		al *= 0.5
+	var ph = t * 8.5
+	var fi = int(floor(ph)) % 4
+	var fr = ph - floor(ph)
+	var q: Dictionary = set[0]
+	if swing > 0:
+		q = set[5]
+	elif air:
+		q = set[1]
+	elif moving:
+		q = set[1 + fi]
+	var up = 0.0
+	if moving and swing <= 0 and not air:
+		up = BOB[fi] + (BOB[(fi + 1) % 4] - BOB[fi]) * fr
+	# bóng dưới chân
+	var sk = 1.0 - up * 0.05
+	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
+	_ellipse(Vector2(0, 1.5), 28 * sk, 7, Color(0.1, 0.12, 0.2, 0.28 * al))
+	# thân
+	var xf = Transform2D().scaled(Vector2(HS, HS))
+	xf = xf * Transform2D().scaled(Vector2(face, 1))
+	var sy = 1.0
+	var sx = 1.0
+	var rot = 0.0
+	if moving and swing <= 0:
+		rot = 0.03
+	elif swing <= 0:
+		var b = sin(t * 2.6)
+		sy = 1 + b * 0.016
+		sx = 1 - b * 0.008
+	var lunge = sin(min(1.0, (1 - swing) * 1.3) * PI) * 6.0 if swing > 0 else 0.0
+	xf = xf * Transform2D(rot, Vector2.ZERO) * Transform2D().translated(Vector2(lunge, -up)) * Transform2D().scaled(Vector2(sx, sy))
+	var F: Dictionary = FIT.get(cls, FIT.sword)
+	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
+	var tc = int(look / 25) - 1
+	var th = int(look / 5) % 5 - 1
+	var mod = Color(1, 1, 1, al)
+	# áo choàng phía sau
+	if tc >= 0 and L.has("cape") and tc < L.cape.size():
+		var cp: Dictionary = L.cape[tc]
+		var ct = Data.tex(cp.u)
+		if ct:
+			var ch: float = F.ch * (0.96 if swing > 0 else 1.0)
+			var cw: float = ch * cp.w / cp.h
+			var sway = 0.0
+			if moving:
+				sway = sin(t * 8.5 * PI / 2) * 0.07 + 0.12
+			elif swing > 0:
+				sway = 0.18
+			else:
+				sway = sin(t * 2) * 0.03
+			draw_set_transform_matrix(xf * Transform2D().translated(Vector2(F.cx, -q.h * (1 - F.cy))) * Transform2D(sway, Vector2.ZERO))
+			draw_texture_rect(ct, Rect2(-cw * 0.92, -ch * 0.06, cw, ch), false, mod)
+	var bt = Data.tex(q.u)
+	if bt:
+		draw_set_transform_matrix(xf)
+		draw_texture_rect(bt, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
+	# mũ trên đỉnh tóc của khung đang vẽ
+	if th >= 0 and L.has("hat") and th < L.hat.size() and q.has("tp"):
+		var ht: Dictionary = L.hat[th]
+		var htx = Data.tex(ht.u)
+		if htx:
+			var hx: float = F.hx + (float(q.hc) - float(set[0].hc) if q.get("hc") != null and set[0].get("hc") != null else 0.0)
+			var x0 = hx - F.hw * 0.32
+			var x1 = hx + F.hw * 0.32
+			var tp: Array = q.tp
+			var n = tp.size()
+			var top: float = q.h
+			for j in n:
+				var cx: float = (j + 0.5) / n * q.w - q.ax
+				if cx >= x0 and cx <= x1:
+					top = min(top, float(tp[j]))
+			var hw: float = F.hw
+			var hh: float = hw * ht.h / ht.w
+			var y: float = -q.h + top + hw * F.hb
+			draw_set_transform_matrix(xf)
+			draw_texture_rect(htx, Rect2(hx - hw / 2, y - hh, hw, hh), false, mod)
+	draw_set_transform(Vector2.ZERO)
+	if show_name and nm != "":
+		var f: Font = Data.fonts.get("bold")
+		var s = ("Lv.%d " % lv if lv > 0 else "") + nm
+		var w = f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+		var y = -84.0
+		draw_string_outline(f, Vector2(-w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 5, UI.INK)
+		draw_string(f, Vector2(-w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("ffd23f") if is_me else Color.WHITE)
+		if not is_me and hp < 1.0:
+			draw_rect(Rect2(-22, y + 4, 44, 6), UI.INK)
+			draw_rect(Rect2(-21, y + 5, 42 * clampf(hp, 0, 1), 4), Color("5fe08c"))
+
+func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
+	var pts = PackedVector2Array()
+	for i in 20:
+		var a = TAU * i / 20.0
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	draw_colored_polygon(pts, col)

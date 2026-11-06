@@ -17,3 +17,7 @@ tools/.mon-cache/
 desktop-lite/bin/
 desktop-lite/dist/
 desktop-lite/resources/index.html
+# ứng dụng gốc (Godot): thư mục nhập ảnh, bản dựng
+client/.godot/
+build/
+wrangler.test.json

@@ -52,7 +52,10 @@ fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
 for (const f of fs.readdirSync(path.join(root, 'tools', 'pwa'))) fs.copyFileSync(path.join(root, 'tools', 'pwa', f), path.join(root, 'public', f));
 // file cài đặt (Windows, Android) để trang tải game phục vụ ngay trên máy chủ này; cả hai mở thẳng máy chủ game nên luôn là bản mới
-for (const f of ['HiepSiNetChi-Windows.zip', 'HiepSiNetChi.apk']) { const p = path.join(root, 'release-files', f); if (fs.existsSync(p)) fs.copyFileSync(p, path.join(root, 'public', f)); }
+// bản cũ (ứng dụng vỏ) vẫn phục vụ tới khi có bản gốc trên GitHub Releases
+for (const f of ['HiepSiNetChi-Windows.zip', 'HiepSiNetChi.apk']) { const p = path.join(root, 'release-files', f); if (fs.existsSync(p) && !fs.existsSync(path.join(root, 'release-files', 'update', 'latest.json'))) fs.copyFileSync(p, path.join(root, 'public', f)); }
+// ứng dụng gốc (Godot) nằm ở GitHub Releases (file lớn hơn giới hạn 25 MB của Cloudflare); ở đây chỉ có manifest đã ký và bản đọc được
+{ const ud = path.join(root, 'release-files', 'update'); if (fs.existsSync(ud)) { fs.mkdirSync(path.join(root, 'public', 'update'), { recursive: true }); for (const f of fs.readdirSync(ud)) if (/\.json$/.test(f)) fs.copyFileSync(path.join(ud, f), path.join(root, 'public', 'update', f)); } }
 // dấu phiên bản: ghi lại mỗi lần đóng gói (Cloudflare tự đóng gói mỗi lần đẩy cập nhật)
 { const sha = (process.env.WORKERS_CI_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || '').slice(0, 7), d = new Date();
   const v = d.toISOString().slice(0, 10).replace(/-/g, '.') + (sha ? '-' + sha : '');
