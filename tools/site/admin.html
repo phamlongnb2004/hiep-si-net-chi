@@ -13,9 +13,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 html{background:#14204a}
-body{font:700 15px/1.45 var(--body);color:var(--ink);background:#4fb8ff url(tai-game-bg.webp) center 62%/cover fixed}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,0) 30%,rgba(10,30,70,.38) 100%)}
-body.in::before{background:linear-gradient(rgba(14,24,58,.72),rgba(14,24,58,.82))}
+body{font:700 15px/1.45 var(--body);color:var(--ink);background:transparent;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,0) 30%,rgba(10,30,70,.38) 100%),#4fb8ff url(tai-game-bg.webp) center 62%/cover no-repeat}
+body.in::before{background:linear-gradient(rgba(14,24,58,.72),rgba(14,24,58,.82)),#14204a url(tai-game-bg.webp) center 62%/cover no-repeat}
 button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3{margin:0;font-family:var(--disp);font-weight:800;line-height:1.15}
 a{color:#1f6fd1;font-weight:800}
@@ -79,7 +79,7 @@ textarea{min-height:84px;resize:vertical}
 .side{position:sticky;top:0;height:100vh;padding:18px 14px;display:flex;flex-direction:column;gap:6px;background:linear-gradient(180deg,rgba(255,250,240,.98),rgba(255,244,214,.98));border-right:4px solid var(--ink);box-shadow:6px 0 0 rgba(22,34,74,.25)}
 .side .logo{margin:4px 0 16px}
 .nav{display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:14px;color:var(--ink);font:800 16px var(--disp);cursor:pointer;border:3px solid transparent;background:none;text-align:left}
-.nav:hover{background:rgba(255,210,63,.25)}
+@media (hover:hover){.nav:hover{background:rgba(255,210,63,.25)}}
 .nav.on{background:#fff;border-color:var(--ink);box-shadow:0 4px 0 var(--ink)}
 .nav .badge{width:32px;height:32px;border-radius:10px;border-width:2.5px;box-shadow:0 2px 0 var(--ink)}
 .who{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border:3px solid var(--ink);border-radius:16px;background:#fff;box-shadow:0 4px 0 var(--ink)}
@@ -95,6 +95,7 @@ main{padding:22px clamp(12px,2.6vw,30px) 70px;min-width:0}
 .top .sp{flex:1}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;border:3px solid var(--ink);background:#fff;font:800 13px var(--disp);box-shadow:0 3px 0 var(--ink);color:var(--ink)}
 .grid{display:grid;gap:18px}
+.grid>*,.card{min-width:0}
 .g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:14px}
 .tile{position:relative;display:flex;align-items:center;gap:12px;background:rgba(255,250,240,.97);border:4px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:12px 14px}
@@ -128,13 +129,17 @@ tr.click{cursor:pointer}tr.click:hover td{background:#fff3c4}
 .kv span:nth-child(odd){color:var(--muted);font-weight:900}
 .empty{color:var(--muted);text-align:center;padding:18px 8px}
 @media (max-width:860px){
-  body.in::before{background:linear-gradient(rgba(14,24,58,.78),rgba(14,24,58,.86))}
-  .app{grid-template-columns:1fr}
-  .side{position:sticky;top:0;height:auto;flex-direction:row;overflow-x:auto;z-index:5;border-right:0;border-bottom:4px solid var(--ink);padding:8px 10px;box-shadow:0 4px 0 rgba(22,34,74,.25)}
+  body.in::before{background:linear-gradient(rgba(14,24,58,.78),rgba(14,24,58,.86)),#14204a url(tai-game-bg.webp) center 62%/cover no-repeat}
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr;align-content:start}
+  .side{position:sticky;top:0;height:auto;flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;z-index:5;border-right:0;border-bottom:4px solid var(--ink);padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));box-shadow:0 4px 0 rgba(22,34,74,.25)}
+  .side::-webkit-scrollbar{display:none}
   .side .logo,.who{display:none}
-  .nav{flex:none;padding:6px 10px;font-size:14.5px}
+  .nav{flex:none;align-self:center;height:auto;padding:5px 10px;font-size:14.5px;border-width:2.5px}
+  .nav.on{box-shadow:0 3px 0 var(--ink)}
   .nav .badge{width:28px;height:28px}
   main{padding:16px 12px 60px}
+  .logo .l1{--sw:9px}.logo .l2{--sw:8px}
+  .top{gap:10px}
   .g2{grid-template-columns:1fr}
   .tiles{grid-template-columns:repeat(2,1fr)}
   .tile .v{font-size:24px}

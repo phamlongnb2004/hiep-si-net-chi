@@ -140,6 +140,7 @@ function layout() {
   for (const [k, ic, n, c] of TABS) side.append(h('button', { class: 'nav' + (k === TAB ? ' on' : ''), onclick: () => { TAB = k; layout(); } }, badge(ic, c), n));
   side.append(h('div', { class: 'who' }, badge('user', 'c-sky'), h('div', null, h('b', null, ME.user), h('small', null, ME.roleName)),
     h('button', { class: 'btn sm sky', title: 'Đăng xuất', onclick: async () => { await run('logout'); ME = null; showLogin('Đã đăng xuất.'); } }, icon('out'))));
+  setTimeout(() => { const on = side.querySelector('.nav.on'); if (on && side.scrollWidth > side.clientWidth) side.scrollLeft = on.offsetLeft - (side.clientWidth - on.offsetWidth) / 2; }, 0);
   mainEl = h('main');
   root.append(h('div', { class: 'app' }, side, mainEl));
   const t = TABS.find(x => x[0] === TAB);
@@ -201,6 +202,7 @@ const VIEWS = {
     const r = await run('online'); if (!r) return;
     body.append(card(['wifi', 'c-mint', 'Đang online: ' + r.list.length], h('div', { class: 'scroll' }, h('table', null,
       h('tr', null, h('th', null, 'Tài khoản'), h('th', null, 'Nhân vật'), h('th', null, 'Máy chủ'), h('th', null, 'Bản đồ'), h('th', null, 'Ứng dụng'), h('th', null, '')),
+      r.list.length ? null : h('tr', null, h('td', { class: 'empty', colspan: 6 }, 'Hiện không có ai online.')),
       r.list.map(c => h('tr', null, h('td', null, h('a', { href: '#', onclick: e => { e.preventDefault(); openPlayer(c.uid); } }, c.user)), h('td', null, (c.name || '—') + (c.lv ? ' · Cấp ' + c.lv : ''), c.hidden ? h('span', { class: 'pill warn' }, ' Tàng hình') : ''),
         h('td', null, 'S' + c.srv), h('td', null, MAPS[c.map] || '—'), h('td', null, c.v2 ? (c.app || 'pc') : 'Bản cũ'),
         h('td', null, can('gm') ? h('button', { class: 'btn sm red', onclick: async () => { if (await confirmBox('Đá khỏi game', 'Mời ' + c.user + ' ra khỏi game?', 'Đá')) { await run('kick', { uid: c.uid }, 'Đã đá.'); layout(); } } }, 'Đá') : '')))))));
