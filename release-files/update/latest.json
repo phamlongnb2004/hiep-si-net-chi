@@ -11,6 +11,10 @@
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
    "sha256": "b5ccc30d2bc3011f1e028a11539fd3a4df4ff062806dd2446e35b92c376a13ec",
    "size": 81790925
+  },
+  "linux": {
+   "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
+   "file": "HiepSiNetChi-Linux.tar.gz"
   }
  },
  "assets": {
@@ -21,11 +25,12 @@
   "size": 29165192
  },
  "changelog": [
+  "Thêm bản Linux (64-bit)",
   "Ứng dụng gốc mới cho Windows và Android: mượt hơn, không cần trình duyệt",
   "Máy chủ tự tính sát thương, rơi đồ, vàng, kinh nghiệm: công bằng cho mọi người",
   "Quái trên bản đồ dùng chung: nhiều người cùng đánh một con",
   "Tự tải hình ảnh và dữ liệu mới khi mở game",
   "Mất mạng thì tự kết nối lại"
  ],
- "updated": "2026-11-06T11:40:14.152Z"
+ "updated": "2026-11-06T11:53:19.465Z"
 }

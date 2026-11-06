@@ -115,7 +115,7 @@ func check(server: String) -> void:
 		finished.emit({"ok": false, "why": "sig"})
 		return
 	var out = {"ok": true, "manifest": m}
-	var plat = "android" if OS.get_name() == "Android" else "windows"
+	var plat = {"Android": "android", "Linux": "linux", "iOS": "ios"}.get(OS.get_name(), "windows")
 	var app: Dictionary = m.get("app", {})
 	if ver_cmp(app_version(), str(app.get("min", "0"))) < 0:
 		out["app_required"] = true

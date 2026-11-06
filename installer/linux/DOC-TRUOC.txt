@@ -1,0 +1,8 @@
+HIỆP SĨ NÉT CHÌ – bản Linux (64-bit, x86_64)
+
+Cài:   mở Terminal trong thư mục này, chạy:  sh install.sh
+Chơi ngay không cài:                        ./HiepSiNetChi.x86_64
+Gỡ:    sh ~/.local/share/HiepSiNetChi/uninstall.sh
+
+Cần: Linux 64-bit có giao diện (X11 hoặc Wayland), card đồ họa hỗ trợ OpenGL 3.3, có mạng (game chơi online).
+Cập nhật: hình ảnh/dữ liệu mới tự tải khi mở game; khi có bản ứng dụng mới, game sẽ báo – tải lại ở trang /tai-game rồi chạy install.sh lần nữa.

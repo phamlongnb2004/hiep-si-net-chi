@@ -47,15 +47,17 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     // xác minh ứng dụng Android (TWA) để chạy toàn màn hình, không hiện thanh địa chỉ
     if (url.pathname === '/.well-known/assetlinks.json') return new Response(env.ASSETLINKS || '[]', { headers: { 'Content-Type': 'application/json' } });
-    // link tải cố định: /tai/windows, /tai/android -> file của bản mới nhất (ghi trong update/latest.json)
-    if (url.pathname === '/tai/windows' || url.pathname === '/tai/android') {
+    // link tải cố định: /tai/windows, /tai/android, /tai/linux, /tai/ios -> file của bản mới nhất (ghi trong update/latest.json)
+    const tai = /^\/tai\/(windows|android|linux|ios)$/.exec(url.pathname);
+    if (tai) {
       try {
         const r = await env.ASSETS.fetch(new Request(new URL('/update/latest.json', url)));
-        const m = await r.json(), k = url.pathname.endsWith('windows') ? 'windows' : 'android', u = m.app && m.app[k] && m.app[k].url;
+        const m = await r.json(), k = tai[1], u = m.app && m.app[k] && m.app[k].url;
         if (u && /^https:\/\//.test(u)) return new Response(null, { status: 302, headers: { Location: u, 'Cache-Control': 'no-store' } });
       } catch (e) {}
+      const k2 = k => k === 'windows' ? '/HiepSiNetChi-Windows.zip' : k === 'android' ? '/HiepSiNetChi.apk' : '/tai-game';
       // chưa phát hành bản gốc: dùng file cũ (ứng dụng vỏ) đang có trên máy chủ
-      return new Response(null, { status: 302, headers: { Location: url.pathname.endsWith('windows') ? '/HiepSiNetChi-Windows.zip' : '/HiepSiNetChi.apk', 'Cache-Control': 'no-store' } });
+      return new Response(null, { status: 302, headers: { Location: k2(tai[1]), 'Cache-Control': 'no-store' } });
     }
     if (url.pathname.startsWith('/api/') || url.pathname === '/ws') {
       const world = env.WORLD.get(env.WORLD.idFromName('world'));

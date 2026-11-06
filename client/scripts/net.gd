@@ -23,7 +23,7 @@ var _last_rx = 0.0
 var _stop_reason = ""
 
 func _ready() -> void:
-	app = "android" if OS.get_name() == "Android" else "pc"
+	app = {"Android": "android", "iOS": "ios"}.get(OS.get_name(), "pc")
 	var cfg = FileAccess.open("res://data/config.json", FileAccess.READ)
 	if cfg:
 		var c = JSON.parse_string(cfg.get_as_text())

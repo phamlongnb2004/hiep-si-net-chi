@@ -19,9 +19,10 @@ Cập nhật: 06/11/2026 · Ứng dụng 2.0.0 · Dữ liệu 1
 - Giao diện: máu/kinh nghiệm, vàng/đá, bản đồ nhỏ, 6 kỹ năng có thời gian hồi và khóa, bình máu, nhật ký, trò chuyện, túi đồ (so sánh, mặc, bán, sắp xếp, bán đồ thường), nhân vật, cửa hàng (sách, bình), học kỹ năng, lò rèn.
 - Mất mạng: dừng điều khiển, tự kết nối lại (chờ tăng dần), nhận lại toàn bộ trạng thái từ máy chủ; không có chơi offline.
 - Cập nhật có chữ ký: kiểm chữ ký, SHA-256, kích thước, tải tiếp khi đứt, quay lại gói trước khi hỏng (đã thử cả 5 trường hợp).
-- Bản dựng: trình cài Windows (NSIS, 54 MB), APK (chưa ký, 78 MB), gói dữ liệu (29 MB).
+- Bản dựng: trình cài Windows (NSIS, 52 MB), APK ký bằng khóa cũ (78 MB), Linux .tar.gz (54 MB), gói dữ liệu (29 MB); đã phát hành, tải ở /tai-game.
 
 ## Còn thiếu / cần làm tiếp
+- **iOS**: cần máy Mac (Xcode) + tài khoản Apple Developer (99 USD/năm) để ký và phát hành qua TestFlight/App Store; mã Godot dùng chung được, chỉ thiếu bước dựng/ký. Trang tải đã có ô iPhone/iPad ("Sắp có"), tự hiện nút khi manifest có app.ios.
 - **Ký APK bằng khóa cũ và đưa bản dựng lên GitHub Releases**: cần máy VM (giữ keystore, khóa cập nhật, token GitHub) — kết nối máy lại rồi chạy `tools/publish.sh`.
 - **Thử trên máy thật**: chưa chạy trên điện thoại Android và máy Windows thật (mới thử trên Linux cùng bộ mã).
 - Âm thanh, nhiệm vụ, bang hội, bạn bè, giao dịch: để sau (giao thức đã chừa chỗ).
