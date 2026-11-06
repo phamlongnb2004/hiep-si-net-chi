@@ -136,15 +136,17 @@ async function start() { try { ME = await api('me'); } catch (e) { if (e.message
 let mainEl;
 function layout() {
   root.replaceChildren(); document.body.classList.add('in');
+  const logout = async () => { if (!await confirmBox('Đăng xuất', 'Thoát khỏi khu quản trị?', 'Đăng xuất')) return; await run('logout'); ME = null; showLogin('Đã đăng xuất.'); };
   const side = h('nav', { class: 'side' }, logoEl(true));
   for (const [k, ic, n, c] of TABS) side.append(h('button', { class: 'nav' + (k === TAB ? ' on' : ''), onclick: () => { TAB = k; layout(); } }, badge(ic, c), n));
   side.append(h('div', { class: 'who' }, badge('user', 'c-sky'), h('div', null, h('b', null, ME.user), h('small', null, ME.roleName)),
-    h('button', { class: 'btn sm sky', title: 'Đăng xuất', onclick: async () => { await run('logout'); ME = null; showLogin('Đã đăng xuất.'); } }, icon('out'))));
+    h('button', { class: 'btn sm sky', title: 'Đăng xuất', onclick: () => logout() }, icon('out'))));
   setTimeout(() => { const on = side.querySelector('.nav.on'); if (on && side.scrollWidth > side.clientWidth) side.scrollLeft = on.offsetLeft - (side.clientWidth - on.offsetWidth) / 2; }, 0);
   mainEl = h('main');
   root.append(h('div', { class: 'app' }, side, mainEl));
   const t = TABS.find(x => x[0] === TAB);
-  mainEl.append(h('div', { class: 'top' }, h('h1', null, badge(t[1], t[3]), t[2]), h('div', { class: 'sp' }), h('span', { class: 'chip' }, icon('user'), ME.user + ' · ' + ME.roleName)));
+  mainEl.append(h('div', { class: 'top' }, h('h1', null, badge(t[1], t[3]), t[2]), h('div', { class: 'sp' }),
+    h('div', { class: 'topr' }, h('span', { class: 'chip' }, icon('user'), ME.user + ' · ' + ME.roleName), h('button', { class: 'btn sm red mob', onclick: logout }, icon('out'), 'Đăng xuất'))));
   const body = h('div', { class: 'grid' }); mainEl.append(body);
   VIEWS[TAB](body);
 }
