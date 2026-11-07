@@ -212,7 +212,7 @@ func gm_test() -> void:
 
 
 func tour(u: String, act: String) -> void:
-	var nw = act == "art"
+	var nw = act == "art" or act == "artmaps"
 	if nw:
 		u = "art%d" % (Time.get_unix_time_from_system() as int % 100000)
 	var r = await Net.login(u, "matkhau1", nw)
@@ -227,6 +227,9 @@ func tour(u: String, act: String) -> void:
 	var g: Game = main.game
 	if act == "art":
 		await tour_art(g)
+		return
+	if act == "artmaps":
+		await tour_maps(g)
 		return
 	await shot("t1-" + u)
 	if act == "climb":
