@@ -19,15 +19,15 @@
   }
  },
  "assets": {
-  "version": 13,
+  "version": 14,
   "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-13.pck",
-  "sha256": "4645b7c174db188d5f2b3b33614d4899bb1455e98889fc70315f3a10a35c6f6e",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-14.pck",
+  "sha256": "64033341c577c8aeeec79f21e3c0305c4bf9da24e19ba26307dcb11d16148cf3",
   "size": 47452432
  },
  "changelog": [
-  "Mũ nhìn ngang ôm đầu hơn: mũ trụ kiếm sĩ lùi về sau gáy, mũ cung thủ hạ xuống chụp lên đầu, băng đô võ sĩ thu nhỏ nằm ngang trán",
-  "Mũ nhìn từ sau lưng khi leo thang vẽ lại, không còn lộ lót trong"
+  "Mũ phượng hoàng của cung thủ hạ xuống ôm đầu, ngọc nằm ngang trán",
+  "Mũ nhìn ngang ôm đầu hơn: mũ trụ kiếm sĩ lùi về sau gáy, mũ cung thủ chụp lên đầu, băng đô võ sĩ nằm ngang trán"
  ],
- "updated": "2026-11-07T16:00:02.490Z"
+ "updated": "2026-11-07T16:10:03.305Z"
 }
