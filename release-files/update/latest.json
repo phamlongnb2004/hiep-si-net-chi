@@ -1,36 +1,37 @@
 {
  "app": {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "min": "2.6.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "a7845083566e70db87032edb62e9df66fb4552e893ded792ac15409a76ce6feb",
-   "size": 68917690
+   "sha256": "010ff387f02eade0b84d47a2dcd74dede329e5964357a9f03399c8f7cec8ea9c",
+   "size": 69848908
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "d10420dab48a7d3fb7edac10204144f52c4b1885be7d6bf2bf2eef31013c386f",
-   "size": 97105201
+   "sha256": "25d3a8ca282dead2aeb18b7aa6acb305a7337bac69beeff4771e50c4cc02badc",
+   "size": 98066129
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "cb308cd7e154a2ae3f7130d7a707859c035354fcad3af04b7dd51bee36f26d05",
-   "size": 71082597
+   "sha256": "897bb3ff7046f198f14d96956cb1fd885abc278fa3fc962d703e03dabfd9524e",
+   "size": 72013652
   }
  },
  "assets": {
-  "version": 5,
+  "version": 6,
   "min_app": "2.6.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-5.pck",
-  "sha256": "c61084e59b9dec732aace276383ca170e26ce3813eaf940d2ceb06cc2b874eeb",
-  "size": 44631132
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-6.pck",
+  "sha256": "0d24d26905fd0a1ec2cded65f5c3611566eaaaec5174e2bdfb5d1e5f41dc33f1",
+  "size": 45535324
  },
  "changelog": [
+  "Thông báo khu trùm và thông báo máy chủ có biểu tượng vẽ mới, chuyển động (sắp mở, đã mở, kết liễu trùm)",
+  "Quái và trùm mới đứng sát mặt đất",
   "Bản đồ mới: Bãi Biển Vỏ Sò (cấp 5-15, đi bên trái Làng), Rạn San Hô dưới nước (15-25), Đầm Lầy Sương Độc (30-40, sau Núi Lửa)",
   "Khu trùm mở theo giờ (12:00, 19:00, 21:00) ở giữa bản đồ: Vua Cua, Rùa Đá, Rắn Chúa, Vua Heo Rừng, Sói Tuyết Đầu Đàn, 3 rồng",
   "Trùm có 3 chiêu, vùng đỏ báo trước để né; 9 quái mới với cách đánh riêng (phun độc, lao tới, phồng gai, nổ khi chết...)",
-  "Kết liễu trùm: nhận đồ rơi và danh hiệu Kẻ Kết Liễu 24 giờ; kinh nghiệm, vàng chia theo % sát thương",
-  "Sửa: quái và trùm mới đứng sát mặt đất, không còn lơ lửng khi đổi động tác"
+  "Kết liễu trùm: nhận đồ rơi và danh hiệu Kẻ Kết Liễu 24 giờ; kinh nghiệm, vàng chia theo % sát thương"
  ],
- "updated": "2026-11-07T08:07:49.153Z"
+ "updated": "2026-11-07T09:00:08.552Z"
 }
