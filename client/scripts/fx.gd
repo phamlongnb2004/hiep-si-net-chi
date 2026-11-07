@@ -12,6 +12,8 @@ var parts: Array = []     # hạt sáng: {p, v, life, max, s, col, g}
 var rings: Array = []     # sóng tròn: {p, r0, r1, t, max, col, w}
 var shake = 0.0           # rung màn hình (giây còn lại × biên độ)
 var add_layer: Node2D
+var vfxs: Array = []      # hiệu ứng 8 khung: {d (assets vfx), p, h, t, max, flip, v (bay), loop, id}
+var tgs: Array = []       # vùng báo trước chiêu quái: {k r|c, a, b, y, t, max}
 
 ## lớp vẽ cộng sáng (ánh sáng, hạt, vệt đạn, sóng) nằm trên lớp thường
 class AddLayer extends Node2D:
@@ -46,6 +48,28 @@ func _ready() -> void:
 	add_layer = AddLayer.new()
 	add_layer.fx = self
 	add_child(add_layer)
+
+## hiệu ứng vẽ sẵn 8 khung (sóng xung kích, phóng điện, độc...); phát sáng thì vẽ kiểu cộng sáng
+func vfx(name: String, p: Vector2, h: float, flip := false, o := {}) -> void:
+	var d: Dictionary = Data.A.get("vfx", {}).get(name, {})
+	if d.is_empty():
+		return
+	var e = {"d": d, "p": p, "h": h, "t": 0.0, "max": 0.62, "flip": flip, "v": Vector2.ZERO, "loop": false, "id": 0}
+	e.merge(o, true)
+	vfxs.append(e)
+
+## đạn của quái bay ngang (cục độc): lặp khung tới khi máy chủ báo trúng/hết tầm
+func mon_proj(id: int, name: String, p: Vector2, vx: float, life: float) -> void:
+	vfx(name, p, 56, vx < 0, {"v": Vector2(vx, 0), "loop": true, "max": life + 0.3, "id": id})
+
+func mon_proj_end(id: int) -> void:
+	for i in range(vfxs.size() - 1, -1, -1):
+		if vfxs[i].id == id:
+			vfxs.remove_at(i)
+
+## vùng đỏ báo trước chiêu: hình chữ nhật trên mặt đất (k = "r", a..b) hoặc vòng tròn (k = "c", tâm a, bán kính b)
+func telegraph(k: String, a: float, b: float, y: float, dur: float) -> void:
+	tgs.append({"k": k, "a": a, "b": b, "y": y, "t": 0.0, "max": max(0.2, dur)})
 
 func text(p: Vector2, s: String, col: Color, big := false) -> void:
 	texts.append({"p": p + Vector2(randf_range(-8, 8), 0), "s": s, "col": col, "big": big, "t": 0.0, "max": 0.9 if big else 0.75})
@@ -182,7 +206,7 @@ func _process(dt: float) -> void:
 			for m in g.mons.values():
 				if m.dead():
 					continue
-				if (m.position + Vector2(0, -float(Mon.MH.get(m._k, 80)) * 0.35)).distance_to(q.p) < float(m._info.get("r", 30)) + 10:
+				if (m.position + Vector2(0, -m.hh() * 0.4 - m.lift())).distance_to(q.p) < float(m._info.get("r", 30)) + 10:
 					hit = true
 					break
 		if hit and q.kind != "ki":
@@ -206,6 +230,16 @@ func _process(dt: float) -> void:
 		if rings[i].t >= rings[i].max:
 			rings.remove_at(i)
 	shake = max(0.0, shake - dt)
+	for i in range(vfxs.size() - 1, -1, -1):
+		var v = vfxs[i]
+		v.t += dt
+		v.p += v.v * dt
+		if v.t >= v.max:
+			vfxs.remove_at(i)
+	for i in range(tgs.size() - 1, -1, -1):
+		tgs[i].t += dt
+		if tgs[i].t >= tgs[i].max:
+			tgs.remove_at(i)
 	for i in range(breaths.size() - 1, -1, -1):
 		var b = breaths[i]
 		b.t += dt
@@ -259,7 +293,49 @@ func _upd_breath(b: Dictionary, dt: float) -> void:
 		if q.life <= 0:
 			b.parts.remove_at(i)
 
+func _vfx_frame(v: Dictionary) -> Texture2D:
+	var F: Array = v.d.f
+	var k = int(v.t * 13.0) % 8 if v.loop else mini(7, int(v.t / v.max * 8.0))
+	return Data.tex(F[k])
+
+func _vfx_draw(L: Node2D, v: Dictionary, k := 1.0) -> void:
+	var tx = _vfx_frame(v)
+	if tx == null:
+		return
+	var h: float = v.h
+	var w: float = h * float(v.d.w) / float(v.d.h)
+	var u: float = v.t / v.max
+	var al = 1.0 if v.loop else (1.0 if u < 0.75 else (1.0 - u) / 0.25)
+	L.draw_set_transform(v.p, 0, Vector2(-1 if v.flip else 1, 1))
+	L.draw_texture_rect(tx, Rect2(-w / 2, -h * 0.62, w, h), false, Color(1, 1, 1, al * k))
+
 func _draw() -> void:
+	# vùng báo chiêu (đỏ, đậm dần tới lúc ra đòn)
+	for g in tgs:
+		var u: float = g.t / g.max
+		var c = Color(1, 0.15, 0.1, 0.16 + 0.22 * u)
+		var e = Color(1, 0.3, 0.2, 0.55 + 0.4 * u)
+		if g.k == "r":
+			draw_rect(Rect2(g.a, g.y - 16, g.b - g.a, 22), c)
+			draw_rect(Rect2(g.a, g.y - 16, (g.b - g.a) * u, 22), Color(1, 0.25, 0.1, 0.22))
+			draw_rect(Rect2(g.a, g.y - 16, g.b - g.a, 22), e, false, 2.0)
+		else:
+			var pts = PackedVector2Array()
+			for i in 32:
+				var a = TAU * i / 32.0
+				pts.append(Vector2(g.a + cos(a) * g.b, g.y - 4 + sin(a) * g.b * 0.22))
+			draw_colored_polygon(pts, c)
+			pts.append(pts[0])
+			draw_polyline(pts, e, 2.0)
+			var pi2 = PackedVector2Array()
+			for i in 32:
+				var a = TAU * i / 32.0
+				pi2.append(Vector2(g.a + cos(a) * g.b * u, g.y - 4 + sin(a) * g.b * 0.22 * u))
+			draw_colored_polygon(pi2, Color(1, 0.25, 0.1, 0.2))
+	# hiệu ứng 8 khung thường (không phát sáng)
+	for v in vfxs:
+		_vfx_draw(self, v, 0.85 if v.d.get("glow", false) else 1.0)
+	draw_set_transform(Vector2.ZERO)
 	# đạn
 	for q in projs:
 		if q.trav < 0:
@@ -387,6 +463,10 @@ func draw_add(L: Node2D) -> void:
 		var w: float = h * float(img.w) / float(img.h)
 		L.draw_set_transform(s.p, s.rot + s.spin * s.t, Vector2(-1 if s.flip else 1, 1))
 		L.draw_texture_rect(tx, Rect2(-w * s.px, -h * s.py, w, h), false, Color(1, 1, 1, al))
+	L.draw_set_transform(Vector2.ZERO)
+	for v in vfxs:
+		if v.d.get("glow", false):
+			_vfx_draw(L, v, 0.6)
 	L.draw_set_transform(Vector2.ZERO)
 	for pp in parts:
 		var f = pp.life / pp.max

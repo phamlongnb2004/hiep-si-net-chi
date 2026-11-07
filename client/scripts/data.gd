@@ -160,3 +160,44 @@ func item_icon(it: Dictionary) -> Texture2D:
 		if si >= 0 and si < row.size():
 			return tex(row[si])
 	return null
+
+## ---------- khu trùm: giờ mở (giống máy chủ, theo giờ Việt Nam) ----------
+var clock_off := 0.0   # mili giây: giờ máy chủ - giờ máy này
+
+func now_ms() -> float:
+	return Time.get_unix_time_from_system() * 1000.0 + clock_off
+
+func _hms(ms: float) -> String:
+	var s = int(ms / 1000.0)
+	return ("%d:%02d:%02d" % [s / 3600, (s / 60) % 60, s % 60]) if s >= 3600 else ("%d:%02d" % [s / 60, s % 60])
+
+func _vn(ms: float) -> String:
+	var s = int((ms + 7 * 3600e3) / 1000.0) % 86400
+	return "%02d:%02d" % [s / 3600, (s / 60) % 60]
+
+## trạng thái cổng khu trùm (bản đồ khu trùm mi): {open, text}
+func arena_state(mi: int) -> Dictionary:
+	var A: Dictionary = D.maps[mi].get("arena", {})
+	var cf: Dictionary = cfg.get("arena", {}) if cfg.get("arena") is Dictionary else {}
+	var now = now_ms()
+	var f = cf.get("now")
+	if f is Dictionary and float(f.get("until", 0)) > now:
+		return {"open": true, "text": "Đang mở · còn " + _hms(float(f.until) - now)}
+	if cf.get("on", true) == false:
+		return {"open": false, "text": "Tạm đóng"}
+	var slots: Array = cf.get("slots", ["12:00", "19:00", "21:00"])
+	var dur: float = float(cf.get("dur", 30)) * 60e3
+	var VN = 7 * 3600e3
+	var day = floor((now + VN) / 864e5) * 864e5 - VN
+	var nxt = INF
+	for d in [-1, 0, 1]:
+		for sl in slots:
+			var p = str(sl).split(":")
+			var st = day + d * 864e5 + (int(p[0]) * 60 + (int(p[1]) if p.size() > 1 else 0) + int(A.get("ofs", 0))) * 60e3
+			if now >= st and now < st + dur:
+				return {"open": true, "text": "Đang mở · còn " + _hms(st + dur - now)}
+			if st > now:
+				nxt = min(nxt, st)
+	if nxt == INF:
+		return {"open": false, "text": "Đang đóng"}
+	return {"open": false, "text": "Mở lúc %s (còn %s)" % [_vn(nxt), _hms(nxt - now)]}

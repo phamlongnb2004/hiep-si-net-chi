@@ -28,6 +28,14 @@ var elite = false
 var die_t = -1.0         # >=0: đang chết (nhấp nháy, mờ dần rồi biến mất)
 var hit_t = 0.0          # >0: vừa trúng đòn (ửng đỏ)
 var _info: Dictionary = {}
+var _art = ""             # ảnh dùng (loài khác có thể mượn ảnh: vua heo dùng ảnh heo lửa)
+var _m2: Dictionary = {}  # ảnh kiểu mới: mỗi động tác 8 khung (assets.json → mon2)
+var sc = 1.0              # phóng to (trùm mượn ảnh quái thường)
+var tint_c = Color.WHITE
+var flyh = 0.0            # bay/bơi lơ lửng cao bao nhiêu
+var anim = ""             # động tác chạy một lần: atk, s1, s2, s3
+var anim_t = 0.0
+var anim_dur = 0.0
 
 func setup(info: Dictionary) -> void:
 	id = int(info.id)
@@ -41,7 +49,34 @@ func setup(info: Dictionary) -> void:
 	elite = int(info.get("el", 0)) == 1
 	_info = Data.D.mons.get(type, {})
 	_k = str(_info.get("kind", "boar"))
+	_art = str(_info.get("art", type))
+	_m2 = Data.A.get("mon2", {}).get(_art, {})
+	sc = float(_info.get("sc", 1.0))
+	tint_c = Color.html(str(_info.get("tint", "ffffff")))
+	flyh = float(_info.get("fly", 0))
 	walk = randf() * 6.0
+
+## chiều cao thân khi vẽ (đã tính phóng to)
+func hh() -> float:
+	var base: float = float(_info.get("h", 80)) if not _m2.is_empty() else float(MH.get(_k, 80)) * MS
+	return base * sc * (1.15 if elite else 1.0)
+
+## nhấc khỏi mặt đất (quái bay/bơi, rồng)
+func lift() -> float:
+	if _k == "dragon":
+		return 70.0 * MS
+	return flyh
+
+## chạy một động tác (đánh, chiêu) trong dur giây
+func play(a: String, dur: float) -> void:
+	if a == "":
+		return
+	if a == "atk" and _m2.is_empty():
+		lunge = 0.25
+		return
+	anim = a
+	anim_t = 0.0
+	anim_dur = max(0.3, dur)
 
 func dead() -> bool:
 	return flags & 1 != 0
@@ -64,6 +99,10 @@ func _process(dt: float) -> void:
 	if not dead() and absf(d.x) > 1.5 and br_t < 0:
 		face = 1 if d.x > 0 else -1
 	hit_t = max(0.0, hit_t - dt)
+	if anim != "":
+		anim_t += dt
+		if anim_t >= anim_dur:
+			anim = ""
 	if die_t >= 0:
 		die_t += dt
 	visible = not dead() or (die_t >= 0 and die_t < 0.75)
@@ -76,7 +115,10 @@ func _br_frame(bt: float) -> int:
 	return [2, 3, 4, 3][int((bt - BR_C) * 6) % 4]
 
 func _draw() -> void:
-	var F: Array = Data.A.get("mon", {}).get(type, [])
+	if not _m2.is_empty():
+		_draw2()
+		return
+	var F: Array = Data.A.get("mon", {}).get(_art, [])
 	if F.is_empty():
 		return
 	var fly = _k == "dragon"
@@ -91,7 +133,7 @@ func _draw() -> void:
 	if hit_t > 0:
 		var k = hit_t / 0.18
 		tint = Color(1, 1 - 0.55 * k, 1 - 0.55 * k, al)   # ửng đỏ khi trúng đòn
-	var esc = 1.15 if elite else 1.0
+	var esc = (1.15 if elite else 1.0) * sc
 	var base = Transform2D().scaled(Vector2(MS * esc, MS * esc))
 	draw_set_transform_matrix(base)
 	var sw: float = 44.0 if _k == "boar" else (58.0 if _k == "wolf" else (62.0 if _k == "bear" else 130.0))
@@ -102,7 +144,7 @@ func _draw() -> void:
 	var mv = flags & 64 != 0
 	var fi = int(floor(t * 7 + id if fly else walk * 5.5)) % 4
 	var q: Dictionary = F[1 + fi] if fly else (F[5] if lunge > 0 and F.size() > 5 else (F[1 + fi] if mv else F[0]))
-	var BF: Array = Data.A.get("mon", {}).get(type + "_br", [])
+	var BF: Array = Data.A.get("mon", {}).get(_art + "_br", [])
 	if br_t >= 0 and BF.size() >= 6:
 		q = BF[_br_frame(br_t)]
 	var fh: float = H * float(q.hr)
@@ -123,7 +165,7 @@ func _draw() -> void:
 			var gl = 0.35 + sin(t * 4.0) * 0.15
 			for o in [Vector2(3, 0), Vector2(-3, 0), Vector2(0, 3), Vector2(0, -3)]:
 				draw_texture_rect(tx, Rect2(Vector2(-float(q.cx) * H, y0) + o, Vector2(fw, fh)), false, Color(1.0, 0.75, 0.25, gl))
-		draw_texture_rect(tx, Rect2(-float(q.cx) * H, y0, fw, fh), false, tint)
+		draw_texture_rect(tx, Rect2(-float(q.cx) * H, y0, fw, fh), false, tint * tint_c)
 	if fly:
 		var lx: float = -float(q.cx) * H + float(q.get("mx", 0.92) if q.get("mx") != null else 0.92) * fw
 		var ly: float = y0 + float(q.get("my", 0.38) if q.get("my") != null else 0.38) * fh
@@ -132,28 +174,85 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO)
 	var th: float = round(H * 0.94)
 	var top: float = hover * MS + th * (1 - MS) - th
+	if sc != 1.0:
+		top = hover * MS - th * MS * esc - 6
+	_status(top)
+	_bar(top, sw * MS * sc)
+
+## ★ choáng, vòng độc/chậm
+func _status(top: float) -> void:
 	if flags & 2:
 		var f: Font = Data.fonts.get("bold")
 		draw_string_outline(f, Vector2(-18 + sin(t * 9) * 8, top - 20), "★ ★", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 4, UI.INK)
 		draw_string(f, Vector2(-18 + sin(t * 9) * 8, top - 20), "★ ★", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("ffd23f"))
+
+## thanh máu, tên, vòng chọn mục tiêu
+func _bar(top: float, sw: float) -> void:
+	draw_set_transform(Vector2.ZERO)
 	if flags & 12:
-		draw_arc(Vector2(0, 2), sw * MS + 4, 0, TAU, 24, Color("6fcf3f") if flags & 8 else Color("6fb8ff"), 3)
+		draw_arc(Vector2(0, 2), sw + 4, 0, TAU, 24, Color("6fcf3f") if flags & 8 else Color("6fb8ff"), 3)
+	if die_t >= 0:
+		return
 	var boss: bool = _info.get("boss", false)
 	var ly2 = top - 8
-	if die_t >= 0:
-		draw_set_transform(Vector2.ZERO)
-		return
 	if hp < hp_max or boss or focused or elite:
-		var bw = 96.0 if boss else 48.0
+		var bw = 120.0 if boss else 48.0
 		draw_rect(Rect2(-bw / 2 - 1.5, ly2 - 1.5, bw + 3, 8), Color("0f1422"))
 		draw_rect(Rect2(-bw / 2, ly2, bw * clampf(hp / hp_max, 0, 1), 5), Color("d9345a"))
 	var f2: Font = Data.fonts.get("bold")
 	var lab = "Lv.%d %s%s" % [lv, _info.get("n", type), " Tinh Anh" if elite else ""]
-	var w = f2.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	draw_string_outline(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Color(1, 1, 1, 0.85))
-	draw_string(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("c0143f") if focused else (Color("b85c00") if elite else UI.INK))
+	var sz = 16 if boss else 14
+	var w = f2.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
+	draw_string_outline(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 4, Color(1, 1, 1, 0.85))
+	draw_string(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color("c0143f") if focused or boss else (Color("b85c00") if elite else UI.INK))
 	if focused:
-		draw_arc(Vector2(0, 3), sw * MS * 0.9, 0, TAU, 28, Color(1, 0.82, 0.25, 0.9), 2.5)
+		draw_arc(Vector2(0, 3), sw * 0.9, 0, TAU, 28, Color(1, 0.82, 0.25, 0.9), 2.5)
+
+## quái kiểu mới: đứng / đi / đánh / chiêu, mỗi động tác 8 khung
+func _draw2() -> void:
+	var A: Dictionary = _m2.a
+	var H := hh()
+	var W: float = H * float(_m2.w) / float(_m2.h)
+	var mv = flags & 64 != 0 or absf(target.x - position.x) > 0.6
+	var fr: Array = A.get("idle", A.move)
+	var k := 0
+	if anim != "" and A.has(anim):
+		fr = A[anim]
+		k = mini(7, int(anim_t / anim_dur * 8.0))
+	elif mv or not A.has("idle"):
+		fr = A.move
+		k = int(t * (11.0 if mv else 7.0) + id) % 8
+	else:
+		k = int(t * 7.0 + id) % 8
+	var bob = sin(t * 2.6 + id) * 5.0 if flyh > 0 else 0.0
+	var y0: float = -H - flyh + bob
+	var al = 1.0
+	if die_t >= 0:
+		al = (1.0 - die_t / 0.75) * (0.25 if int(die_t * 20) % 2 == 0 else 1.0)
+	var col = Color(tint_c, al)
+	if hit_t > 0:
+		var q = hit_t / 0.18
+		col = Color(1, 1 - 0.55 * q, 1 - 0.55 * q, al)
+	if flags & 128:
+		col = col * Color(0.7, 0.85, 1.25)
+	# bóng dưới chân
+	_ellipse(Vector2(0, 2), W * 0.32 * (0.75 if flyh > 0 else 1.0), W * 0.07, Color(0.1, 0.1, 0.2, 0.22 if flyh > 0 else 0.3))
+	var lng = sin(lunge / 0.25 * PI) * 8.0 if lunge > 0 and anim == "" else 0.0
+	draw_set_transform(Vector2(lng * face, 0), 0, Vector2(face, 1))
+	var tx = Data.tex(fr[k])
+	if tx:
+		var r = Rect2(-float(_m2.cx) * W, y0, W, H)
+		if elite and die_t < 0:
+			var gl = 0.35 + sin(t * 4.0) * 0.15
+			for o in [Vector2(3, 0), Vector2(-3, 0), Vector2(0, 3), Vector2(0, -3)]:
+				draw_texture_rect(tx, Rect2(r.position + o, r.size), false, Color(1.0, 0.75, 0.25, gl))
+		draw_texture_rect(tx, r, false, col)
+	draw_set_transform(Vector2.ZERO)
+	if flags & 128:
+		draw_arc(Vector2(0, y0 + H * 0.5), W * 0.42, 0, TAU, 30, Color(0.6, 0.85, 1, 0.55 + sin(t * 8) * 0.2), 3)
+	var top = y0 + 4
+	_status(top)
+	_bar(top, W * 0.36)
 
 func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts = PackedVector2Array()

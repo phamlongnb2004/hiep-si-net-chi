@@ -18,6 +18,8 @@ var hp = 1.0
 var show_name = true
 var is_me = false
 var wing = -1           # độ hiếm cánh đang đeo (0..3), -1 = không có
+var title = ""          # danh hiệu (vd Kẻ Kết Liễu, 24 giờ sau khi hạ trùm)
+var deb = 0             # trạng thái xấu: 1 choáng, 2 chậm, 4 độc
 var _sp: Array = []     # hạt sáng quanh cánh
 
 const HS := 0.8
@@ -184,6 +186,20 @@ func _draw() -> void:
 		var y = -84.0
 		draw_string_outline(f, Vector2(-w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 5, UI.INK)
 		draw_string(f, Vector2(-w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("ffd23f") if is_me else Color.WHITE)
+		if title != "":
+			var tt = "« " + title + " »"
+			var tw = f.get_string_size(tt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			draw_string_outline(f, Vector2(-tw / 2, y - 17), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, UI.INK)
+			draw_string(f, Vector2(-tw / 2, y - 17), tt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("ff7a4d"))
+		if deb & 1:
+			draw_string_outline(f, Vector2(-16 + sin(t * 9) * 6, y - (34 if title != "" else 18)), "★ ★", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, UI.INK)
+			draw_string(f, Vector2(-16 + sin(t * 9) * 6, y - (34 if title != "" else 18)), "★ ★", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("ffd23f"))
+		if deb & 4:
+			for k in 3:
+				var bp = Vector2(sin(t * 2 + k * 2.1) * 16, -40 - fmod(t * 30 + k * 13, 40))
+				draw_circle(bp, 3.5, Color(0.55, 0.95, 0.3, 0.7))
+		if deb & 2:
+			draw_arc(Vector2(0, 0), 26, 0, TAU, 24, Color(0.45, 0.75, 1, 0.6), 3)
 		if not is_me and hp < 1.0:
 			draw_rect(Rect2(-22, y + 4, 44, 6), UI.INK)
 			draw_rect(Rect2(-21, y + 5, 42 * clampf(hp, 0, 1), 4), Color("5fe08c"))

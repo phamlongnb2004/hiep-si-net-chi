@@ -27,6 +27,11 @@ func run() -> void:
 	main = get_tree().root.get_node_or_null("Main")
 	await shot("01-login")
 	# chế độ thử GM: HSNC_GM_USER/PASS/OTP -> đăng nhập tài khoản quản trị, mở bảng GM, chụp
+	# chế độ dạo bản đồ: HSNC_TOUR_USER (tài khoản có sẵn), HSNC_TOUR_ACT = gate (vào khu trùm đánh trùm) | left | right (đi và đánh quái)
+	if OS.get_environment("HSNC_TOUR_USER") != "":
+		await tour(OS.get_environment("HSNC_TOUR_USER"), OS.get_environment("HSNC_TOUR_ACT"))
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_GM_USER") != "":
 		await gm_test()
 		get_tree().quit()
@@ -197,3 +202,35 @@ func gm_test() -> void:
 	await shot("g4-spawned")
 	print("XONG GM mons=", main.game.mons.size(), " staff=", main.game.staff)
 
+
+func tour(u: String, act: String) -> void:
+	var r = await Net.login(u, "matkhau1", false)
+	print("đăng nhập: ", r.code)
+	main.show_servers()
+	await wait(1.5)
+	main.enter(1)
+	await wait(3.0)
+	var g: Game = main.game
+	await shot("t1-" + u)
+	if act == "gate":
+		g.talk()
+		await wait(2.5)
+		await shot("t2-arena")
+		g.joy = Vector2(1, 0)
+		await wait(2.2)
+		g.joy = Vector2.ZERO
+	else:
+		g.joy = Vector2(1 if act == "right" else -1, 0)
+		await wait(2.5)
+		g.joy = Vector2.ZERO
+		await shot("t2-walk")
+	var t0 = Time.get_ticks_msec()
+	var n = 3
+	while Time.get_ticks_msec() - t0 < 16000:
+		var m = g.nearest_mon(1200)
+		if m:
+			g.focus = m
+		await wait(0.2)
+		if Time.get_ticks_msec() - t0 > (n - 2) * 2600:
+			await shot("t%d-fight" % n)
+			n += 1

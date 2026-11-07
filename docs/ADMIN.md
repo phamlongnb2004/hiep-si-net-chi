@@ -91,6 +91,14 @@ Mỗi bản đồ chia nhiều khu giống Ngọc Rồng Online. Mỗi khu tối
 
 Cánh rơi ra: Thường 60%, Hiếm 28%, Sử Thi 10%, Huyền Thoại 2% (tức khoảng 0,03% mỗi lần hạ trùm). Tỉ lệ rơi cánh chỉnh ở Admin → Cân bằng. Cánh hiện sau lưng nhân vật, 16 khung vỗ cánh, có quầng sáng và hạt sáng theo độ hiếm; người khác cũng thấy.
 
+## Khu trùm (từ 2.6.0)
+- Cổng khu trùm nằm giữa bản đồ (Đồng Bằng, Rừng Tuyết, Núi Lửa, Bãi Biển, Rạn San Hô, Đầm Lầy). Người chơi đứng ở cổng bấm **Vào khu trùm**.
+- Mở theo khung giờ Việt Nam, mặc định 12:00, 19:00, 21:00, mỗi lần 30 phút; các khu lệch nhau 3 phút. Trước giờ mở 5 phút và lúc mở, cả máy chủ nhận thông báo.
+- Mỗi khu một con trùm (Miệng Núi Lửa có 3 rồng). Hạ hết trùm: khu đó đóng sau 40 giây (để nhặt đồ), chờ khung giờ sau. Hết giờ: mọi người được đưa ra cổng.
+- **Vận hành → Khu trùm**: bật/tắt, sửa khung giờ và số phút mở; **Mở ngay** mở mọi khu trùm trong N phút (thử, sự kiện), **Đóng lại** về theo lịch.
+- Thưởng: đồ rơi thuộc người kết liễu (last hit, phải gây ít nhất 1% máu trùm, không thì thuộc người đủ 1% đánh trúng gần nhất trước đó); 30 giây đầu chỉ người đó nhặt, sau đó ai cũng nhặt. Kinh nghiệm và vàng chia theo % sát thương cho mọi người gây từ 1% máu. Người kết liễu có danh hiệu « Kẻ Kết Liễu » 24 giờ và cả máy chủ nhận thông báo.
+- Chi tiết bản đồ, quái, chiêu trùm: [BAN-DO.md](BAN-DO.md).
+
 ## Sức mạnh quái
 
 Quái thường mạnh theo **cấp**, không theo loài: cùng cấp thì máu, công, thủ, kinh nghiệm như nhau, và cấp cao hơn luôn mạnh hơn. Bảng mốc `MON_LV` trong `shared/rules.js` (cấp 1, 5, 9, 12, 15, 19, 24, 30, 60, 100); cấp ở giữa nội suy. Rồng (trùm) giữ chỉ số riêng. Hệ số từng loại quái trong Admin → Cân bằng vẫn nhân thêm lên trên.

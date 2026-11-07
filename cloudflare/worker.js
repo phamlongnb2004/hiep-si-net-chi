@@ -9,6 +9,8 @@ import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
 import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaff, maintOn, maintMsg, banInfo, mutedUntil } from './admin.js';
 
 const TICK_MS = 100;
+const APP_MIN = '2.6.0'; // 2.6.0: thêm bản đồ, khu trùm (bản cũ không có dữ liệu bản đồ mới)
+const ARENA_SLOTS = ['12:00', '19:00', '21:00'], ARENA_DUR = 30, ARENA_LEAVE = 40000; // khu trùm: khung giờ mặc định, số phút mở, giây ở lại nhặt đồ sau khi hạ trùm
 const KHU_MAX = 15, KHU_SHOW = 5, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
 const MAX_SAVE = 300 * 1024;
 const TOKEN_IDLE = 30 * 86400e3; // phiên đăng nhập hết hạn sau 30 ngày không dùng
@@ -95,7 +97,7 @@ export class World extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS anomalies(user_id INTEGER, srv INTEGER, flags TEXT, at INTEGER, PRIMARY KEY(user_id, srv))`);
     try { this.sql.exec(`ALTER TABLE sessions ADD COLUMN last INTEGER`); } catch (e) {}
     this.sql.exec(`UPDATE sessions SET last=? WHERE last IS NULL`, Date.now()); // phiên cũ: tính hạn từ lúc nâng cấp, không đẩy ai ra
-    this.insts = new Map();
+    this.insts = new Map(); this.arenaDone = new Map(); this.arenaAnn = new Set();
     initSocial(this);
     initAdmin(this);
     this.clients = new Map();
@@ -111,7 +113,8 @@ export class World extends DurableObject {
   async checkPass(u, pass) { return sameHex(await hashPass(pass, u.salt), u.pass_hash); }
   async setPass(uid, pass) { const salt = randHex(16); this.sql.exec('UPDATE users SET pass_hash=?, salt=? WHERE id=?', await hashPass(pass, salt), salt, uid); }
   broadcastCfg() { const m = JSON.stringify({ t: 'cfg', cfg: publicCfg(this) }); for (const c of this.clients.values()) if (c.v2) this.sendTo(c, m); }
-  minApp() { return (this.cfg && this.cfg.min_app) || this.env.MIN_APP || ''; }
+  // bản ứng dụng tối thiểu: cao nhất trong (Admin, biến MIN_APP, APP_MIN theo mã máy chủ — dữ liệu bản đồ đổi thì bản cũ không chơi được)
+  minApp() { return [(this.cfg && this.cfg.min_app) || '', this.env.MIN_APP || '', APP_MIN].reduce((a, b) => b && (!a || verCmp(b, a) > 0) ? b : a, ''); }
   v1Off() { return ((this.cfg && this.cfg.v1) || this.env.V1) === 'off'; }
   one(sql, ...args) { const r = this.sql.exec(sql, ...args).toArray(); return r[0] || null; }
 
@@ -326,7 +329,7 @@ export class World extends DurableObject {
       if (k1 && sn.p.length) { const v2 = sn.p.filter(q => inst.players.has(q[0])); if (v2.length) { if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(...v2); } }
     }
     const now = Date.now();
-    if (++this._tk % 10 === 0) adminTick(this);
+    if (++this._tk % 10 === 0) { adminTick(this); this.arenaTick(now); }
     for (const c of this.clients.values()) {
       if (!c.v2 && c.map >= 0) this.sendTo(c, { t: 'ps', p: (byMap.get(c.srv * 100 + c.map) || []).filter(s => s[0] !== c.id) });
       if (c.pending && now - c.lastSave > SAVE_EVERY) this.writeSave(c);
@@ -342,7 +345,7 @@ export class World extends DurableObject {
     if (row) { try { this.loadChar(c, JSON.parse(row.data)); } catch (e) { console.error('bản lưu hỏng', u.id, e); this.sendTo(c, { t: 'err', code: 'save', msg: 'Bản lưu nhân vật bị lỗi, hãy báo quản trị.' }); try { ws.close(4006, 'save'); } catch (e2) {} this.clients.delete(c.id); return; } }
     this.sendTo(c, { t: 'welcome', proto: PROTO, id: c.id, user: u.username, srv: srv.id, srvName: srv.name, online: this.count(srv.id), me: c.ch ? this.meOf(c, true) : null, cfg: publicCfg(this), staff: (this.one('SELECT role FROM admins WHERE uid=?', u.id) || {}).role || '' });
     this.toSrv(srv.id, { t: 'count', online: this.count(srv.id) });
-    if (c.ch) { this.enterMap(c, c.ch.map, null); friendList(this, c); }
+    if (c.ch) { const A = R.D.maps[c.ch.map] && R.D.maps[c.ch.map].arena; if (A) this.enterMap(c, A.from, A.gx); else this.enterMap(c, c.ch.map, null); friendList(this, c); }
     ws.addEventListener('message', ev => this.onV2(c, ev.data));
     const bye = () => this.drop(c);
     ws.addEventListener('close', bye);
@@ -361,13 +364,59 @@ export class World extends DurableObject {
   khuMax() { return Math.max(1, Math.min(100, (this.cfg && this.cfg.khuMax) | 0 || KHU_MAX)); }
   // chọn khu: giữ số khu mong muốn nếu còn chỗ, không thì khu nhỏ nhất còn chỗ
   pickKhu(srv, mi, want) { const mx = this.khuMax(); if (want && want <= KHU_CAP && this.khuN(srv, mi, want) < mx) return want; for (let k = 1; k <= KHU_CAP; k++) if (this.khuN(srv, mi, k) < mx) return k; return KHU_CAP; }
+  /* ---------- khu trùm: mở theo khung giờ (giờ Việt Nam), mỗi khu một con trùm, hạ xong là đóng tới khung sau ---------- */
+  arenaCfg() { const a = this.cfg.arena || {}; return { on: a.on !== false, slots: Array.isArray(a.slots) && a.slots.length ? a.slots : ARENA_SLOTS, dur: a.dur || ARENA_DUR }; }
+  // trả { open, start, end, next } cho bản đồ khu trùm mi lúc now
+  arenaWin(mi, now) {
+    const A = R.D.maps[mi].arena, cf = this.arenaCfg(), f = this.cfg.arenaNow;
+    if (f && f.until > now) return { open: true, start: f.at, end: f.until, next: 0 };
+    if (!cf.on) return { open: false, start: 0, end: 0, next: 0 };
+    const VN = 7 * 3600e3, day = Math.floor((now + VN) / 864e5) * 864e5 - VN; let next = Infinity;
+    for (let d = -1; d <= 1; d++) for (const sl of cf.slots) {
+      const [hh, mm] = String(sl).split(':').map(Number), st = day + d * 864e5 + ((hh * 60 + (mm || 0) + (A.ofs || 0)) * 60e3), en = st + cf.dur * 60e3;
+      if (now >= st && now < en) return { open: true, start: st, end: en, next: 0 };
+      if (st > now) next = Math.min(next, st);
+    }
+    return { open: false, start: 0, end: 0, next: next === Infinity ? 0 : next };
+  }
+  arenaKhu(srv, mi, win) { const mx = this.khuMax(); for (let k = 1; k <= KHU_CAP; k++) { if (this.arenaDone.get(srv * 10000 + mi * 100 + k) === win.start) continue; if (this.khuN(srv, mi, k) < mx) return k; } return 0; }
+  // vào khu trùm qua cổng: kiểm tra giờ mở, cấp, khu còn trùm
+  enterArena(c, mi) {
+    const M = R.D.maps[mi], A = M.arena, now = Date.now(), win = this.arenaWin(mi, now), vn = t => new Date(t + 7 * 3600e3).toISOString().slice(11, 16);
+    const no = msg => this.sendTo(c, { t: 'res', op: 'warp', ok: false, msg });
+    if (!win.open) { const left = win.next ? win.next - now : 0, h = Math.floor(left / 3600e3), m = Math.floor(left % 3600e3 / 60e3);
+      return no(M.name + ' đang đóng.' + (win.next ? ' Mở lúc ' + vn(win.next) + ' (còn ' + (h ? h + ' giờ ' : '') + m + ' phút).' : '')); }
+    if (c.ch.lv < A.req && !isStaff(this, c.uid)) return no('Cần cấp ' + A.req + ' để vào ' + M.name + '.');
+    const k = this.arenaKhu(c.srv, mi, win); if (!k) return no('Trùm ở mọi khu đã bị hạ. Chờ khung giờ sau.');
+    this.enterMap(c, mi, null, k, true);
+    this.sendTo(c, { t: 'log', text: 'Vào ' + M.name + ' · Khu ' + k + ' · đóng lúc ' + vn(win.end), col: '#ffd23f' });
+  }
+  // mỗi giây: đóng khu hết giờ / đã hạ trùm, báo trước giờ mở
+  arenaTick(now) {
+    for (const inst of [...this.insts.values()]) {
+      const A = inst.M.arena; if (!A) continue;
+      const win = this.arenaWin(inst.mi, now), key = inst.srv * 10000 + inst.mi * 100 + inst.khu;
+      if (inst.cleared && win.open) this.arenaDone.set(key, win.start);
+      let why = !win.open ? 'Khu trùm đã hết giờ.' : inst.cleared && now - inst.cleared > ARENA_LEAVE ? 'Trùm đã bị hạ, khu trùm đóng.' : '';
+      if (!why) continue;
+      for (const c of [...inst.players.values()]) { this.enterMap(c, A.from, A.gx); this.sendTo(c, { t: 'log', text: why, col: '#ffb347' }); }
+    }
+    for (const srv of new Set([...this.clients.values()].map(c => c.srv))) R.D.maps.forEach((M, mi) => {
+      if (!M.arena) return; const w5 = this.arenaWin(mi, now + 300e3), w0 = this.arenaWin(mi, now);
+      const k5 = srv + ':' + mi + ':5:' + w5.start, k0 = srv + ':' + mi + ':0:' + w0.start;
+      if (w5.open && !w0.open && w5.start > now && !this.arenaAnn.has(k5)) { this.arenaAnn.add(k5); this.srvLog(srv, '⏰ ' + M.name + ' (' + R.D.maps[M.arena.from].name + ') mở sau 5 phút.', '#ffd23f'); }
+      if (w0.open && now - w0.start < 60e3 && !this.arenaAnn.has(k0)) { this.arenaAnn.add(k0); this.srvLog(srv, '⚔ ' + M.name + ' đã mở! Cổng ở giữa ' + R.D.maps[M.arena.from].name + '.', '#ffd23f'); }
+    });
+    if (this.arenaAnn.size > 500) this.arenaAnn.clear();
+  }
   khuList(c) {
     const mx = this.khuMax(); let hi = 0; for (const i of this.insts.values()) if (i.srv === c.srv && i.mi === c.map && i.players.size) hi = Math.max(hi, i.khu);
     const n = Math.min(KHU_CAP, Math.max(KHU_SHOW, hi + 1)), list = [];
     for (let k = 1; k <= n; k++) list.push([k, this.khuN(c.srv, c.map, k)]);
     return { t: 'khu', cur: c.inst ? c.inst.khu : 1, max: mx, list };
   }
-  hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (c, d) => glog(this, 'drop', c, d) }; }
+  hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (k, c, d) => glog(this, k, c, d), ann: (inst, text) => this.srvLog(inst.srv, text, '#ffd23f') }; }
+  srvLog(srv, text, col) { const s = JSON.stringify({ t: 'log', text, col }); for (const c of this.clients.values()) if (c.v2 && c.srv === srv) this.sendTo(c, s); }
   // báo cho bạn bè đang online cập nhật danh sách (online/offline, bản đồ)
   friendsChanged(c) {
     try { for (const r of this.sql.exec('SELECT fid FROM friends WHERE uid=?', c.uid).toArray()) for (const o of this.clients.values()) if (o.uid === r.fid && o.v2 && o.ch && o !== c) friendList(this, o); } catch (e) { console.error(e); }
@@ -388,7 +437,8 @@ export class World extends DurableObject {
     const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
       hp: Math.round(f.hp), maxHp: f.maxHp, atk: f.atk, def: f.def, spd: f.spd, crit: f.crit, dead: f.dead > 0 ? 1 : 0,
       ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5].map(i => R.kiCost(ch.lv, i)),
-      cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })) };
+      cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })),
+      stun: f.stunT > 0 ? +f.stunT.toFixed(1) : 0, slow: f.slowT > 0 ? f.slowM : 1, pois: f.pois ? 1 : 0, title: ch.title && ch.title.until > Date.now() ? ch.title.n : '' };
     if (full) Object.assign(o, { name: ch.name, cls: ch.cls, inv: ch.inv, eq: ch.eq });
     return o;
   }
@@ -427,12 +477,15 @@ export class World extends DurableObject {
         if (k < 1 || k > KHU_CAP || k === I.khu) return;
         if (c.f.dead > 0) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Đang gục ngã, chưa đổi khu được.' });
         if (now - (c.khuAt || 0) < 5000) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Chờ vài giây rồi đổi khu.' });
+        if (I.M.arena && !this.insts.has(c.srv * 10000 + c.map * 100 + k)) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Khu ' + k + ' chưa có người vào trong khung giờ này.' });
+        if (I.M.arena && this.arenaDone.get(c.srv * 10000 + c.map * 100 + k) === this.arenaWin(c.map, now).start) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Trùm ở khu ' + k + ' đã bị hạ.' });
         if (this.khuN(c.srv, c.map, k) >= this.khuMax() && !isStaff(this, c.uid)) return this.sendTo(c, { t: 'res', op: 'khu', ok: false, msg: 'Khu ' + k + ' đã đầy (' + this.khuMax() + ' người).' });
         c.khuAt = now; this.enterMap(c, c.map, c.f.x, k, true);
         return this.sendTo(c, { t: 'res', op: 'khu', ok: true, msg: 'Đã vào khu ' + k + '.' });
       }
       case 'warp': {
-        const p = I.M.portals[m.p | 0]; if (!p || c.f.dead > 0 || Math.abs(c.f.x - p.x) > 70) return this.sendTo(c, { t: 'res', op: 'warp', ok: false });
+        const p = I.M.portals[m.p | 0]; if (!p || c.f.dead > 0 || Math.abs(c.f.x - p.x) > (p.arena ? 120 : 70)) return this.sendTo(c, { t: 'res', op: 'warp', ok: false });
+        if (R.D.maps[p.to].arena) return this.enterArena(c, p.to);
         return this.enterMap(c, p.to, p.tx);
       }
       case 'chat': {

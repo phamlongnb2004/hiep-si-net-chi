@@ -158,7 +158,7 @@ export function forgeInfo(it) {
 const MON_LV = [ // cấp, máu, công, thủ, kinh nghiệm
   [1, 30, 7, .5, 12], [5, 120, 17, 4, 70], [9, 330, 33, 8, 230], [12, 430, 40, 9.5, 380], [15, 650, 55, 12, 600],
   [19, 1000, 75, 15, 1000], [24, 1400, 100, 19, 1450], [30, 2000, 130, 24, 2200], [60, 5200, 300, 50, 17600], [100, 11000, 560, 90, 283000]];
-const MON_FAM = {}; // có thể thêm chênh lệch theo loài, vd { bear: { hp: 1.02, atk: 1, def: 1 } } (giữ nhỏ để cấp cao vẫn mạnh hơn)
+const MON_FAM = { snail: { hp: 1, atk: .9, def: 1.8 }, croc: { hp: 1.3, atk: 1, def: 1.2 }, jelly: { hp: .85, atk: 1, def: .8 }, gull: { hp: .85, atk: 1, def: .9 }, swordfish: { hp: .9, atk: 1.1, def: 1 }, snakelet: { hp: .5, atk: .6, def: .6 } }; // có thể thêm chênh lệch theo loài, vd { bear: { hp: 1.02, atk: 1, def: 1 } } (giữ nhỏ để cấp cao vẫn mạnh hơn)
 export function monCurve(lv, i) {
   const T = MON_LV; lv = Math.max(1, lv);
   let a = T[0], b = T[1];

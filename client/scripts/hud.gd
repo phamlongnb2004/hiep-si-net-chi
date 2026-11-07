@@ -299,7 +299,7 @@ func setup(g: Game) -> void:
 	talk_btn.position = Vector2(-90, -150)
 	talk_btn.custom_minimum_size = Vector2(180, 56)
 	talk_btn.visible = false
-	talk_btn.pressed.connect(func(): g.open_npc.emit(g.near_npc))
+	talk_btn.pressed.connect(func(): g.talk())
 	root.add_child(talk_btn)
 	chat_edit = UI.edit("Nhắn cùng bản đồ · gõ /all trước để nhắn cả máy chủ (5.000 vàng)")
 	chat_edit.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -327,7 +327,9 @@ func setup(g: Game) -> void:
 	overlay.add_child(UI.center(overlay_l))
 	g.me_changed.connect(refresh)
 	g.log_line.connect(add_log)
-	g.npc_near.connect(func(id): talk_btn.visible = id != "")
+	g.npc_near.connect(func(id):
+		talk_btn.visible = id != ""
+		talk_btn.text = "Vào khu trùm" if str(id).begins_with("gate:") else "Nói chuyện")
 	g.map_changed.connect(func(n): map_l.text = n; khu_b.text = "Khu %d  ▾" % g.khu; show_banner("%s · Khu %d" % [n, g.khu]); if khu_pop and is_instance_valid(khu_pop): khu_pop.queue_free())
 	g.khu_list.connect(open_khu)
 	Net.status.connect(_net)

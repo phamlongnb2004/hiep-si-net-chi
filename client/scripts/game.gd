@@ -111,6 +111,8 @@ func _on_msg(m: Dictionary) -> void:
 			var p: Vector2 = mo.position if mo else me.position
 			fx.text(p + Vector2(0, -110), "+%d EXP" % int(m.exp), Color("8fb4ff"))
 			fx.text(p + Vector2(18, -90), "+%d vàng" % int(m.gold), Color("ffd23f"))
+			if int(m.get("pct", 0)) > 0:
+				fx.text(p + Vector2(0, -132), "Góp %d%% sát thương" % int(m.pct), Color("ffffff"))
 		"log":
 			log_line.emit(str(m.text), Color.html(str(m.get("col", "#ffffff"))))
 		"cfg":
@@ -130,6 +132,8 @@ func _on_msg(m: Dictionary) -> void:
 
 func _set_cfg(c: Dictionary) -> void:
 	Data.cfg = c
+	if c.has("t"):
+		Data.clock_off = float(c.t) - Time.get_unix_time_from_system() * 1000.0
 	if c.get("ann") is Dictionary:
 		announce.emit(str(c.ann.get("text", "")))
 	cfg_changed.emit()
@@ -153,6 +157,8 @@ func _set_me(d: Dictionary, full: bool) -> void:
 	me.look = _look(me_data)
 	var wg = me_data.get("eq", {}).get("wing") if me_data.get("eq") is Dictionary else null
 	me.wing = int(wg.get("r", 0)) if wg is Dictionary else -1
+	me.title = str(me_data.get("title", ""))
+	me.deb = (1 if float(me_data.get("stun", 0)) > 0 else 0) | (2 if float(me_data.get("slow", 1)) < 1 else 0) | (4 if int(me_data.get("pois", 0)) else 0)
 	me_changed.emit()
 
 func _look(d: Dictionary) -> int:
@@ -225,6 +231,8 @@ func _snap(m: Dictionary) -> void:
 		h.look = int(q[11])
 		h.air = q.size() > 12 and int(q[12]) == 1
 		h.wing = int(q[13]) if q.size() > 13 else -1
+		h.title = str(q[14]) if q.size() > 14 else ""
+		h.deb = int(q[15]) if q.size() > 15 else 0
 	for id in heroes.keys():
 		if not seen.has(id):
 			heroes[id].queue_free()
@@ -253,9 +261,9 @@ func _event(e: Array) -> void:
 				var crit = int(e[3]) & 1 == 1
 				var dot = int(e[3]) & 2 == 2
 				if int(e[4]) == my_id and not dot:
-					fx.hit_spark(mo.position + Vector2(0, -float(Mon.MH.get(mo._k, 80)) * 0.4), crit)
+					fx.hit_spark(mo.position + Vector2(0, -mo.hh() * 0.45 - mo.lift()), crit)
 				if int(e[4]) == my_id or crit:
-					fx.text(mo.position + Vector2(0, -float(Mon.MH.get(mo._k, 80)) * 0.9), str(int(e[2])) + ("!" if crit else ""),
+					fx.text(mo.position + Vector2(0, -mo.hh() * 0.95 - mo.lift()), str(int(e[2])) + ("!" if crit else ""),
 						Color("7ddc5a") if dot else (Color("ffb300") if crit else Color.WHITE), crit)
 		"p":   # người chơi mất máu
 			var w = _who(int(e[1]))
@@ -317,14 +325,39 @@ func _event(e: Array) -> void:
 			var w5 = _who(int(e[2]))
 			if mo4:
 				mo4.lunge = 0.25
+				mo4.play("atk", 0.45)
 				if w5:
-					fx.mon_hit(mo4._k, w5.position, 1 if w5.position.x >= mo4.position.x else -1)
+					var afx = str(mo4._info.get("afx", ""))
+					if afx != "":
+						fx.vfx(afx, w5.position + Vector2(0, -20), 110, w5.position.x < mo4.position.x)
+					else:
+						fx.mon_hit(mo4._k, w5.position, 1 if w5.position.x >= mo4.position.x else -1)
 		"b":   # rồng khạc
 			var mo5: Mon = mons.get(int(e[1]))
 			if mo5:
 				mo5.br_t = 0.0
 				mo5.face = 1 if (_who(int(e[2])) and _who(int(e[2])).position.x >= mo5.position.x) else -1
 				fx.breath(mo5, _who(int(e[2])), mo5.type)
+		"tg":  # vùng báo trước chiêu: kiểu, a, b, y, thời gian
+			fx.telegraph(str(e[1]), float(e[2]), float(e[3]), float(e[4]), float(e[5]))
+		"fx":  # hiệu ứng 8 khung: tên, x, y, cao, lật
+			fx.vfx(str(e[1]), Vector2(e[2], e[3]), float(e[4]), int(e[5]) < 0)
+			if str(e[1]) in ["shockwave", "rock_spikes", "tail_sweep"] and me and absf(float(e[2]) - me.position.x) < 500:
+				fx.shake = max(fx.shake, 0.18)
+		"bs":  # quái/trùm ra chiêu: id, động tác, thời gian, tên chiêu
+			var mo6: Mon = mons.get(int(e[1]))
+			if mo6:
+				mo6.play(str(e[2]), float(e[3]))
+				if e.size() > 4 and str(e[4]) != "" and mo6._info.get("boss", false):
+					fx.text(mo6.position + Vector2(0, -mo6.hh() - mo6.lift() - 40), str(e[4]), Color("ff7a4d"), true)
+		"mp":  # đạn quái bay ra: id, hình, x, y, vận tốc, thời gian
+			fx.mon_proj(int(e[1]), str(e[2]), Vector2(e[3], e[4]), float(e[5]), float(e[6]))
+		"mpx":
+			fx.mon_proj_end(int(e[1]))
+		"st":  # người chơi bị choáng
+			var w7 = _who(int(e[1]))
+			if w7:
+				fx.text(w7.position + Vector2(0, -100), "Choáng!", Color("ffd23f"), int(e[1]) == my_id)
 		"d":
 			_add_drop(e[1])
 		"g", "x":
@@ -409,6 +442,15 @@ func jump() -> void:
 	jump_q = 0.15
 
 ## chạm/nhấp vào thế giới: chọn quái, đi tới NPC hoặc đi tới chỗ đó
+## nói chuyện với NPC gần, hoặc vào cổng khu trùm
+func talk() -> void:
+	if near_npc.begins_with("gate:"):
+		if not warping and can_act():
+			Net.send({"t": "warp", "p": int(near_npc.substr(5))})
+		return
+	if near_npc != "":
+		open_npc.emit(near_npc)
+
 func tap_world(screen_pos: Vector2) -> void:
 	if not can_act():
 		return
@@ -418,7 +460,7 @@ func tap_world(screen_pos: Vector2) -> void:
 	for mo in mons.values():
 		if mo.dead():
 			continue
-		var c = mo.position + Vector2(0, -float(Mon.MH.get(mo._k, 80)) * 0.4)
+		var c = mo.position + Vector2(0, -mo.hh() * 0.45 - mo.lift())
 		var d = c.distance_to(wp)
 		if d < bd:
 			bd = d
@@ -439,6 +481,13 @@ func tap_world(screen_pos: Vector2) -> void:
 		focus = best
 		move_to = -1
 		return
+	for i in M.portals.size():
+		var pt: Dictionary = M.portals[i]
+		if pt.get("arena") and absf(wp.x - float(pt.x)) < 110 and wp.y > float(pt.y) - 240 and wp.y < float(pt.y) + 20:
+			npc_go = "gate:%d" % i
+			move_to = float(pt.x)
+			focus = null
+			return
 	for n in M.get("npcs", []):
 		if absf(wp.x - n.x) < 70 and wp.y > n.y - 170 and wp.y < n.y + 20:
 			npc_go = str(n.id)
@@ -470,6 +519,9 @@ func _process(dt: float) -> void:
 	for n in M.get("npcs", []):
 		if absf(me.position.x - n.x) < 115:
 			nn = str(n.id)
+	for i in M.portals.size():
+		if M.portals[i].get("arena") and absf(me.position.x - float(M.portals[i].x)) < 100:
+			nn = "gate:%d" % i
 	if nn != near_npc:
 		near_npc = nn
 		world.near_npc = nn
@@ -477,7 +529,7 @@ func _process(dt: float) -> void:
 	if npc_go != "" and npc_go == near_npc:
 		npc_go = ""
 		move_to = -1
-		open_npc.emit(near_npc)
+		talk()
 
 func _control(dt: float) -> void:
 	var p = me.position
@@ -531,6 +583,10 @@ func _control(dt: float) -> void:
 	me.position.y = ny
 	air = not (vy == 0 and absf(me.position.y - world.gy(me.position.x)) < 1)
 	var spd = float(me_data.get("spd", c.spd))
+	if float(me_data.get("stun", 0)) > 0:
+		spd *= 0.05
+	elif float(me_data.get("slow", 1)) < 1:
+		spd *= float(me_data.get("slow", 1))
 	for b in me_data.get("buffs", []):
 		if b.get("id") in ["roll", "rage"]:
 			spd *= 1.35 if b.id == "roll" else 1.25
@@ -552,6 +608,8 @@ func _control(dt: float) -> void:
 	if not air and not warping:
 		for i in M.portals.size():
 			var pt: Dictionary = M.portals[i]
+			if pt.get("arena"):
+				continue
 			if absf(me.position.x - pt.x) < 46:
 				warping = true
 				focus = null
@@ -577,7 +635,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_B: get_parent().open_bag()
 			KEY_E:
 				if near_npc != "":
-					open_npc.emit(near_npc)
+					talk()
 	elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 		tap_world(ev.position)
 	elif ev is InputEventScreenTouch and ev.pressed:

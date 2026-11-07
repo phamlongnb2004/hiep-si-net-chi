@@ -13,7 +13,7 @@ const NEED = { // quyền tối thiểu cho mỗi thao tác
   me: 1, overview: 1, catalog: 1, give: 3, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
   ban: 2, unban: 2, mute: 2, kick: 2, announce: 2,
   // đụng tới tài sản/tài khoản người chơi: chỉ chủ (GM có lạm quyền cũng không tự làm giàu hay chiếm tài khoản được)
-  char_edit: 3, item_add: 3, item_del: 3, restore: 3, reset_pw: 3, maint: 3, event: 3, event_stop: 3, servers_set: 3, app_cfg: 3, tune_set: 3, tune_reset: 3,
+  char_edit: 3, item_add: 3, item_del: 3, restore: 3, reset_pw: 3, maint: 3, event: 3, event_stop: 3, servers_set: 3, app_cfg: 3, arena_now: 3, tune_set: 3, tune_reset: 3,
   admin_add: 3, admin_role: 3, admin_del: 3, admin_reset2fa: 3 };
 const SESS_IDLE = 30 * 60e3, SESS_MAX = 12 * 3600e3, PRE_T = 5 * 60e3, GM_T = 2 * 3600e3;
 const FAIL_MAX = 5, FAIL_LOCK = 15 * 60e3;
@@ -81,7 +81,8 @@ export function publicCfg(w) {
   const a = w.cfg.ann, e = R.TUNE.ev;
   return { potPrice: R.TUNE.potPrice, shopMul: R.TUNE.shopMul, forgeBonus: R.TUNE.forgeBonus,
     ev: e.on ? { name: e.name, exp: e.exp, gold: e.gold, drop: e.drop, until: e.until } : null,
-    ann: a && a.until > Date.now() ? { text: a.text, until: a.until } : null };
+    ann: a && a.until > Date.now() ? { text: a.text, until: a.until } : null,
+    arena: { ...w.arenaCfg(), now: w.cfg.arenaNow && w.cfg.arenaNow.until > Date.now() ? w.cfg.arenaNow : null }, t: Date.now() };
 }
 export const isStaff = (w, uid) => !!w.one('SELECT uid FROM admins WHERE uid=?', uid);
 export const maintOn = w => !!(w.cfg.maint && w.cfg.maint.on);
@@ -435,7 +436,7 @@ const ACT = {
     return { ok: true };
   },
   async event_stop(w) { setCfg(w, 'event', null); applyEvent(w); w.broadcastCfg(); return { ok: true }; },
-  async cfg_get(w) { return { servers: w.servers(), min_app: w.cfg.min_app || w.env.MIN_APP || '', v1: w.cfg.v1 || w.env.V1 || 'on', maint: w.cfg.maint || { on: false }, ann: w.cfg.ann || null, event: w.cfg.event || null, khuMax: w.khuMax() }; },
+  async cfg_get(w) { return { servers: w.servers(), min_app: w.cfg.min_app || w.env.MIN_APP || '', v1: w.cfg.v1 || w.env.V1 || 'on', maint: w.cfg.maint || { on: false }, ann: w.cfg.ann || null, event: w.cfg.event || null, khuMax: w.khuMax(), arena: w.arenaCfg(), arenaNow: w.cfg.arenaNow && w.cfg.arenaNow.until > Date.now() ? w.cfg.arenaNow : null }; },
   async servers_set(w, A, b) {
     if (!Array.isArray(b.list) || !b.list.length || b.list.length > 20) bad('Danh sách máy chủ không hợp lệ.');
     const seen = new Set(), list = b.list.map(s => { const id = int(s.id, 1, 99); if (seen.has(id)) bad('Trùng số máy chủ.'); seen.add(id); return { id, name: clean(s.name, 24) || 'Server ' + id, tag: clean(s.tag, 12), open: s.open !== false }; });
@@ -445,9 +446,16 @@ const ACT = {
     if (b.min_app != null) { const v = clean(b.min_app, 16).trim(); if (v && !/^\d+(\.\d+){0,3}$/.test(v)) bad('Phiên bản dạng 2.1.0'); setCfg(w, 'min_app', v); }
     if (b.v1 != null) setCfg(w, 'v1', b.v1 === 'off' ? 'off' : 'on');
     if (b.khuMax != null) setCfg(w, 'khuMax', int(b.khuMax, 1, 100));
+    if (b.arena != null) {
+      const slots = String(b.arena.slots || '').split(/[ ,;]+/).filter(Boolean);
+      if (!slots.length || slots.length > 12 || slots.some(x => !/^([01]?\d|2[0-3]):[0-5]\d$/.test(x))) bad('Khung giờ dạng 12:00, 19:00, 21:00');
+      setCfg(w, 'arena', { on: b.arena.on !== false, slots, dur: int(b.arena.dur, 5, 180) }); w.broadcastCfg();
+    }
     if (b.v1 === 'off') for (const c of [...w.clients.values()]) if (!c.v2) { w.sendTo(c, { t: 'err', code: 'app', msg: 'Bản này đã ngừng. Hãy tải ứng dụng mới tại trang /tai-game.' }); try { c.ws.close(4005, 'app'); } catch (e) {} w.drop(c); }
     return { ok: true };
   },
+  // mở mọi khu trùm ngay (min phút), hoặc đóng lại (min = 0)
+  async arena_now(w, A, b) { const m = int(b.min, 0, 180); setCfg(w, 'arenaNow', m ? { at: Date.now(), until: Date.now() + m * 60e3, by: A.user } : null); w.broadcastCfg(); return { ok: true }; },
   async tune_get(w) {
     return { tune: { ...R.TUNE, ev: undefined }, def: R.TUNE_DEFAULT,
       mons: Object.fromEntries(Object.entries(R.D.mons).map(([k, m]) => [k, { n: m.n, hp: m.hp, atk: m.atk, def: m.def, exp: m.exp, gold: m.gold, drop: m.drop, boss: !!m.boss }])) };

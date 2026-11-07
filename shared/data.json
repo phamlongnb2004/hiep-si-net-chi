@@ -550,14 +550,30 @@
     200,
     320
    ],
-   "aggro": 430,
+   "aggro": 520,
    "cd": 1.8,
    "drop": 1,
    "boss": true,
    "r": 66,
    "h": 222,
    "range": 110,
-   "spd": 90
+   "spd": 90,
+   "sk": [
+    {
+     "k": "slam",
+     "n": "Đập Cánh",
+     "a": "",
+     "wind": 0.9,
+     "len": 300,
+     "m": 1.5,
+     "kb": 220,
+     "fx": "shockwave"
+    }
+   ],
+   "skcd": [
+    7,
+    9
+   ]
   },
   "dragon2": {
    "n": "Rồng Độc",
@@ -570,14 +586,30 @@
     120,
     200
    ],
-   "aggro": 430,
+   "aggro": 520,
    "cd": 1.8,
    "drop": 1,
    "boss": true,
    "r": 66,
    "h": 222,
    "range": 110,
-   "spd": 90
+   "spd": 90,
+   "sk": [
+    {
+     "k": "slam",
+     "n": "Đập Cánh",
+     "a": "",
+     "wind": 0.9,
+     "len": 300,
+     "m": 1.5,
+     "kb": 220,
+     "fx": "shockwave"
+    }
+   ],
+   "skcd": [
+    7,
+    9
+   ]
   },
   "dragon3": {
    "n": "Rồng Băng",
@@ -590,14 +622,596 @@
     160,
     260
    ],
-   "aggro": 430,
+   "aggro": 520,
    "cd": 1.8,
    "drop": 1,
    "boss": true,
    "r": 66,
    "h": 222,
    "range": 110,
-   "spd": 90
+   "spd": 90,
+   "sk": [
+    {
+     "k": "slam",
+     "n": "Đập Cánh",
+     "a": "",
+     "wind": 0.9,
+     "len": 300,
+     "m": 1.5,
+     "kb": 220,
+     "fx": "shockwave"
+    }
+   ],
+   "skcd": [
+    7,
+    9
+   ]
+  },
+  "crab_r": {
+   "n": "Cua Đỏ",
+   "kind": "crab_r",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    3,
+    8
+   ],
+   "aggro": 230,
+   "cd": 1.3,
+   "drop": 0.3,
+   "boss": false,
+   "r": 30,
+   "h": 62,
+   "range": 46,
+   "spd": 95,
+   "afx": "claw"
+  },
+  "gull": {
+   "n": "Hải Âu",
+   "kind": "gull",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    3,
+    8
+   ],
+   "aggro": 230,
+   "cd": 1.2,
+   "drop": 0.3,
+   "boss": false,
+   "r": 30,
+   "h": 64,
+   "range": 56,
+   "spd": 130,
+   "fly": 46,
+   "afx": "dust_feather"
+  },
+  "snail": {
+   "n": "Ốc Gai",
+   "kind": "snail",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    4,
+    9
+   ],
+   "aggro": 230,
+   "cd": 1.7,
+   "drop": 0.3,
+   "boss": false,
+   "r": 32,
+   "h": 66,
+   "range": 48,
+   "spd": 55,
+   "afx": "dust_feather",
+   "ab": {
+    "k": "shell",
+    "every": 7,
+    "t": 2.4,
+    "def": 3
+   }
+  },
+  "puffer": {
+   "n": "Cá Nóc",
+   "kind": "puffer",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    5,
+    10
+   ],
+   "aggro": 230,
+   "cd": 1.5,
+   "drop": 0.3,
+   "boss": false,
+   "r": 30,
+   "h": 66,
+   "range": 48,
+   "spd": 80,
+   "fly": 22,
+   "afx": "bubbles",
+   "ab": {
+    "k": "spike",
+    "every": 6,
+    "t": 1.8,
+    "ref": 0.3
+   }
+  },
+  "jelly": {
+   "n": "Sứa Điện",
+   "kind": "jelly",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    5,
+    11
+   ],
+   "aggro": 230,
+   "cd": 1.6,
+   "drop": 0.3,
+   "boss": false,
+   "r": 30,
+   "h": 78,
+   "range": 58,
+   "spd": 70,
+   "fly": 30,
+   "afx": "electric",
+   "ab": {
+    "k": "zap",
+    "slow": 0.45,
+    "t": 1.6
+   }
+  },
+  "swordfish": {
+   "n": "Cá Kiếm",
+   "kind": "swordfish",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    5,
+    11
+   ],
+   "aggro": 230,
+   "cd": 1.3,
+   "drop": 0.3,
+   "boss": false,
+   "r": 34,
+   "h": 58,
+   "range": 54,
+   "spd": 120,
+   "fly": 20,
+   "afx": "waterdash",
+   "ab": {
+    "k": "charge",
+    "cd": 4.5,
+    "min": 150,
+    "max": 380,
+    "spd": 560,
+    "m": 1.4
+   }
+  },
+  "frog": {
+   "n": "Ếch Độc",
+   "kind": "frog",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    8,
+    16
+   ],
+   "aggro": 230,
+   "cd": 1.4,
+   "drop": 0.3,
+   "boss": false,
+   "r": 30,
+   "h": 68,
+   "range": 48,
+   "spd": 85,
+   "afx": "poison_splash",
+   "ab": {
+    "k": "spit",
+    "cd": 3.2,
+    "min": 110,
+    "max": 400,
+    "sp": 330,
+    "m": 0.8,
+    "pois": [
+     3,
+     0.12
+    ]
+   }
+  },
+  "shroom": {
+   "n": "Nấm Ma",
+   "kind": "shroom",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    8,
+    16
+   ],
+   "aggro": 230,
+   "cd": 1.5,
+   "drop": 0.3,
+   "boss": false,
+   "r": 30,
+   "h": 70,
+   "range": 48,
+   "spd": 70,
+   "afx": "spores",
+   "ab": {
+    "k": "boom",
+    "r": 120,
+    "m": 1.3,
+    "delay": 0.7
+   }
+  },
+  "croc": {
+   "n": "Cá Sấu Bùn",
+   "kind": "croc",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    10,
+    20
+   ],
+   "aggro": 230,
+   "cd": 1.7,
+   "drop": 0.3,
+   "boss": false,
+   "r": 40,
+   "h": 60,
+   "range": 62,
+   "spd": 60,
+   "afx": "mud_splash",
+   "ab": {
+    "k": "sweep",
+    "n": 3,
+    "r": 150,
+    "m": 1.5
+   }
+  },
+  "snakelet": {
+   "n": "Rắn Con",
+   "kind": "hydra",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    0,
+    0
+   ],
+   "aggro": 230,
+   "cd": 1.2,
+   "drop": 0,
+   "boss": false,
+   "r": 26,
+   "h": 60,
+   "range": 46,
+   "spd": 110,
+   "art": "hydra",
+   "afx": "poison_splash"
+  },
+  "kingcrab": {
+   "n": "Vua Cua Khổng Lồ",
+   "kind": "kingcrab",
+   "hp": 1500,
+   "atk": 22,
+   "def": 10,
+   "exp": 1500,
+   "gold": [
+    150,
+    240
+   ],
+   "aggro": 520,
+   "cd": 1.8,
+   "drop": 1,
+   "boss": true,
+   "r": 70,
+   "h": 190,
+   "range": 110,
+   "spd": 80,
+   "sk": [
+    {
+     "k": "slam",
+     "n": "Đập Càng",
+     "a": "s1",
+     "wind": 0.9,
+     "len": 300,
+     "m": 1.7,
+     "kb": 220,
+     "fx": "shockwave"
+    },
+    {
+     "k": "spin",
+     "n": "Càng Xoay",
+     "a": "s2",
+     "wind": 0.5,
+     "t": 1.6,
+     "spd": 430,
+     "r": 100,
+     "m": 0.55,
+     "every": 0.3,
+     "fx": "claw"
+    },
+    {
+     "k": "rain",
+     "n": "Mưa Bọt",
+     "a": "s3",
+     "wind": 0.9,
+     "r": 75,
+     "m": 0.9,
+     "slow": [
+      0.5,
+      2
+     ],
+     "fx": "bubbles",
+     "cnt": 6
+    }
+   ],
+   "skcd": [
+    4.5,
+    6.5
+   ],
+   "afx": "claw"
+  },
+  "turtle": {
+   "n": "Rùa Đá Ngàn Năm",
+   "kind": "turtle",
+   "hp": 1800,
+   "atk": 26,
+   "def": 16,
+   "exp": 2200,
+   "gold": [
+    220,
+    340
+   ],
+   "aggro": 520,
+   "cd": 1.8,
+   "drop": 1,
+   "boss": true,
+   "r": 80,
+   "h": 180,
+   "range": 110,
+   "spd": 55,
+   "sk": [
+    {
+     "k": "pull",
+     "n": "Xoáy Nước",
+     "a": "s1",
+     "wind": 0.6,
+     "t": 2.6,
+     "r": 420,
+     "pull": 45,
+     "m": 0.35,
+     "every": 0.5,
+     "fx": "whirlpool"
+    },
+    {
+     "k": "spikes",
+     "n": "Dậm Đất",
+     "a": "s2",
+     "wind": 1.0,
+     "len": 440,
+     "m": 1.8,
+     "stun": 1.2,
+     "fx": "rock_spikes"
+    },
+    {
+     "k": "beam",
+     "n": "Vòi Nước",
+     "a": "s3",
+     "wind": 1.0,
+     "len": 620,
+     "m": 1.5,
+     "kb": 260,
+     "fx": "water_beam"
+    }
+   ],
+   "skcd": [
+    4.5,
+    6.5
+   ],
+   "afx": "bubbles"
+  },
+  "hydra": {
+   "n": "Rắn Chúa Ba Đầu",
+   "kind": "hydra",
+   "hp": 2600,
+   "atk": 36,
+   "def": 22,
+   "exp": 4000,
+   "gold": [
+    380,
+    560
+   ],
+   "aggro": 520,
+   "cd": 1.8,
+   "drop": 1,
+   "boss": true,
+   "r": 70,
+   "h": 210,
+   "range": 110,
+   "spd": 80,
+   "sk": [
+    {
+     "k": "cone",
+     "n": "Tam Độc",
+     "a": "s1",
+     "wind": 0.8,
+     "len": 400,
+     "m": 1.2,
+     "pois": [
+      4,
+      0.2
+     ],
+     "zone": 4,
+     "fx": "poison_breath",
+     "zfx": "poison_splash"
+    },
+    {
+     "k": "sweep",
+     "n": "Quật Đuôi",
+     "a": "s2",
+     "wind": 0.8,
+     "r": 380,
+     "m": 1.5,
+     "fx": "tail_sweep"
+    },
+    {
+     "k": "summon",
+     "n": "Gọi Rắn Con",
+     "a": "s3",
+     "wind": 0.7,
+     "mon": "snakelet",
+     "fx": "summon",
+     "cnt": 3
+    }
+   ],
+   "skcd": [
+    4.5,
+    6.5
+   ],
+   "afx": "poison_splash"
+  },
+  "boarking": {
+   "n": "Vua Heo Rừng",
+   "kind": "boar",
+   "hp": 900,
+   "atk": 16,
+   "def": 6,
+   "exp": 700,
+   "gold": [
+    80,
+    140
+   ],
+   "aggro": 520,
+   "cd": 1.8,
+   "drop": 1,
+   "boss": true,
+   "r": 56,
+   "h": 150,
+   "range": 80,
+   "spd": 95,
+   "sk": [
+    {
+     "k": "spin",
+     "n": "Húc Lao",
+     "a": "",
+     "wind": 0.6,
+     "t": 1.2,
+     "spd": 480,
+     "r": 80,
+     "m": 0.7,
+     "every": 0.3,
+     "fx": "mud_splash"
+    },
+    {
+     "k": "slam",
+     "n": "Dậm Đất",
+     "a": "",
+     "wind": 0.9,
+     "len": 260,
+     "m": 1.5,
+     "kb": 200,
+     "fx": "shockwave"
+    },
+    {
+     "k": "summon",
+     "n": "Gọi Đàn",
+     "a": "",
+     "wind": 0.7,
+     "mon": "boar2",
+     "fx": "summon",
+     "cnt": 2
+    }
+   ],
+   "skcd": [
+    4.5,
+    6.5
+   ],
+   "art": "boar4",
+   "sc": 2.1,
+   "tint": "ffd27a"
+  },
+  "wolfking": {
+   "n": "Sói Tuyết Đầu Đàn",
+   "kind": "wolf",
+   "hp": 1300,
+   "atk": 22,
+   "def": 9,
+   "exp": 1400,
+   "gold": [
+    140,
+    220
+   ],
+   "aggro": 520,
+   "cd": 1.8,
+   "drop": 1,
+   "boss": true,
+   "r": 60,
+   "h": 160,
+   "range": 90,
+   "spd": 130,
+   "sk": [
+    {
+     "k": "spin",
+     "n": "Vồ Liên Hoàn",
+     "a": "",
+     "wind": 0.5,
+     "t": 1.3,
+     "spd": 520,
+     "r": 90,
+     "m": 0.6,
+     "every": 0.3,
+     "fx": "claw"
+    },
+    {
+     "k": "slam",
+     "n": "Tru Băng",
+     "a": "",
+     "wind": 0.9,
+     "len": 300,
+     "m": 1.5,
+     "kb": 220,
+     "fx": "shockwave"
+    },
+    {
+     "k": "summon",
+     "n": "Gọi Bầy",
+     "a": "",
+     "wind": 0.7,
+     "mon": "wolf3",
+     "fx": "summon",
+     "cnt": 3
+    }
+   ],
+   "skcd": [
+    4.5,
+    6.5
+   ],
+   "art": "wolf3",
+   "sc": 2.0,
+   "tint": "cfe8ff"
   }
  },
  "maps": [
@@ -645,6 +1259,15 @@
    ],
    "portals": [
     {
+     "x": 60,
+     "y": 518,
+     "to": 5,
+     "tx": 5180,
+     "ty": 600,
+     "label": "Bãi Biển Vỏ Sò",
+     "lv": "Cấp 5-15"
+    },
+    {
      "x": 2540,
      "y": 518,
      "to": 1,
@@ -656,11 +1279,11 @@
    ],
    "houses": [
     [
-     230,
+     330,
      0
     ],
     [
-     520,
+     580,
      1
     ],
     [
@@ -733,6 +1356,11 @@
      "x": 5060,
      "w": 340,
      "name": "Cổng Rừng Tuyết"
+    },
+    {
+     "x": 2730,
+     "w": 220,
+     "name": "Hang Vua Heo"
     }
    ],
    "spots": [
@@ -811,6 +1439,16 @@
      "ty": 600,
      "label": "Rừng Tuyết Phong",
      "lv": "Cấp 10+"
+    },
+    {
+     "x": 2840,
+     "y": 600,
+     "to": 7,
+     "tx": 220,
+     "ty": 600,
+     "label": "Hang Vua Heo",
+     "lv": "Trùm · Cấp 6+",
+     "arena": 1
     }
    ],
    "houses": [
@@ -940,6 +1578,11 @@
      "x": 5340,
      "w": 360,
      "name": "Cổng Núi Lửa"
+    },
+    {
+     "x": 2400,
+     "w": 220,
+     "name": "Hang Sói"
     }
    ],
    "spots": [
@@ -1029,6 +1672,16 @@
      "ty": 600,
      "label": "Núi Lửa Hắc Ám",
      "lv": "Cấp 19+"
+    },
+    {
+     "x": 2510,
+     "y": 600,
+     "to": 8,
+     "tx": 220,
+     "ty": 600,
+     "label": "Hang Sói",
+     "lv": "Trùm · Cấp 14+",
+     "arena": 1
     }
    ],
    "houses": [],
@@ -1152,6 +1805,16 @@
      "x": 0,
      "w": 440,
      "name": "Cổng Rừng Tuyết"
+    },
+    {
+     "x": 5000,
+     "w": 400,
+     "name": "Cổng Đầm Lầy"
+    },
+    {
+     "x": 2400,
+     "w": 220,
+     "name": "Miệng Núi Lửa"
     }
    ],
    "spots": [
@@ -1189,37 +1852,37 @@
      "w": 760
     },
     {
-     "n": "Đầm Rồng Độc",
-     "mon": "dragon2",
+     "n": "Đầm Dung Nham",
+     "mon": "wolf4",
      "lv": [
-      22,
-      22
+      24,
+      26
      ],
-     "cnt": 1,
+     "cnt": 6,
      "x": 2920,
      "w": 760
     },
     {
-     "n": "Đỉnh Rồng Băng",
-     "mon": "dragon3",
+     "n": "Đỉnh Gấu Than",
+     "mon": "bear2",
      "lv": [
       26,
-      26
+      28
      ],
-     "cnt": 1,
+     "cnt": 5,
      "x": 3720,
      "w": 760
     },
     {
-     "n": "Hang Rồng Lửa",
-     "mon": "dragon",
+     "n": "Hang Heo Lửa",
+     "mon": "boar4",
      "lv": [
-      30,
+      28,
       30
      ],
-     "cnt": 1,
+     "cnt": 6,
      "x": 4520,
-     "w": 760
+     "w": 480
     }
    ],
    "npcs": [],
@@ -1232,6 +1895,25 @@
      "ty": 600,
      "label": "Rừng Tuyết Phong",
      "lv": "Cấp 10-19"
+    },
+    {
+     "x": 5340,
+     "y": 410,
+     "to": 4,
+     "tx": 220,
+     "ty": 600,
+     "label": "Đầm Lầy Sương Độc",
+     "lv": "Cấp 30+"
+    },
+    {
+     "x": 2510,
+     "y": 505,
+     "to": 9,
+     "tx": 220,
+     "ty": 600,
+     "label": "Miệng Núi Lửa",
+     "lv": "Trùm · Cấp 20+",
+     "arena": 1
     }
    ],
    "houses": [],
@@ -1321,6 +2003,893 @@
      5400,
      410
     ]
+   ]
+  },
+  {
+   "name": "Đầm Lầy Sương Độc",
+   "lv": "Cấp 30-40",
+   "w": 5400,
+   "h": 720,
+   "theme": "swamp",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 440,
+     "name": "Cổng Núi Lửa"
+    },
+    {
+     "x": 2590,
+     "w": 220,
+     "name": "Hang Rắn"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     1320,
+     600
+    ],
+    [
+     1320,
+     505
+    ],
+    [
+     2080,
+     505
+    ],
+    [
+     2080,
+     600
+    ],
+    [
+     3640,
+     600
+    ],
+    [
+     3640,
+     505
+    ],
+    [
+     4400,
+     505
+    ],
+    [
+     4400,
+     600
+    ],
+    [
+     5400,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 3,
+     "tx": 5180,
+     "ty": 410,
+     "label": "Núi Lửa Hắc Ám",
+     "lv": "Cấp 19-30"
+    },
+    {
+     "x": 2700,
+     "y": 600,
+     "to": 12,
+     "tx": 220,
+     "ty": 600,
+     "label": "Hang Rắn",
+     "lv": "Trùm · Cấp 36+",
+     "arena": 1
+    }
+   ],
+   "spots": [
+    {
+     "n": "Ao Ếch Độc",
+     "mon": "frog",
+     "lv": [
+      30,
+      32
+     ],
+     "cnt": 6,
+     "x": 520,
+     "w": 760
+    },
+    {
+     "n": "Bãi Nấm Ma",
+     "mon": "shroom",
+     "lv": [
+      32,
+      34
+     ],
+     "cnt": 6,
+     "x": 1320,
+     "w": 760
+    },
+    {
+     "n": "Vũng Cá Sấu",
+     "mon": "croc",
+     "lv": [
+      33,
+      35
+     ],
+     "cnt": 4,
+     "x": 2120,
+     "w": 460
+    },
+    {
+     "n": "Đầm Ếch Đen",
+     "mon": "frog",
+     "lv": [
+      35,
+      37
+     ],
+     "cnt": 6,
+     "x": 2840,
+     "w": 760
+    },
+    {
+     "n": "Rừng Nấm Tím",
+     "mon": "shroom",
+     "lv": [
+      37,
+      38
+     ],
+     "cnt": 6,
+     "x": 3640,
+     "w": 760
+    },
+    {
+     "n": "Hang Cá Sấu",
+     "mon": "croc",
+     "lv": [
+      38,
+      40
+     ],
+     "cnt": 5,
+     "x": 4400,
+     "w": 900
+    }
+   ]
+  },
+  {
+   "name": "Bãi Biển Vỏ Sò",
+   "lv": "Cấp 5-15",
+   "w": 5400,
+   "h": 720,
+   "theme": "beach",
+   "village": false,
+   "spawn": {
+    "x": 5180,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 440,
+     "name": "Cổng Rạn San Hô"
+    },
+    {
+     "x": 4960,
+     "w": 440,
+     "name": "Cổng Làng"
+    },
+    {
+     "x": 2590,
+     "w": 220,
+     "name": "Hang Cua"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     1320,
+     600
+    ],
+    [
+     1320,
+     505
+    ],
+    [
+     2080,
+     505
+    ],
+    [
+     2080,
+     600
+    ],
+    [
+     3640,
+     600
+    ],
+    [
+     3640,
+     505
+    ],
+    [
+     4400,
+     505
+    ],
+    [
+     4400,
+     600
+    ],
+    [
+     5400,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 6,
+     "tx": 5180,
+     "ty": 600,
+     "label": "Rạn San Hô",
+     "lv": "Cấp 15-25"
+    },
+    {
+     "x": 5340,
+     "y": 600,
+     "to": 0,
+     "tx": 200,
+     "ty": 518,
+     "label": "Làng Hiệp Sĩ",
+     "lv": "Khu an toàn"
+    },
+    {
+     "x": 2700,
+     "y": 600,
+     "to": 10,
+     "tx": 220,
+     "ty": 600,
+     "label": "Hang Cua",
+     "lv": "Trùm · Cấp 10+",
+     "arena": 1
+    }
+   ],
+   "spots": [
+    {
+     "n": "Bãi Cua Đỏ",
+     "mon": "crab_r",
+     "lv": [
+      5,
+      7
+     ],
+     "cnt": 6,
+     "x": 520,
+     "w": 760
+    },
+    {
+     "n": "Vách Hải Âu",
+     "mon": "gull",
+     "lv": [
+      7,
+      9
+     ],
+     "cnt": 6,
+     "x": 1320,
+     "w": 760
+    },
+    {
+     "n": "Rạn Cua Lớn",
+     "mon": "crab_r",
+     "lv": [
+      9,
+      10
+     ],
+     "cnt": 4,
+     "x": 2120,
+     "w": 460
+    },
+    {
+     "n": "Bờ Ốc Gai",
+     "mon": "snail",
+     "lv": [
+      10,
+      12
+     ],
+     "cnt": 5,
+     "x": 2840,
+     "w": 760
+    },
+    {
+     "n": "Mỏm Hải Âu",
+     "mon": "gull",
+     "lv": [
+      12,
+      13
+     ],
+     "cnt": 6,
+     "x": 3640,
+     "w": 760
+    },
+    {
+     "n": "Hang Ốc Gai",
+     "mon": "snail",
+     "lv": [
+      13,
+      15
+     ],
+     "cnt": 5,
+     "x": 4400,
+     "w": 520
+    }
+   ]
+  },
+  {
+   "name": "Rạn San Hô",
+   "lv": "Cấp 15-25",
+   "w": 5400,
+   "h": 720,
+   "theme": "reef",
+   "village": false,
+   "spawn": {
+    "x": 5180,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 440,
+     "name": "Đáy Rạn"
+    },
+    {
+     "x": 4960,
+     "w": 440,
+     "name": "Cổng Bãi Biển"
+    },
+    {
+     "x": 2590,
+     "w": 220,
+     "name": "Ổ Rùa"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     1320,
+     600
+    ],
+    [
+     1320,
+     505
+    ],
+    [
+     2080,
+     505
+    ],
+    [
+     2080,
+     600
+    ],
+    [
+     3640,
+     600
+    ],
+    [
+     3640,
+     505
+    ],
+    [
+     4400,
+     505
+    ],
+    [
+     4400,
+     600
+    ],
+    [
+     5400,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 5340,
+     "y": 600,
+     "to": 5,
+     "tx": 220,
+     "ty": 600,
+     "label": "Bãi Biển Vỏ Sò",
+     "lv": "Cấp 5-15"
+    },
+    {
+     "x": 2700,
+     "y": 600,
+     "to": 11,
+     "tx": 220,
+     "ty": 600,
+     "label": "Ổ Rùa",
+     "lv": "Trùm · Cấp 20+",
+     "arena": 1
+    }
+   ],
+   "spots": [
+    {
+     "n": "Vườn Cá Nóc",
+     "mon": "puffer",
+     "lv": [
+      15,
+      17
+     ],
+     "cnt": 6,
+     "x": 520,
+     "w": 760
+    },
+    {
+     "n": "Thảm Sứa",
+     "mon": "jelly",
+     "lv": [
+      17,
+      19
+     ],
+     "cnt": 6,
+     "x": 1320,
+     "w": 760
+    },
+    {
+     "n": "Luồng Cá Kiếm",
+     "mon": "swordfish",
+     "lv": [
+      19,
+      20
+     ],
+     "cnt": 4,
+     "x": 2120,
+     "w": 460
+    },
+    {
+     "n": "Gò Cá Nóc",
+     "mon": "puffer",
+     "lv": [
+      20,
+      22
+     ],
+     "cnt": 6,
+     "x": 2840,
+     "w": 760
+    },
+    {
+     "n": "Vực Sứa",
+     "mon": "jelly",
+     "lv": [
+      22,
+      23
+     ],
+     "cnt": 6,
+     "x": 3640,
+     "w": 760
+    },
+    {
+     "n": "Rãnh Cá Kiếm",
+     "mon": "swordfish",
+     "lv": [
+      23,
+      25
+     ],
+     "cnt": 5,
+     "x": 4400,
+     "w": 520
+    }
+   ]
+  },
+  {
+   "name": "Hang Vua Heo",
+   "lv": "Khu trùm",
+   "w": 2000,
+   "h": 720,
+   "theme": "grass",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 420,
+     "name": "Lối ra"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     2000,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 1,
+     "tx": 2840,
+     "ty": 600,
+     "label": "Đồng Bằng Khởi Nguyên",
+     "lv": "Ra khỏi khu trùm"
+    }
+   ],
+   "arena": {
+    "from": 1,
+    "gx": 2840,
+    "req": 6,
+    "ofs": 0
+   },
+   "spots": [
+    {
+     "n": "Vua Heo Rừng",
+     "mon": "boarking",
+     "lv": [
+      12,
+      12
+     ],
+     "cnt": 1,
+     "x": 850,
+     "w": 600
+    }
+   ]
+  },
+  {
+   "name": "Hang Sói",
+   "lv": "Khu trùm",
+   "w": 2000,
+   "h": 720,
+   "theme": "snow",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 420,
+     "name": "Lối ra"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     2000,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 2,
+     "tx": 2510,
+     "ty": 600,
+     "label": "Rừng Tuyết Phong",
+     "lv": "Ra khỏi khu trùm"
+    }
+   ],
+   "arena": {
+    "from": 2,
+    "gx": 2510,
+    "req": 14,
+    "ofs": 3
+   },
+   "spots": [
+    {
+     "n": "Sói Tuyết Đầu Đàn",
+     "mon": "wolfking",
+     "lv": [
+      20,
+      20
+     ],
+     "cnt": 1,
+     "x": 850,
+     "w": 600
+    }
+   ]
+  },
+  {
+   "name": "Miệng Núi Lửa",
+   "lv": "Khu trùm",
+   "w": 3000,
+   "h": 720,
+   "theme": "lava",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 420,
+     "name": "Lối ra"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     3000,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 3,
+     "tx": 2510,
+     "ty": 600,
+     "label": "Núi Lửa Hắc Ám",
+     "lv": "Ra khỏi khu trùm"
+    }
+   ],
+   "arena": {
+    "from": 3,
+    "gx": 2510,
+    "req": 20,
+    "ofs": 6
+   },
+   "spots": [
+    {
+     "n": "Rồng Độc",
+     "mon": "dragon2",
+     "lv": [
+      22,
+      22
+     ],
+     "cnt": 1,
+     "x": 700,
+     "w": 600
+    },
+    {
+     "n": "Rồng Băng",
+     "mon": "dragon3",
+     "lv": [
+      26,
+      26
+     ],
+     "cnt": 1,
+     "x": 1450,
+     "w": 600
+    },
+    {
+     "n": "Rồng Lửa",
+     "mon": "dragon",
+     "lv": [
+      30,
+      30
+     ],
+     "cnt": 1,
+     "x": 2200,
+     "w": 600
+    }
+   ]
+  },
+  {
+   "name": "Hang Cua",
+   "lv": "Khu trùm",
+   "w": 2000,
+   "h": 720,
+   "theme": "cave",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 420,
+     "name": "Lối ra"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     2000,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 5,
+     "tx": 2700,
+     "ty": 600,
+     "label": "Bãi Biển Vỏ Sò",
+     "lv": "Ra khỏi khu trùm"
+    }
+   ],
+   "arena": {
+    "from": 5,
+    "gx": 2700,
+    "req": 10,
+    "ofs": 9
+   },
+   "spots": [
+    {
+     "n": "Vua Cua Khổng Lồ",
+     "mon": "kingcrab",
+     "lv": [
+      16,
+      16
+     ],
+     "cnt": 1,
+     "x": 850,
+     "w": 600
+    }
+   ]
+  },
+  {
+   "name": "Ổ Rùa",
+   "lv": "Khu trùm",
+   "w": 2000,
+   "h": 720,
+   "theme": "reef",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 420,
+     "name": "Lối ra"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     2000,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 6,
+     "tx": 2700,
+     "ty": 600,
+     "label": "Rạn San Hô",
+     "lv": "Ra khỏi khu trùm"
+    }
+   ],
+   "arena": {
+    "from": 6,
+    "gx": 2700,
+    "req": 20,
+    "ofs": 12
+   },
+   "spots": [
+    {
+     "n": "Rùa Đá Ngàn Năm",
+     "mon": "turtle",
+     "lv": [
+      26,
+      26
+     ],
+     "cnt": 1,
+     "x": 850,
+     "w": 600
+    }
+   ]
+  },
+  {
+   "name": "Hang Rắn",
+   "lv": "Khu trùm",
+   "w": 2000,
+   "h": 720,
+   "theme": "swamp",
+   "village": false,
+   "spawn": {
+    "x": 220,
+    "y": 600
+   },
+   "safes": [
+    {
+     "x": 0,
+     "w": 420,
+     "name": "Lối ra"
+    }
+   ],
+   "npcs": [],
+   "houses": [],
+   "fountain": null,
+   "terr": [
+    [
+     0,
+     600
+    ],
+    [
+     2000,
+     600
+    ]
+   ],
+   "portals": [
+    {
+     "x": 60,
+     "y": 600,
+     "to": 4,
+     "tx": 2700,
+     "ty": 600,
+     "label": "Đầm Lầy Sương Độc",
+     "lv": "Ra khỏi khu trùm"
+    }
+   ],
+   "arena": {
+    "from": 4,
+    "gx": 2700,
+    "req": 36,
+    "ofs": 15
+   },
+   "spots": [
+    {
+     "n": "Rắn Chúa Ba Đầu",
+     "mon": "hydra",
+     "lv": [
+      42,
+      42
+     ],
+     "cnt": 1,
+     "x": 850,
+     "w": 600
+    }
    ]
   }
  ]

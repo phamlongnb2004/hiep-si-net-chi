@@ -11,7 +11,7 @@ const ROLE_N = { owner: 'Chủ', gm: 'GM hỗ trợ', viewer: 'Chỉ xem' };
 const KIND_N = { drop: 'Rơi đồ hiếm', forge: 'Rèn cao', cheat: 'Nghi gian lận', ban: 'Khóa tài khoản' };
 const ACT_N = { login: 'Đăng nhập', login_fail: 'Đăng nhập sai', otp_fail: 'Sai mã 2 lớp', setup_fail: 'Sai mã kích hoạt', setup_2fa: 'Bật mã 2 lớp', denied: 'Bị từ chối quyền',
   char_edit: 'Sửa nhân vật', item_add: 'Tặng đồ', item_del: 'Xóa đồ', ban: 'Khóa tài khoản', unban: 'Mở khóa', mute: 'Cấm chat', kick: 'Đá khỏi game', reset_pw: 'Đặt lại mật khẩu',
-  restore: 'Khôi phục nhân vật', announce: 'Thông báo', maint: 'Bảo trì', event: 'Bật sự kiện', event_stop: 'Tắt sự kiện', servers_set: 'Sửa máy chủ', app_cfg: 'Cấu hình ứng dụng',
+  restore: 'Khôi phục nhân vật', announce: 'Thông báo', maint: 'Bảo trì', event: 'Bật sự kiện', event_stop: 'Tắt sự kiện', servers_set: 'Sửa máy chủ', app_cfg: 'Cấu hình ứng dụng', arena_now: 'Mở khu trùm ngay',
   tune_set: 'Chỉnh cân bằng', tune_reset: 'Khôi phục cân bằng', admin_add: 'Thêm quản trị', admin_role: 'Đổi quyền', admin_del: 'Xóa quản trị', admin_reset2fa: 'Đặt lại mã 2 lớp' };
 let ME = null, TAB = 'overview';
 // biểu tượng nét (vẽ bằng SVG, không tải gì từ ngoài)
@@ -250,6 +250,18 @@ const VIEWS = {
       h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { if (v1.value === 'off' && c.v1 !== 'off' && !await confirmBox('Tắt bản cũ', 'Người đang dùng bản web hoặc ứng dụng vỏ cũ sẽ bị đưa ra và phải tải ứng dụng mới.', 'Tắt bản cũ')) return; await run('app_cfg', { min_app: ma.value, v1: v1.value }, 'Đã lưu.'); layout(); } }, 'Lưu'))));
     body.append(card(['users', 'c-mint', 'Khu trong bản đồ'], h('p', { class: 'note' }, 'Mỗi bản đồ chia nhiều khu như Ngọc Rồng Online, mỗi khu có quái và đồ rơi riêng. Khu đầy thì người mới tự vào khu khác. Người chơi đổi khu bằng nút Khu dưới tên bản đồ.'),
       h('div', { class: 'row' }, field('Số người tối đa mỗi khu', km), h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('app_cfg', { khuMax: +km.value }, 'Đã lưu. Áp dụng cho lượt vào khu tiếp theo.'); layout(); } }, 'Lưu'))));
+    // khu trùm
+    const ar = c.arena || { on: true, slots: ['12:00', '19:00', '21:00'], dur: 30 }, an = c.arenaNow;
+    const aon = h('select', null, h('option', { value: 1, selected: ar.on !== false }, 'Bật'), h('option', { value: 0, selected: ar.on === false }, 'Tắt')),
+      asl = inp({ value: (ar.slots || []).join(', '), placeholder: '12:00, 19:00, 21:00', style: 'width:220px' }), adu = inp({ type: 'number', min: 5, max: 180, value: ar.dur || 30, style: 'width:90px' }),
+      anm = inp({ type: 'number', min: 1, max: 180, value: 30, style: 'width:90px' });
+    body.append(card(['sword', 'c-vio', 'Khu trùm'], h('p', { class: 'note' }, 'Cổng khu trùm ở giữa bản đồ, chỉ mở theo khung giờ (giờ Việt Nam). Mỗi khu trùm lệch nhau vài phút để người chơi kịp đi nhiều trùm. Mỗi khu một con trùm; hạ xong khu đó đóng tới khung sau. Trước giờ mở 5 phút cả máy chủ nhận thông báo.'
+      + (an ? ' Đang mở ngay đến ' + new Date(an.until).toLocaleTimeString('vi-VN') + '.' : '')),
+      h('div', { class: 'row' }, field('Trạng thái', aon), field('Khung giờ mở', asl), field('Mở trong (phút)', adu),
+        h('button', { class: 'btn green', disabled: !can('owner'), onclick: async () => { await run('app_cfg', { arena: { on: aon.value === '1', slots: asl.value, dur: +adu.value } }, 'Đã lưu khung giờ khu trùm.'); layout(); } }, 'Lưu')),
+      h('div', { class: 'row', style: 'margin-top:8px' }, field('Mở tất cả ngay trong (phút)', anm),
+        h('button', { class: 'btn sky', disabled: !can('owner'), onclick: async () => { await run('arena_now', { min: +anm.value }, 'Đã mở mọi khu trùm.'); layout(); } }, 'Mở ngay'),
+        an ? h('button', { class: 'btn red', disabled: !can('owner'), onclick: async () => { await run('arena_now', { min: 0 }, 'Đã đóng lại theo lịch.'); layout(); } }, 'Đóng lại') : '')));
   },
   async tune(body) {
     const r = await run('tune_get'); if (!r) return;

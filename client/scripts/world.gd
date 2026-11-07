@@ -5,7 +5,19 @@ class_name World
 
 const GY := 600.0
 const GRD_H := 250.0
-const SKY := {"grass": ["7cc8ff", "d9f1ff"], "snow": ["a9cbe6", "eef6fb"], "lava": ["3a1414", "a2462a"]}
+const SKY := {"grass": ["7cc8ff", "d9f1ff"], "snow": ["a9cbe6", "eef6fb"], "lava": ["3a1414", "a2462a"],
+	"beach": ["4fb4f5", "cdeefc"], "reef": ["1d6fa3", "5ec3d6"], "swamp": ["2a2340", "6b6a5a"], "cave": ["0d1b33", "2a4f73"]}
+const HAZE := {"grass": Color(0.82, 0.92, 1, 0.16), "snow": Color(0.88, 0.93, 0.99, 0.2), "lava": Color(0.12, 0.02, 0.03, 0.42),
+	"beach": Color(0.9, 0.97, 1, 0.06), "reef": Color(0.1, 0.45, 0.65, 0.18), "swamp": Color(0.3, 0.55, 0.28, 0.12), "cave": Color(0.02, 0.05, 0.12, 0.3)}
+## cảnh vật của các bộ bản đồ mới (vẽ tách mảnh): cây/cao, bụi/thấp, đá/nhỏ, hiếm
+const KIT := {
+	"beach": {"tree": ["beach_tree0", "beach_tree1", "beach_tree2"], "bush": ["beach_bush", "beach_shell"], "rock": ["beach_rock", "beach_starfish"], "rare": ["beach_boat"]},
+	"reef": {"tree": ["reef_kelp0", "reef_kelp1", "reef_kelp2"], "bush": ["reef_coral", "reef_anemone"], "rock": ["reef_rock", "reef_column"], "rare": ["reef_chest"]},
+	"swamp": {"tree": ["swamp_tree0", "swamp_tree1", "swamp_tree2"], "bush": ["swamp_reeds", "swamp_mush"], "rock": ["swamp_rock", "swamp_pool"], "rare": ["swamp_sign"]},
+	"cave": {"tree": [], "bush": ["cave_shell"], "rock": ["cave_rock"], "rare": ["cave_boat"]}}
+## cổng khu trùm theo chủ đề (bản đồ cũ mượn cổng hang, tô màu)
+const GATE := {"beach": ["beach_gate", Color.WHITE], "reef": ["reef_gate", Color.WHITE], "swamp": ["swamp_gate", Color.WHITE],
+	"grass": ["swamp_gate", Color(0.85, 1.0, 0.8)], "snow": ["swamp_gate", Color(0.8, 0.92, 1.1)], "lava": ["swamp_gate", Color(1.2, 0.6, 0.45)], "cave": ["beach_gate", Color.WHITE]}
 const DSC := {"house": 1.3, "npc": 0.74}
 const BACK_Z := -10
 
@@ -17,10 +29,57 @@ var cam_rect = Rect2(0, 0, 1280, 720)
 var near_npc = ""
 var t = 0.0
 
+## lớp phủ phía trước: dưới nước (tia sáng, bong bóng), sương đầm lầy, hang tối
+class Overlay extends Node2D:
+	var w
+	var bub: Array = []
+	func _process(dt: float) -> void:
+		if w.theme == "reef":
+			if randf() < dt * 6:
+				bub.append({"p": Vector2(w.cam_rect.position.x + randf() * w.cam_rect.size.x, w.cam_rect.end.y + 10), "s": randf_range(2, 6), "v": randf_range(40, 90), "ph": randf() * 6})
+			for b in bub:
+				b.p.y -= b.v * dt
+				b.p.x += sin(w.t * 2 + b.ph) * 12 * dt
+			bub = bub.filter(func(b): return b.p.y > w.cam_rect.position.y - 20)
+		queue_redraw()
+	func _draw() -> void:
+		var r: Rect2 = w.cam_rect.grow(4)
+		match w.theme:
+			"reef":
+				draw_rect(r, Color(0.1, 0.45, 0.7, 0.13))
+				for i in 6:
+					var x = r.position.x + fmod(i * 260.0 - r.position.x * 0.3 + sin(w.t * 0.4 + i) * 30, r.size.x + 300) - 150
+					var a = 0.05 + 0.03 * sin(w.t * 0.9 + i * 1.7)
+					draw_colored_polygon(PackedVector2Array([Vector2(x, r.position.y), Vector2(x + 70, r.position.y), Vector2(x + 250, r.end.y), Vector2(x + 110, r.end.y)]),
+						Color(0.8, 1, 1, a))
+				for b in bub:
+					draw_arc(b.p, b.s, 0, TAU, 12, Color(0.85, 1, 1, 0.55), 1.2)
+			"swamp":
+				for i in 5:
+					var x = r.position.x + fmod(i * 330.0 + w.t * 14.0 - r.position.x * 0.15, r.size.x + 400) - 200
+					w._ellipse_on(self, Vector2(x, 590 + sin(w.t + i) * 6), 260, 46, Color(0.55, 0.75, 0.45, 0.10))
+			"cave":
+				draw_rect(r, Color(0.02, 0.04, 0.1, 0.12))
+
+var _ov: Overlay
+
+func _ellipse_on(n: CanvasItem, c: Vector2, rx: float, ry: float, col: Color) -> void:
+	var pts = PackedVector2Array()
+	for i in 24:
+		var a = TAU * i / 24.0
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	n.draw_colored_polygon(pts, col)
+
 func setup(map_index: int) -> void:
 	mi = map_index
 	M = Data.D.maps[mi]
 	theme = str(M.theme)
+	if _ov == null:
+		_ov = Overlay.new()
+		_ov.w = self
+		_ov.z_index = 40
+		_ov.z_as_relative = false
+		add_child(_ov)
 	_gen_decor()
 	queue_redraw()
 
@@ -37,7 +96,8 @@ func _gen_decor() -> void:
 	decor.clear()
 	var r = RandomNumberGenerator.new()
 	r.seed = 4242 + mi * 31
-	var trees: Array = {"grass": [0, 1, 2], "snow": [3, 3, 3], "lava": [4, 4, 4]}[theme]
+	var trees: Array = {"grass": [0, 1, 2], "snow": [3, 3, 3], "lava": [4, 4, 4]}.get(theme, [0, 1, 2])
+	var kit: Dictionary = KIT.get(theme, {})
 	var w: float = M.w
 	var busy = func(x: float) -> bool:
 		for p in M.portals:
@@ -52,7 +112,14 @@ func _gen_decor() -> void:
 	while x < w - 40:
 		if not busy.call(x) and absf(gy(x - 46) - gy(x + 46)) <= 2:
 			var k = r.randf()
-			if k < 0.5:
+			if not kit.is_empty():
+				var grp = "tree" if k < 0.3 else ("bush" if k < 0.62 else ("rock" if k < 0.93 else "rare"))
+				var L: Array = kit[grp]
+				if L.is_empty():
+					L = kit.rock
+				decor.append({"k": "kit", "x": x, "s": 0.7 + r.randf() * 0.25 if grp == "tree" else 0.7 + r.randf() * 0.35, "v": L[r.randi() % L.size()], "dy": 6})
+				x += 60 + r.randf() * 80
+			elif k < 0.5:
 				decor.append({"k": "tree", "x": x, "s": 0.85 + r.randf() * 0.5, "v": trees[r.randi() % 3], "dy": 6 + r.randf() * 4})
 			elif k < 0.75:
 				decor.append({"k": "bush", "x": x, "s": 0.8 + r.randf() * 0.5, "dy": 5})
@@ -100,10 +167,10 @@ func _draw() -> void:
 		_tile_par(far, cx, GY + 30 - h, h, vw, 0.82)
 	var mid = _side("mid_" + theme)
 	if not mid.is_empty():
-		var h2: float = vh * 0.42
+		var h2: float = vh * (0.36 if KIT.has(theme) else 0.42)
 		_tile_par(mid, cx, GY - h2 * 0.94, h2, vw, 0.5)
 	# sương phủ cảnh nền
-	var hz: Color = {"grass": Color(0.82, 0.92, 1, 0.16), "snow": Color(0.88, 0.93, 0.99, 0.2), "lava": Color(0.12, 0.02, 0.03, 0.42)}[theme]
+	var hz: Color = HAZE.get(theme, HAZE.grass)
 	draw_rect(Rect2(cx - 2, cy - 2, vw + 4, vh + 4), hz)
 	if theme == "lava":
 		var a = Color(1, 0.35, 0.16, 0)
@@ -172,7 +239,7 @@ func _ground(cx: float, cy: float, vw: float, vh: float) -> void:
 		if gt:
 			var iw = float(gt.get_width())
 			var ih = float(gt.get_height())
-			var h = GRD_H
+			var h: float = float(gr.get("gh", GRD_H))
 			var dw: float = h * gr.w / gr.h
 			var y: float = GY - h * float(gr.get("top", 0)) + 4
 			_tile_clip(gt, Rect2(0, 0, iw, ih), dw, y, h, a0, a1, false, seg)
@@ -202,7 +269,11 @@ func _ground(cx: float, cy: float, vw: float, vh: float) -> void:
 		_ellipse(Vector2(x0 - dir * 14, bot + 2), 48, 9, Color(0, 0, 0, 0.22))
 		var cap = _side(("capL_" if dir > 0 else "capR_") + theme)
 		var ct = Data.tex(cap.get("u", ""))
-		if ct and gr.has("h"):
+		if ct and cap.has("dh"):
+			var hk: float = cap.dh
+			var wk: float = hk * cap.w / cap.h
+			draw_texture_rect(ct, Rect2(x0 - float(cap.wall) * wk, top - float(cap.top) * hk, wk, hk), false)
+		elif ct and gr.has("h"):
 			var tk: float = cap.get("tk", 4)
 			var wc: float = cap.w * GRD_H / gr.h / tk
 			var hc: float = wc * cap.h / cap.w
@@ -228,6 +299,7 @@ func _decor(d: Dictionary) -> void:
 		"house": _spr("house%d" % int(d.v), d.x, d.gy, DSC.house)
 		"fountain": _spr("fountain", d.x, d.gy, 1.0)
 		"sign": _sign(d)
+		"kit": _spr(d.v, d.x, d.gy, d.s)
 
 func _sign(d: Dictionary) -> void:
 	var a = _ai("sign")
@@ -281,6 +353,9 @@ func _npc(n: Dictionary) -> void:
 		draw_string(f, Vector2(n.x - 40, top - 40 + sin(t * 4) * 3), "Bấm để nói chuyện", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("9be05a"))
 
 func _portal(p: Dictionary) -> void:
+	if p.get("arena"):
+		_arena_gate(p)
+		return
 	var a = _ai("gate")
 	var glow = 0.5 + sin(t * 3) * 0.2
 	_ellipse(Vector2(p.x, p.y - 50), 46, 62, Color(0.6, 0.9, 1, 0.22 * glow))
@@ -294,6 +369,28 @@ func _portal(p: Dictionary) -> void:
 		var y = top - (14 if i == 0 else 0)
 		draw_string_outline(f, Vector2(p.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 5, UI.INK)
 		draw_string(f, Vector2(p.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color.WHITE)
+
+## cổng khu trùm: mở thì sáng và đếm giờ còn lại, đóng thì tối và hiện giờ mở
+func _arena_gate(p: Dictionary) -> void:
+	var st: Dictionary = Data.arena_state(int(p.to))
+	var g: Array = GATE.get(theme, GATE.grass)
+	var op: bool = st.open
+	var mod: Color = g[1] if op else g[1] * Color(0.55, 0.55, 0.62)
+	if op:
+		var glow = 0.5 + sin(t * 3) * 0.25
+		_ellipse(Vector2(p.x, p.y - 90), 120, 110, Color(1, 0.75, 0.3, 0.16 * glow))
+	_spr(g[0], p.x, p.y + 8, 1.0, 0.97, mod)
+	var a = _ai(g[0])
+	var f: Font = Data.fonts.get("bold")
+	var top: float = p.y - float(a.get("h", 230)) - 12
+	var lines = [[str(p.label), 17, Color("ffd23f")], [str(p.lv), 12, Color.WHITE], [st.text, 13, Color("9be05a") if op else Color("ffb3a3")]]
+	for i in 3:
+		var s: String = lines[i][0]
+		var sz: int = lines[i][1]
+		var w = f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
+		var y = top - 34 + i * 17
+		draw_string_outline(f, Vector2(p.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 5, UI.INK)
+		draw_string(f, Vector2(p.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, lines[i][2])
 
 func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts = PackedVector2Array()
