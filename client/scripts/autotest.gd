@@ -226,11 +226,16 @@ func tour(u: String, act: String) -> void:
 		await shot("t2-walk")
 	var t0 = Time.get_ticks_msec()
 	var n = 3
-	while Time.get_ticks_msec() - t0 < 16000:
+	var last_s = 0
+	var dur = float(OS.get_environment("HSNC_TOUR_SEC")) if OS.get_environment("HSNC_TOUR_SEC") != "" else 16.0
+	while Time.get_ticks_msec() - t0 < dur * 1000:
 		var m = g.nearest_mon(1200)
 		if m:
 			g.focus = m
-		await wait(0.2)
-		if Time.get_ticks_msec() - t0 > (n - 2) * 2600:
-			await shot("t%d-fight" % n)
+		await wait(0.1)
+		# chụp lúc trùm/quái đang ra chiêu: có vùng báo hoặc hiệu ứng chiêu
+		var busy = g.fx.tgs.size() > 0 or g.fx.vfxs.size() > 0
+		if (busy and Time.get_ticks_msec() - last_s > 700) or Time.get_ticks_msec() - last_s > 3000:
+			last_s = Time.get_ticks_msec()
+			await shot("t%02d-%s" % [n, "skill" if busy else "fight"])
 			n += 1

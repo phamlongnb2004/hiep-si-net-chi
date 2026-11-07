@@ -383,7 +383,7 @@ export class MapInst {
         for (const x of pts) this.tgCirc(x, sk.r, this.gY(x), sk.wind);
         fire = () => { for (const x of pts) { const gy = this.gY(x); this.fx(sk.fx, x, gy, sk.r * 2.4); for (const c of this.victims(f => Math.abs(f.x - x) < sk.r + 12 && Math.abs(f.y - gy) < 110)) this.hurt(c, atk * sk.m, { slow: sk.slow }); } }; break; }
       case 'pull': { this.tgCirc(X, sk.r, y, sk.wind); end = sk.wind + sk.t; let acc = 0, fa = 0;
-        on = dt => { acc += dt; fa -= dt; if (fa <= 0) { fa = .6; this.fx(sk.fx, X, y, 280); }
+        on = dt => { acc += dt; fa -= dt; if (fa <= 0) { fa = .6; this.fx(sk.fx, X, y, 230); }
           if (acc < sk.every) return; acc -= sk.every;
           for (const c of near(f => Math.abs(f.x - X) < sk.r, 220)) { const d = c.f.x - X; if (Math.abs(d) > 40) this.push(c, -Math.sign(d) * Math.min(sk.pull, Math.abs(d) - 36)); this.hurt(c, atk * sk.m, { noDodge: true }); } }; break; }
       case 'spikes': { const a = X + face * 30, b = clamp(X + face * sk.len, 40, W - 40); this.tgRect(a, b, y, sk.wind);
