@@ -19,15 +19,15 @@
   }
  },
  "assets": {
-  "version": 11,
+  "version": 12,
   "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-11.pck",
-  "sha256": "60c20bdc699a37783b054b3544eb287724761b12d661284d51be8de7451c1365",
-  "size": 47451472
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-12.pck",
+  "sha256": "ab7aea81584a0c028b8fb86e3914741a8139e1d9c6280214001aed3db8859758",
+  "size": 47452112
  },
  "changelog": [
-  "Mũ khi leo thang ôm sát đầu: mũ trụ trùm kín tới gáy, mũ mềm và mũ phù thuỷ chụp lên nửa trên đầu, băng đô ngang trán",
-  "Cánh mọc ra từ sau lưng, không còn chìa ra trước mặt"
+  "Vẽ lại mũ nhìn từ sau lưng khi leo thang: chỉ thấy mặt ngoài kín của mũ, không còn lộ lót trong phía trước",
+  "Băng đô võ sĩ khi leo là dải băng ngang trán nhìn thẳng từ sau, nơ thả xuống lưng"
  ],
- "updated": "2026-11-07T15:17:32.204Z"
+ "updated": "2026-11-07T15:46:13.753Z"
 }
