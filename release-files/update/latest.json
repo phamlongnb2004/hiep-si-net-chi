@@ -19,15 +19,15 @@
   }
  },
  "assets": {
-  "version": 10,
+  "version": 11,
   "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-10.pck",
-  "sha256": "cfc111e4cc85c62c6b29ad58b5a14c58eef3a228007a29b58ab94e49dab03387",
-  "size": 47451856
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-11.pck",
+  "sha256": "60c20bdc699a37783b054b3544eb287724761b12d661284d51be8de7451c1365",
+  "size": 47451472
  },
  "changelog": [
-  "Mũ khi leo thang đội đúng trên đầu: mũ trụ phủ kín đầu, băng đô nằm ngang trán, mũ đi theo đầu ở mọi khung leo",
+  "Mũ khi leo thang ôm sát đầu: mũ trụ trùm kín tới gáy, mũ mềm và mũ phù thuỷ chụp lên nửa trên đầu, băng đô ngang trán",
   "Cánh mọc ra từ sau lưng, không còn chìa ra trước mặt"
  ],
- "updated": "2026-11-07T15:09:00.043Z"
+ "updated": "2026-11-07T15:17:32.204Z"
 }
