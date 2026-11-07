@@ -212,6 +212,9 @@ func tour(u: String, act: String) -> void:
 	await wait(3.0)
 	var g: Game = main.game
 	await shot("t1-" + u)
+	if act == "maps":
+		await tour_maps(g)
+		return
 	if act == "annshow":
 		var msgs = [["⏰ Hang Sói (Rừng Tuyết Phong) mở sau 5 phút", "b1"], ["⚔ Hang Vua Heo đã mở! Cổng ở giữa Đồng Bằng Khởi Nguyên", "b2"],
 			["⚔ Thu arena đã kết liễu Vua Heo Rừng!", "b3"], ["Bảo trì máy chủ lúc 23:00 trong 10 phút", "b4"]]
@@ -283,3 +286,23 @@ func tour_ann(g: Game) -> void:
 	await shot("a5-ket-lieu")
 	await wait(3.0)
 	await shot("a6-sau")
+
+## chụp toàn cảnh từng bản đồ (cửa sổ rất rộng): dựng bản đồ ngay trên máy, rải quái theo các bãi quái để xem
+func tour_maps(g: Game) -> void:
+	main.hud.visible = false
+	var list = OS.get_environment("HSNC_MAPS").split(",")
+	for ms in list:
+		var i = int(ms)
+		var M: Dictionary = Data.D.maps[i]
+		var mons = []
+		var n = 0
+		for sp in M.spots:
+			for k in int(sp.cnt):
+				var x = float(sp.x) + float(sp.w) / 2 if int(sp.cnt) == 1 else float(sp.x) + 80 + (float(sp.w) - 160) * (k + 0.5) / float(sp.cnt)
+				mons.append({"id": 900000 + n, "type": sp.mon, "lv": int(sp.lv[0]), "hpMax": 100, "hp": 100, "x": x, "y": Data.ground_y(M, x)})
+				n += 1
+		g._build_map({"m": i, "k": 1, "x": float(M.w) / 2, "y": Data.ground_y(M, float(M.w) / 2), "mons": mons, "drops": []})
+		g.warping = true
+		g.me.visible = false
+		await wait(2.0)
+		await shot("map%02d" % i)
