@@ -20,6 +20,7 @@ var is_me = false
 var wing = -1           # độ hiếm cánh đang đeo (0..3), -1 = không có
 var title = ""          # danh hiệu (vd Kẻ Kết Liễu, 24 giờ sau khi hạ trùm)
 var deb = 0             # trạng thái xấu: 1 choáng, 2 chậm, 4 độc
+var climb = false       # đang leo dây/thang: vẽ dáng nhìn từ sau lưng
 var _sp: Array = []     # hạt sáng quanh cánh
 
 const HS := 0.8
@@ -53,7 +54,7 @@ const WING_GLOW := [Color(1, 1, 1, 0.0), Color(0.55, 0.85, 1.0, 0.35), Color(0.7
 const WING_SP := [Color(1, 1, 1), Color(0.7, 0.92, 1.0), Color(0.85, 0.6, 1.0), Color(1.0, 0.85, 0.35)]
 
 ## cánh: 16 khung vỗ cánh, vỗ nhanh khi chạy/nhảy, chậm khi đứng; quầng sáng + hạt sáng theo độ hiếm
-func _draw_wing(al: float, up: float) -> void:
+func _draw_wing(al: float, up: float, back := false) -> void:
 	var fx: Array = Data.A.get("wingfx", [])
 	var r = clampi(wing, 0, 3)
 	if r >= fx.size():
@@ -66,9 +67,9 @@ func _draw_wing(al: float, up: float) -> void:
 		return
 	var w = 118.0
 	var h = w * tx.get_height() / tx.get_width()
-	var c = Vector2(-6 * face, -40 - up + sin(t * 2.2) * 1.5)
+	var c = Vector2(0 if back else -6 * face, -40 - up + sin(t * 2.2) * 1.5)
 	# lưng nhân vật quay theo hướng nhìn: cánh hơi lệch về sau và thu hẹp (nhìn nghiêng)
-	draw_set_transform(c, 0, Vector2(0.78 * HS * 1.25, HS * 1.25))
+	draw_set_transform(c, 0, Vector2((1.0 if back else 0.78) * HS * 1.25, HS * 1.25))
 	var g: Color = WING_GLOW[r]
 	if g.a > 0:
 		var pulse = 0.75 + 0.25 * sin(t * 3.0)
@@ -99,6 +100,9 @@ func _draw() -> void:
 	var al = 0.45 if dead else 1.0
 	if flash > 0 and int(t * 30) % 2 == 0:
 		al *= 0.5
+	if climb and _draw_climb(al):
+		_labels()
+		return
 	var ph = t * 8.5
 	var fi = int(floor(ph)) % 4
 	var fr = ph - floor(ph)
@@ -179,6 +183,9 @@ func _draw() -> void:
 			draw_set_transform_matrix(xf)
 			draw_texture_rect(htx, Rect2(hx - hw / 2, y - hh, hw, hh), false, mod)
 	draw_set_transform(Vector2.ZERO)
+	_labels()
+
+func _labels() -> void:
 	if show_name and nm != "":
 		var f: Font = Data.fonts.get("bold")
 		var s = ("Lv.%d " % lv if lv > 0 else "") + nm
@@ -203,6 +210,48 @@ func _draw() -> void:
 		if not is_me and hp < 1.0:
 			draw_rect(Rect2(-22, y + 4, 44, 6), UI.INK)
 			draw_rect(Rect2(-21, y + 5, 42 * clampf(hp, 0, 1), 4), Color("5fe08c"))
+
+## leo thang: nhìn từ sau lưng, 4 khung tay chân luân phiên (chỉ đổi khung khi đang trèo).
+## Mũ và áo choàng dùng ảnh mặt sau; cánh xoè đủ hai bên (không thu hẹp như nhìn nghiêng).
+var _cph = 0.0
+func _draw_climb(al: float) -> bool:
+	var a = look % 5 - 1
+	var an: Dictionary = Data.A.get("anim", {})
+	var set: Array = an.get("climb_%s_%s" % [cls, "b" if a < 0 else str(a)], an.get("climb_%s_b" % cls, []))
+	if set.size() < 4:
+		return false
+	if moving:
+		_cph = t * 7.0
+	var q: Dictionary = set[int(_cph) % set.size()]
+	var tx = Data.tex(q.u)
+	if tx == null:
+		return false
+	var mod = Color(1, 1, 1, al)
+	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
+	var tc = int(look / 25) - 1
+	var th = int(look / 5) % 5 - 1
+	# cánh: vẽ sau thân để không che người (nhìn từ sau vẫn thấy rõ dáng leo)
+	if wing >= 0:
+		_draw_wing(al, 6.0, true)
+	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
+	draw_texture_rect(tx, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
+	# áo choàng mặt sau: treo từ vai, phủ lưng
+	if tc >= 0 and L.has("capeb") and tc < L.capeb.size():
+		var cp: Dictionary = L.capeb[tc]
+		var ct = Data.tex(cp.u)
+		if ct:
+			var sw = sin(t * 2.4) * 0.03
+			draw_set_transform(Vector2(0, (-q.h + float(q.sy)) * HS), sw, Vector2(HS, HS))
+			draw_texture_rect(ct, Rect2(-float(cp.w) / 2, -4, cp.w, cp.h), false, mod)
+	# mũ mặt sau trên đỉnh đầu
+	if th >= 0 and L.has("hatb") and th < L.hatb.size():
+		var ht: Dictionary = L.hatb[th]
+		var htx = Data.tex(ht.u)
+		if htx:
+			draw_set_transform(Vector2((float(q.hx) - q.ax) * HS, (-q.h + float(q.hy)) * HS), 0, Vector2(HS, HS))
+			draw_texture_rect(htx, Rect2(-float(ht.w) / 2, -float(ht.h) + float(ht.get("dy", 0)), ht.w, ht.h), false, mod)
+	draw_set_transform(Vector2.ZERO)
+	return true
 
 func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts = PackedVector2Array()

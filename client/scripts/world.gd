@@ -18,6 +18,8 @@ const KIT := {
 ## cổng khu trùm theo chủ đề (bản đồ cũ mượn cổng hang, tô màu)
 const GATE := {"beach": ["beach_gate", Color.WHITE], "reef": ["reef_gate", Color.WHITE], "swamp": ["swamp_gate", Color.WHITE],
 	"grass": ["swamp_gate", Color(0.85, 1.0, 0.8)], "snow": ["swamp_gate", Color(0.8, 0.92, 1.1)], "lava": ["swamp_gate", Color(1.2, 0.6, 0.45)], "cave": ["beach_gate", Color.WHITE]}
+## cổng riêng của từng khu trùm (theo bản đồ đích)
+const ARENA_GATE := {7: "gate_boar", 8: "gate_wolf", 9: "gate_volcano", 10: "gate_crab", 11: "gate_turtle", 12: "gate_snake"}
 const DSC := {"house": 1.3, "npc": 0.74}
 const BACK_Z := -10
 
@@ -204,6 +206,7 @@ const WATER := {"beach": [Color(0.25, 0.65, 0.9, 0.55), Color(0.85, 0.97, 1, 0.9
 	"swamp": [Color(0.32, 0.38, 0.18, 0.75), Color(0.6, 0.75, 0.35, 0.9)], "cave": [Color(0.15, 0.35, 0.6, 0.6), Color(0.6, 0.85, 1, 0.8)],
 	"grass": [Color(0.3, 0.6, 0.9, 0.55), Color(0.85, 0.95, 1, 0.9)], "snow": [Color(0.55, 0.75, 0.95, 0.6), Color(0.95, 1, 1, 0.95)], "lava": [Color(0.3, 0.6, 0.9, 0.5), Color(1, 1, 1, 0.8)]}
 const VINE := ["reef", "swamp"]
+const LADDER := {"swamp": "ladder_bamboo", "beach": "ladder_bamboo", "reef": "ladder_bamboo"}
 
 func _layers(cx: float, vw: float) -> void:
 	for w in M.get("water", []):
@@ -254,32 +257,29 @@ func _layers(cx: float, vw: float) -> void:
 		var rx: float = r[0]
 		if rx < cx - 40 or rx > cx + vw + 40:
 			continue
-		if r.size() > 3 and str(r[3]) == "ladder":
-			var col = Color("9a6532")
-			draw_line(Vector2(rx - 16, float(r[1]) - 6), Vector2(rx - 16, float(r[2])), Color("5a3818"), 7)
-			draw_line(Vector2(rx + 16, float(r[1]) - 6), Vector2(rx + 16, float(r[2])), Color("5a3818"), 7)
-			draw_line(Vector2(rx - 16, float(r[1]) - 6), Vector2(rx - 16, float(r[2])), col, 4)
-			draw_line(Vector2(rx + 16, float(r[1]) - 6), Vector2(rx + 16, float(r[2])), col, 4)
-			var yy = float(r[1]) + 10
-			while yy < float(r[2]):
-				draw_line(Vector2(rx - 16, yy), Vector2(rx + 16, yy), Color("5a3818"), 6)
-				draw_line(Vector2(rx - 15, yy), Vector2(rx + 15, yy), Color("b57a3e"), 3)
-				yy += 24
-		else:
-			var vine = theme in VINE
-			var c1 = Color("3f7a2c") if vine else Color("6e4a22")
-			var c2 = Color("79c04a") if vine else Color("b48448")
-			var sw = sin(t * 1.3 + rx) * 3.0
-			draw_line(Vector2(rx, float(r[1]) - 4), Vector2(rx + sw, float(r[2]) - 8), Color(0.1, 0.06, 0.03, 0.8), 8)
-			draw_line(Vector2(rx, float(r[1]) - 4), Vector2(rx + sw, float(r[2]) - 8), c1, 5)
-			var y3 = float(r[1]) + 14
-			while y3 < float(r[2]) - 10:
-				var f = (y3 - float(r[1])) / max(1.0, float(r[2]) - float(r[1]))
-				if vine:
-					_ellipse(Vector2(rx + sw * f + (8 if int(y3) % 2 == 0 else -8), y3), 8, 4, c2)
-				else:
-					draw_circle(Vector2(rx + sw * f, y3), 4.5, c2)
-				y3 += 30
+		var lad: bool = r.size() > 3 and str(r[3]) == "ladder"
+		var k: String = (LADDER.get(theme, "ladder_wood") if lad else ("vine" if theme in VINE else "rope"))
+		var sw = 0.0 if lad else sin(t * 1.3 + rx) * 2.0
+		if not _tile_v(k, rx + sw, float(r[1]) - (6 if lad else 4), float(r[2]) - (0 if lad else 6)):
+			draw_line(Vector2(rx, float(r[1])), Vector2(rx, float(r[2])), Color("6e4a22"), 5)
+
+## thang/dây: một khúc ảnh lặp theo chiều dọc, khúc cuối cắt bớt cho vừa
+func _tile_v(k: String, x: float, y0: float, y1: float) -> bool:
+	var a = _ai(k)
+	if a.is_empty():
+		return false
+	var tx = Data.tex(a.u)
+	if tx == null:
+		return false
+	var w: float = a.w
+	var h: float = a.h
+	var ts: Vector2 = tx.get_size()
+	var y = y0
+	while y < y1 - 0.5:
+		var hh = minf(h, y1 - y)
+		draw_texture_rect_region(tx, Rect2(x - w / 2, y, w, hh), Rect2(0, 0, ts.x, ts.y * hh / h))
+		y += h
+	return true
 
 ## cầu treo: ván gỗ võng xuống giữa, dây hai bên
 func _rope_hint() -> void:
@@ -498,6 +498,9 @@ func _portal(p: Dictionary) -> void:
 func _arena_gate(p: Dictionary) -> void:
 	var st: Dictionary = Data.arena_state(int(p.to))
 	var g: Array = GATE.get(theme, GATE.grass)
+	var own: String = ARENA_GATE.get(int(p.to), "")
+	if own != "" and not _ai(own).is_empty():
+		g = [own, Color.WHITE]
 	var op: bool = st.open
 	var mod: Color = g[1] if op else g[1] * Color(0.55, 0.55, 0.62)
 	if op:

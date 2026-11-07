@@ -237,7 +237,8 @@ func _snap(m: Dictionary) -> void:
 		h.hp = float(q[9])
 		h.dead = int(q[10]) == 1
 		h.look = int(q[11])
-		h.air = q.size() > 12 and int(q[12]) == 1
+		h.air = q.size() > 12 and int(q[12]) >= 1
+		h.climb = q.size() > 12 and int(q[12]) == 2
 		h.wing = int(q[13]) if q.size() > 13 else -1
 		h.title = str(q[14]) if q.size() > 14 else ""
 		h.deb = int(q[15]) if q.size() > 15 else 0
@@ -657,6 +658,7 @@ func _control(dt: float) -> void:
 	if air:
 		me.moving = true
 	me.air = air
+	me.climb = not climb.is_empty()
 	if focus and absf(focus.position.x - me.position.x) > 4:
 		me.face = 1 if focus.position.x > me.position.x else -1
 	if atk_held or in_reach or Input.is_key_pressed(KEY_J):
@@ -687,6 +689,7 @@ func _control(dt: float) -> void:
 func _climb(dt: float, iy: float, dx: float) -> void:
 	var q = climb
 	me.air = true
+	me.climb = true
 	me.moving = absf(iy) > 0.3
 	me.position.x = float(q[0])
 	if absf(iy) > 0.3:
@@ -710,7 +713,7 @@ func _climb(dt: float, iy: float, dx: float) -> void:
 		air = true
 	send_t -= dt
 	if send_t <= 0:
-		Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 1})
+		Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 2 if not climb.is_empty() else 1})
 		send_t = SEND_DT
 
 func _unhandled_input(ev: InputEvent) -> void:

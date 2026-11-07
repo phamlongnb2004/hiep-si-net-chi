@@ -32,6 +32,10 @@ func run() -> void:
 		await tour(OS.get_environment("HSNC_TOUR_USER"), OS.get_environment("HSNC_TOUR_ACT"))
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "climb":
+		await preview_climb()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_GM_USER") != "":
 		await gm_test()
 		get_tree().quit()
@@ -204,13 +208,22 @@ func gm_test() -> void:
 
 
 func tour(u: String, act: String) -> void:
-	var r = await Net.login(u, "matkhau1", false)
+	var nw = act == "art"
+	if nw:
+		u = "art%d" % (Time.get_unix_time_from_system() as int % 100000)
+	var r = await Net.login(u, "matkhau1", nw)
 	print("đăng nhập: ", r.code)
 	main.show_servers()
 	await wait(1.5)
 	main.enter(1)
 	await wait(3.0)
+	if nw:
+		Net.send({"t": "create", "name": "Art " + u.substr(3), "cls": OS.get_environment("HSNC_CLS") if OS.get_environment("HSNC_CLS") != "" else "sword"})
+		await wait(3.0)
 	var g: Game = main.game
+	if act == "art":
+		await tour_art(g)
+		return
 	await shot("t1-" + u)
 	if act == "climb":
 		await tour_climb(g)
@@ -344,3 +357,94 @@ func tour_climb(g: Game) -> void:
 	g.joy = Vector2.ZERO
 	await wait(1.0)
 	print("vị trí máy chủ khớp: bị kéo về ", pos_n, " lần")
+
+
+## xem thử dáng leo thang: 4 lớp x 5 bộ áo, kèm mũ/áo choàng/cánh khác nhau (không cần máy chủ)
+func preview_climb() -> void:
+	var cv = CanvasLayer.new()
+	cv.layer = 100
+	get_tree().root.add_child(cv)
+	var bg = ColorRect.new()
+	bg.color = Color("2a3d5c")
+	bg.size = Vector2(1400, 900)
+	cv.add_child(bg)
+	var root = Node2D.new()
+	cv.add_child(root)
+	var cl = ["sword", "archer", "mage", "fighter"]
+	var hs: Array = []
+	for r in 4:
+		for c in 10:
+			var h = Hero.new()
+			h.cls = cl[r]
+			var a = c % 5
+			var hat = -1 if c < 5 else (c - 5) % 4
+			var cape = -1 if c < 5 else (c - 4) % 4
+			if c == 9:
+				hat = 3
+				cape = 3
+			h.look = a + 5 * (hat + 1) + 25 * (cape + 1)
+			h.climb = true
+			h.moving = true
+			h.wing = -1 if c < 7 else c - 6
+			h.nm = "%s %d" % [cl[r], c]
+			h.position = Vector2(70 + c * 128, 150 + r * 190)
+			h.scale = Vector2(1.25, 1.25)
+			root.add_child(h)
+			hs.append(h)
+	for k in 4:
+		await wait(0.15)
+		await shot("climb-%d" % k)
+	for h in hs:
+		h.climb = false
+		h.moving = false
+	await wait(0.2)
+	await shot("climb-normal")
+
+
+## ảnh mới: leo thang thật ở làng (thang x 330), rồi dựng tại chỗ cổng các khu trùm và thang/dây các bản đồ
+func tour_art(g: Game) -> void:
+	main.hud.visible = false
+	print("bắt đầu x=%d y=%d" % [g.me.position.x, g.me.position.y])
+	var t0 = Time.get_ticks_msec()
+	while absf(g.me.position.x - 330) > 3 and Time.get_ticks_msec() - t0 < 15000:
+		g.joy = Vector2(signf(330 - g.me.position.x), 0)
+		await wait(0.02)
+	g.joy = Vector2.ZERO
+	await wait(0.3)
+	g.jump()
+	await wait(0.2)
+	g.joy = Vector2(0, -1)
+	for k in 4:
+		await wait(0.13)
+		await shot("art-leo-%d" % k)
+	print("leo=%s y=%d" % [str(not g.climb.is_empty()), g.me.position.y])
+	g.joy = Vector2.ZERO
+	await wait(1.5)
+	var items = [[1, 2860], [2, 3400], [3, 2700], [4, 2480], [5, 2900], [6, 2600], [2, 2800], [4, 4020], [5, 2600], [5, 3800], [6, 1030]]
+	for it in items:
+		var i: int = it[0]
+		var x: float = it[1]
+		var M: Dictionary = Data.D.maps[i]
+		g._build_map({"m": i, "k": 1, "x": x, "y": Data.floor_y(M, x, -100.0), "mons": [], "drops": []})
+		g.warping = true
+		g.me.visible = false
+		await wait(1.5)
+		await shot("art-m%d-%d" % [i, int(x)])
+	# leo thử ngay trên bản đồ dựng tại chỗ (thang Rừng Tuyết x 2600, bãi biển thang tre x 3140)
+	for lad in [[2, [2600, 360, 600, "ladder"]], [5, [3140, 280, 600, "ladder"]], [4, [4020, 380, 600, "rope"]]]:
+		var M2: Dictionary = Data.D.maps[lad[0]]
+		var q: Array = lad[1]
+		g._build_map({"m": lad[0], "k": 1, "x": float(q[0]), "y": 560.0, "mons": [], "drops": []})
+		g.me.visible = true
+		g.warping = false
+		await wait(0.8)
+		g.me.position = Vector2(float(q[0]), 560)
+		g.climb = q
+		g.joy = Vector2(0, -1)
+		for k in 3:
+			await wait(0.12)
+			print("leo: climb=%s me.climb=%s y=%d" % [str(not g.climb.is_empty()), str(g.me.climb), g.me.position.y])
+			g.me.climb = true
+			g.me.moving = true
+			await shot("art-c%d-%d" % [lad[0], k])
+		g.joy = Vector2.ZERO

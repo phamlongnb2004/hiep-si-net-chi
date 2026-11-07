@@ -64,3 +64,9 @@ Mỗi bản đồ một kiểu riêng, đi lên xuống được:
 Điều khiển: nhảy (Space/W, nút nhảy, đẩy cần lên) ở chân dây/thang để bám leo; W/S hoặc cần lên/xuống để leo; đứng trên đỉnh thang giữ xuống để leo xuống; giữ xuống + nhảy để rơi xuyên bậc nổi; đẩy ngang hoặc nhảy để buông dây.
 
 Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dốc), `plats` bậc nổi `[x0, y0, x1, y1, "bridge"?]`, `ropes` `[x, yTrên, yDưới, "rope"|"ladder"]`, `water` / `lava` `[x0, x1, yMặt]`. Bãi quái có `p` = số thứ tự bậc nổi thì quái chỉ đi trên bậc đó. Máy chủ kiểm tra người chơi đứng trên đất, bậc nổi hoặc đang bám dây (rules.js: floorY, onRope).
+
+## Cổng khu trùm, thang/dây, dáng leo (2.7.1)
+- Mỗi khu trùm có cổng riêng (`ai/gate_boar|wolf|volcano|crab|turtle|snake`, chọn theo bản đồ đích trong `world.gd` → `ARENA_GATE`).
+- Thang và dây là **một khúc ảnh lặp theo chiều dọc** (`ai/ladder_wood`, `ai/ladder_bamboo`, `ai/rope`, `ai/vine`); `w`/`h` trong assets.json là kích thước hiển thị của một khúc. Thang tre dùng ở đầm lầy, bãi biển, rạn san hô; dây leo xanh ở đầm lầy và rạn san hô.
+- Nhân vật leo: nhìn từ sau lưng, 4 khung (`anim/climb_<lớp>_<b|0..3>`, trường `hx/hy/hw/sy` = tâm đầu, đỉnh đầu, bề rộng đầu, vai), mũ và áo choàng mặt sau (`layer/<lớp>/hatb`, `capeb`), cánh xoè đủ hai bên sau lưng.
+- Gửi trạng thái leo cho người khác: tin `in` có `air: 2` khi đang bám dây/thang; máy chủ chuyển nguyên giá trị vào ảnh chụp (`air` = 0 đứng, 1 nhảy, 2 leo).
