@@ -212,6 +212,16 @@ func tour(u: String, act: String) -> void:
 	await wait(3.0)
 	var g: Game = main.game
 	await shot("t1-" + u)
+	if act == "annshow":
+		var msgs = [["⏰ Hang Sói (Rừng Tuyết Phong) mở sau 5 phút", "b1"], ["⚔ Hang Vua Heo đã mở! Cổng ở giữa Đồng Bằng Khởi Nguyên", "b2"],
+			["⚔ Thu arena đã kết liễu Vua Heo Rừng!", "b3"], ["Bảo trì máy chủ lúc 23:00 trong 10 phút", "b4"]]
+		for m in msgs:
+			main.hud.show_ann(m[0])
+			for k in 14:
+				await wait(0.08)
+				await shot("%s-%02d" % [m[1], k])
+			await wait(0.6)
+		return
 	if act == "ann":
 		await tour_ann(g)
 		return

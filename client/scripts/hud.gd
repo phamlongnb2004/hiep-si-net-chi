@@ -25,6 +25,7 @@ var social
 var fr_b: TextureButton
 var gm_b: Button
 var ann_l: Label
+var ann_b: AnnBanner
 var ev_l: Label
 var fr_badge: Label
 var potb
@@ -224,15 +225,16 @@ func setup(g: Game) -> void:
 	ev_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	tr.add_child(ev_l)
 	# thông báo của quản trị: dải chữ ở giữa phía trên
-	ann_l = UI.outlined("", 22, Color("ffe08a"), "bold", 7)
-	ann_l.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	ann_l.position = Vector2(-380, 64)
-	ann_l.custom_minimum_size = Vector2(760, 0)
-	ann_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ann_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ann_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ann_l.modulate.a = 0
+	ann_l = UI.outlined("", 22, Color("ffe08a"), "bold", 7)   # giữ lại cho chỗ khác dùng (không hiện)
+	ann_l.visible = false
 	root.add_child(ann_l)
+	ann_b = AnnBanner.new()
+	ann_b.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	ann_b.position = Vector2(-470, 262)
+	ann_b.size = Vector2(940, 80)
+	ann_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ann_b.visible = false
+	root.add_child(ann_b)
 	g.announce.connect(show_ann)
 	g.cfg_changed.connect(_cfg)
 	# cụm nút phải dưới: nút đánh lớn ở góc, 6 kỹ năng xếp hình cung quanh nút đánh
@@ -450,15 +452,78 @@ func bind_social() -> void:
 func show_ann(t: String) -> void:
 	if t == "":
 		return
-	# phông chữ không có hình 📢: tin đã có biểu tượng riêng (⏰ ⚔) thì để nguyên, còn lại ghi "Thông báo:"
-	var s = t if t.begins_with("⏰") or t.begins_with("⚔") else "Thông báo: " + t
-	ann_l.text = s
+	# biểu tượng động theo loại tin: ⏰ sắp mở khu trùm, ⚔ khu trùm mở / kết liễu trùm, còn lại tù và (thông báo chung)
+	var kind = "horn"
+	var s = t
+	if t.begins_with("⏰"):
+		kind = "hourglass"
+	elif t.begins_with("⚔"):
+		kind = "skull" if t.find("kết liễu") >= 0 else "gate"
+	if kind != "horn":
+		s = t.substr(1).strip_edges()
+	ann_b.show_msg(s, kind)
 	add_log(s, Color("ffe08a"))
-	var tw = ann_l.create_tween()
-	ann_l.modulate.a = 0
-	tw.tween_property(ann_l, "modulate:a", 1.0, 0.3)
-	tw.tween_interval(12)
-	tw.tween_property(ann_l, "modulate:a", 0.0, 1.0)
+
+## băng thông báo giữa trên màn hình: biểu tượng vẽ tay 8 khung chạy lặp, nảy vào, sáng nhấp nháy, mờ dần sau 12 giây
+class AnnBanner extends Control:
+	var text = ""
+	var kind = "horn"
+	var t = 0.0
+	var life = 0.0
+	const DUR := 12.0
+	func show_msg(s: String, k: String) -> void:
+		text = s
+		kind = k
+		t = 0.0
+		life = DUR
+		visible = true
+	func _process(dt: float) -> void:
+		if life <= 0:
+			visible = false
+			return
+		t += dt
+		life -= dt
+		queue_redraw()
+	func _draw() -> void:
+		var f: Font = Data.fonts.get("bold")
+		var fs = 22
+		var tw = min(f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, size.x - 150)
+		var al = clampf(t / 0.25, 0, 1) * clampf(life / 0.8, 0, 1)
+		var cx = size.x / 2
+		var ih = 76.0
+		var bw = tw + ih + 46
+		var x0 = cx - bw / 2
+		var y0 = 6.0
+		# nền băng: tối trong suốt, viền vàng, quét sáng chạy qua lúc vừa hiện
+		var sc = 0.85 + 0.15 * _back(clampf(t / 0.35, 0, 1))
+		draw_set_transform(Vector2(cx, y0 + 32) * (1 - sc), 0, Vector2(sc, sc))
+		var r = Rect2(x0 + ih * 0.45, y0 + 10, bw - ih * 0.45, 46)
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Color(0.08, 0.06, 0.12, 0.78 * al)
+		sb.border_color = Color(1, 0.8, 0.3, 0.9 * al)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(23)
+		draw_style_box(sb, r)
+		if t < 1.2:
+			var sx = r.position.x + (r.size.x + 80) * (t / 1.2) - 40
+			draw_rect(Rect2(clampf(sx, r.position.x + 10, r.end.x - 30), r.position.y + 3, 20, r.size.y - 6), Color(1, 1, 0.85, 0.25 * al))
+		draw_string_outline(f, Vector2(x0 + ih + 22, y0 + 41), text, HORIZONTAL_ALIGNMENT_LEFT, tw, fs, 7, Color(UI.INK, al))
+		draw_string(f, Vector2(x0 + ih + 22, y0 + 41), text, HORIZONTAL_ALIGNMENT_LEFT, tw, fs, Color(1, 0.88, 0.54, al))
+		# biểu tượng động: 8 khung ~11 khung/giây, nảy nhẹ
+		var A: Dictionary = Data.A.get("annfx", {}).get(kind, {})
+		if not A.is_empty():
+			var k = int(t * 11.0) % 8
+			var tx = Data.tex(A.f[k])
+			if tx:
+				var h = ih * (1.0 + 0.06 * sin(t * 5.0))
+				var w = h * float(A.w) / float(A.h)
+				var gl = 0.25 + 0.15 * sin(t * 4.0)
+				draw_circle(Vector2(x0 + ih * 0.5, y0 + 33), ih * 0.46, Color(1, 0.75, 0.25, gl * al * 0.5))
+				draw_texture_rect(tx, Rect2(x0 + ih * 0.5 - w / 2, y0 + 33 - h / 2, w, h), false, Color(1, 1, 1, al))
+		draw_set_transform(Vector2.ZERO)
+	func _back(u: float) -> float:
+		var c = 1.70158
+		return 1.0 + (c + 1.0) * pow(u - 1.0, 3) + c * pow(u - 1.0, 2)
 
 func _cfg() -> void:
 	var e = Data.cfg.get("ev")
