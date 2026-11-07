@@ -32,18 +32,22 @@ export class MapInst {
     this.seq = 1; this.tk = 0; this.spawnAll();
   }
   gY(x) { return R.groundY(this.M, x); }
+  fY(x, y) { return R.floorY(this.M, x, y); }
+  // mặt đứng của quái: bậc nổi riêng (m.p) hoặc mặt đất
+  monY(m, x) { return m.p ? R.platY(m.p, clamp(x, m.p[0], m.p[2])) : this.gY(x); }
   safe(x) { return R.inSafe(this.M, x); }
   spawnAll() {
     for (const s of this.M.spots) for (let i = 0; i < s.cnt; i++) {
       const x = s.cnt === 1 ? s.x + s.w / 2 : s.x + 80 + (s.w - 160) * (i + .5) / s.cnt + rand(-30, 30);
-      const lv = Math.floor(rand(s.lv[0], s.lv[1] + 1)), m = this.newMon(s.mon, lv, R.rollElite(rng, s.mon), x, s.x + 30, s.x + s.w - 30);
+      const pl = s.p != null ? this.M.plats[s.p] : null, x0 = pl ? Math.max(s.x, pl[0]) + 25 : s.x + 30, x1 = pl ? Math.min(s.x + s.w, pl[2]) - 25 : s.x + s.w - 30;
+      const lv = Math.floor(rand(s.lv[0], s.lv[1] + 1)), m = this.newMon(s.mon, lv, R.rollElite(rng, s.mon), clamp(x, x0, x1), x0, x1, pl);
       if (this.M.arena && m.t.boss) m.noRe = true; // khu trùm: trùm chết là hết, chờ khung giờ sau
       this.mons.push(m);
     }
   }
-  newMon(type, lv, el, x, x0, x1) {
+  newMon(type, lv, el, x, x0, x1, pl) {
     const st = R.monStats(type, lv, el), t = D.mons[type], ab = t.ab || null;
-    return { id: this.seq++, type, t, lv, el, x, y: this.gY(x), sx: x, x0, x1, ...st, hp: st.hpMax,
+    return { id: this.seq++, type, t, lv, el, x, y: pl ? R.platY(pl, x) : this.gY(x), p: pl || null, sx: x, x0, x1, ...st, hp: st.hpMax,
       face: 1, state: 'idle', tgt: 0, cd: rand(0, 1), wind: 0, lunge: 0, shoot: rand(2, 4), br: null, dead: false, respawn: 0,
       wx: x, wt: 0, vx: 0, kx: 0, stun: 0, slow: 0, pois: null, hold: false, dmg: new Map(), lh: [],
       cast: null, guard: 0, gt: ab && ab.every ? rand(2, ab.every) : 0, ac: rand(1, 3), nAtk: 0, skT: t.sk ? rand(2.5, 4) : 0, ski: 0, dashV: 0, dashT: 0 };
@@ -75,9 +79,10 @@ export class MapInst {
     // vách: không đi xuyên qua khối đất cao hơn chân mình
     const dir = Math.sign(x - f.x), top = Math.min(f.y, y);
     if (dir) for (let s = f.x + dir * 8; dir > 0 ? s <= x : s >= x; s += dir * 8) if (this.gY(s) < top - 6) { x = s - dir * 8; bad = true; break; }
-    const g = this.gY(x);
+    // mặt đứng dưới chân (đất hoặc bậc nổi); đang bám dây/thang thì được ở lưng chừng
+    const g = this.fY(x, y), rope = R.onRope(this.M, x, y);
     if (y > g) y = g;
-    if (y < g - 150) { y = g - 150; bad = true; }
+    if (!rope && y < g - 150) { y = g - 150; bad = true; }
     f.x = x; f.y = y; f.face = m.f < 0 ? -1 : 1; f.air = m.air ? 1 : 0; f.mv = m.mv ? 1 : 0;
     if (bad) { c.badMoves = (c.badMoves || 0) + 1; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y) }); }
   }
@@ -132,7 +137,7 @@ export class MapInst {
     for (let s = 0; s < o.len; s += 10) { const nx = clamp(x + dir * 10, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
     f.dashT = o.t + .4; f.dashLen = Math.abs(x - f.x);
     if (o.m) { const a = Math.min(f.x, x) - 60, b = Math.max(f.x, x) + 60; for (const m of this.mons) if (!m.dead && m.x + m.t.r > a && m.x - m.t.r < b && Math.abs(m.y - f.y) < 110) { this.hitMon(c, m, this.patk(f) * o.m, { kb: 180 }); this.status(m, { stun: o.stun }); } }
-    const sx = f.x; f.x = x; f.y = Math.min(f.y, this.gY(x));
+    const sx = f.x; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y));
     if (o.end) this.later(o.t, () => { if (f.dead > 0) return; this.run(c, [o.end], aim, null, 0); });
     return sx;
   }
@@ -183,7 +188,7 @@ export class MapInst {
   // o: noDodge, flat (sát thương thẳng, không trừ giáp), pois [giây, sát thương/giây], slow [hệ số, giây], stun giây, kb (đẩy theo trục x), air (đang nhảy thì tránh được)
   hurt(c, raw, o) {
     const f = c.f; o = o || {}; if (f.dead > 0 || f.dashT > .4) return;
-    if (o.air && f.air && f.y < this.gY(f.x) - 30) return;
+    if (o.air && f.air && f.y < this.fY(f.x, f.y) - 30) return;
     if (!o.noDodge && f.dodge > 0 && rng() < f.dodge) { this.ev.push(['pm', c.id]); return; } // né tránh
     const d = o.flat ? Math.max(1, Math.round(raw)) : R.dmgToPlayer(rng, raw, f.def, R.buffMul(f.buffs, 'def'), R.buffMul(f.buffs, 'take'));
     if (o.pois) { f.pois = { t: o.pois[0], dps: o.pois[1], acc: 0 }; c.meDirty = true; }
@@ -196,7 +201,7 @@ export class MapInst {
   push(c, dx) {
     const f = c.f, dir = Math.sign(dx); let x = f.x;
     for (let s = 0; s < Math.abs(dx); s += 8) { const nx = clamp(x + dir * 8, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
-    if (x === f.x) return; f.x = x; f.y = Math.min(f.y, this.gY(x)); this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), kb: 1 });
+    if (x === f.x) return; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y)); this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), kb: 1 });
   }
   damage(c, d) {
     const f = c.f; if (f.dead > 0) return;
@@ -249,7 +254,7 @@ export class MapInst {
     const ch = best.ch, got = [];
     for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
       const o = { id: this.seq++, k: d.k, n: d.n, item: d.item, x: clamp(m.x + rand(-34, 34) * (m.t.boss ? 2.5 : 1), 40, this.M.w - 40), y: 0, life: DROP_LIFE, own: best.id, ownT: OWN_T };
-      o.y = this.gY(o.x); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
+      o.y = this.fY(o.x, m.y); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
       if (d.item) got.push(d.item.name);
       if (d.item && d.item.r >= 2 && this.h.glog) this.h.glog('drop', best, 'Rơi ' + d.item.name + ' (' + D.rar[d.item.r].n + ') từ ' + m.t.n + ' cấp ' + m.lv + (m.el ? ' tinh anh' : ''));
     }
@@ -296,13 +301,14 @@ export class MapInst {
     if (f.stunT > 0) { f.stunT -= dt; if (f.stunT <= 0) c.meDirty = true; }
     if (f.pois) { const q = f.pois; q.t -= dt; q.acc += dt; if (q.acc >= .5) { q.acc -= .5; this.damage(c, Math.max(1, Math.round(q.dps * .5))); } if (q.t <= 0 || !f.pois) { f.pois = null; c.meDirty = true; } if (f.dead > 0) return; }
     if (f.ki < f.maxKi) { f.ki = Math.min(f.maxKi, f.ki + (f.maxKi * R.KI_REGEN + 1) * dt * (this.safe(f.x) ? 2 : 1)); if (this.tk % 5 === 0 || f.ki >= f.maxKi) c.meDirty = true; }
+    if (this.M.lava && R.inLava(this.M, f.x, f.y) && !this.safe(f.x)) { f.lavaT = (f.lavaT || 0) - dt; if (f.lavaT <= 0) { f.lavaT = .5; if (!f.lavaW || Date.now() - f.lavaW > 8000) { f.lavaW = Date.now(); this.h.log(c, 'Dung nham bỏng rát! Nhảy lên bậc đá để qua.', '#ff7a4d'); } this.damage(c, Math.max(1, Math.round(f.maxHp * .07))); if (f.dead > 0) return; } }
     if (this.safe(f.x) && f.hp < f.maxHp) { f.hp = Math.min(f.maxHp, f.hp + f.maxHp * R.SAFE_REGEN * dt); if (this.tk % 5 === 0) c.meDirty = true; }
   }
   // chọn người chơi gần nhất trong tầm của quái
-  near(m, r) { let b = null, bd = r; for (const c of this.players.values()) { const f = c.f; if (c.hidden || f.dead > 0 || this.safe(f.x) || Math.abs(f.y - m.y) > 180) continue; const d = Math.abs(f.x - m.x); if (d < bd) { bd = d; b = c; } } return b; }
+  near(m, r) { let b = null, bd = r; for (const c of this.players.values()) { const f = c.f; if (c.hidden || f.dead > 0 || this.safe(f.x) || Math.abs(f.y - m.y) > (m.t.boss || m.t.fly ? 180 : 100)) continue; const d = Math.abs(f.x - m.x); if (d < bd) { bd = d; b = c; } } return b; }
   tickMons(dt) {
     for (const m of this.mons) {
-      if (m.dead) { if (m.noRe) continue; m.respawn -= dt; if (m.respawn <= 0) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.gY(m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); } continue; }
+      if (m.dead) { if (m.noRe) continue; m.respawn -= dt; if (m.respawn <= 0) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.monY(m, m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); } continue; }
       const px = m.x, ab = m.t.ab;
       m.cd -= dt; m.shoot -= dt; m.ac -= dt; m.lunge = Math.max(0, m.lunge - dt); if (m.guard > 0) m.guard -= dt;
       if (m.kx) { m.x = clamp(m.x + m.kx * dt, 30, this.M.w - 30); m.kx *= Math.pow(.02, dt); if (Math.abs(m.kx) < 4) m.kx = 0; }
@@ -356,13 +362,14 @@ export class MapInst {
       if (m.dashT > 0) { m.dashT -= dt; m.vx = m.dashV; if (m.dashT <= 0) { m.dashV = 0; m.vx = 0; } }
       else if (m.stun <= 0) { m.vx += (want - m.vx) * Math.min(1, dt * 7); if (Math.abs(m.vx) < 3 && want === 0) m.vx = 0; }
       m.x = clamp(m.x + m.vx * dt, 30, this.M.w - 30);
-      if (Math.abs(this.gY(m.x) - this.gY(px)) > 6) { m.x = px; m.vx = 0; m.kx = 0; m.dashT = 0; } // không leo/nhảy bậc đất
-      m.y = this.gY(m.x);
+      if (m.p) { const lo = m.p[0] + 15, hi = m.p[2] - 15; if (m.x < lo || m.x > hi) { m.x = clamp(m.x, lo, hi); m.vx = 0; m.kx = 0; m.dashT = 0; } } // quái trên bậc nổi: không rơi khỏi bậc
+      else if (Math.abs(this.gY(m.x) - this.gY(px)) > Math.max(6, Math.abs(m.x - px) * .8)) { m.x = px; m.vx = 0; m.kx = 0; m.dashT = 0; } // không leo/nhảy bậc đất (dốc thoải thì đi được)
+      m.y = this.monY(m, m.x);
       if (m.br) this.tickBreath(m, dt);
     }
     this.tickMProj(dt); this.tickZones(dt);
     // quái không đứng chồng lên nhau
-    const L = this.mons; for (let i = 0; i < L.length; i++) { const m = L[i]; if (m.dead) continue; for (let j = i + 1; j < L.length; j++) { const o = L[j]; if (o.dead) continue; const ddx = o.x - m.x, min = (m.t.r + o.t.r) * .55; if (Math.abs(ddx) < min) { const p = (min - Math.abs(ddx)) * .5 * (ddx >= 0 ? 1 : -1) * Math.min(1, dt * 10); if (Math.abs(this.gY(m.x - p) - this.gY(m.x)) < 6) m.x -= p; if (Math.abs(this.gY(o.x + p) - this.gY(o.x)) < 6) o.x += p; } } }
+    const L = this.mons; for (let i = 0; i < L.length; i++) { const m = L[i]; if (m.dead) continue; for (let j = i + 1; j < L.length; j++) { const o = L[j]; if (o.dead) continue; const ddx = o.x - m.x, min = (m.t.r + o.t.r) * .55; if (Math.abs(ddx) < min) { const p = (min - Math.abs(ddx)) * .5 * (ddx >= 0 ? 1 : -1) * Math.min(1, dt * 10); if (m.p !== o.p || Math.abs(m.y - o.y) > 20) continue; if (m.p || Math.abs(this.gY(m.x - p) - this.gY(m.x)) < 6) m.x -= p; if (o.p || Math.abs(this.gY(o.x + p) - this.gY(o.x)) < 6) o.x += p; } } }
   }
   /* ---------- chiêu của trùm và quái: báo vùng (tg) -> ra đòn -> hiệu ứng (fx) ---------- */
   tgRect(a, b, y, t) { this.ev.push(['tg', 'r', Math.round(Math.min(a, b)), Math.round(Math.max(a, b)), Math.round(y), +t.toFixed(2)]); }

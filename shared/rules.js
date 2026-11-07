@@ -257,6 +257,19 @@ export function groundY(map, x) {
   const a = t[lo], b = t[hi]; return b[0] === a[0] ? b[1] : a[1] + (b[1] - a[1]) * clamp((x - a[0]) / (b[0] - a[0]), 0, 1);
 }
 export const inSafe = (map, x) => map.safes.some(z => x > z.x + 8 && x < z.x + z.w - 8);
+/* ---------- bản đồ nhiều tầng (từ 2.7.0): bậc nổi, dây leo / thang, nước, dung nham ---------- */
+// bậc nổi: [x0, y0, x1, y1, kiểu] (cầu có thể nghiêng); đứng được ở trên, nhảy xuyên từ dưới lên
+export function platY(p, x) { return x < p[0] || x > p[2] ? null : p[1] + (p[3] - p[1]) * (p[2] === p[0] ? 0 : (x - p[0]) / (p[2] - p[0])); }
+// mặt đứng gần nhất dưới chân (đất hoặc bậc nổi) tại x, khi chân đang ở độ cao y
+export function floorY(map, x, y, tol) {
+  const g = groundY(map, x); let best = g; tol = tol == null ? 6 : tol;
+  for (const p of map.plats || []) { const py = platY(p, x); if (py != null && py >= y - tol && py < best) best = py; }
+  return best;
+}
+// dây leo / thang: [x, yTrên, yDưới, kiểu]
+export const onRope = (map, x, y) => (map.ropes || []).some(r => Math.abs(x - r[0]) < 34 && y >= r[1] - 14 && y <= r[2] + 14);
+export const inWater = (map, x, y) => (map.water || []).some(w => x > w[0] && x < w[1] && y > w[2] - 4);
+export const inLava = (map, x, y) => (map.lava || []).some(w => x > w[0] + 6 && x < w[1] - 6 && y > w[2] - 4);
 
 /* ---------- nhân vật mới ---------- */
 export function newChar(cls, name) {

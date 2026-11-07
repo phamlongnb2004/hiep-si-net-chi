@@ -27,6 +27,7 @@ var theme = "grass"
 var decor: Array = []      # {k, x, gy, s, v, txt}
 var cam_rect = Rect2(0, 0, 1280, 720)
 var near_npc = ""
+var rope_hint = Vector2.INF   # đứng cạnh dây/thang: hiện gợi ý bấm nhảy để leo
 var t = 0.0
 
 ## lớp phủ phía trước: dưới nước (tia sáng, bong bóng), sương đầm lầy, hang tối
@@ -131,13 +132,20 @@ func _gen_decor() -> void:
 	if M.get("fountain") != null:
 		decor.append({"k": "fountain", "x": float(M.fountain), "dy": 5})
 	for s in M.spots:
+		if s.get("p") != null:
+			var pl: Array = M.plats[int(s.p)]
+			var lvp = "Cấp %d" % int(s.lv[0]) + ("-%d" % int(s.lv[1]) if s.lv[1] > s.lv[0] else "")
+			decor.append({"k": "sign", "x": float(pl[0]) + 34, "txt": [str(s.n), lvp], "dy": 5, "py": float(pl[1])})
+			continue
 		var sx: float = s.x + 60
 		while sx < s.x + s.w / 2 and absf(gy(sx - 50) - gy(sx + 50)) > 1:
 			sx += 10
 		var lvt = "Cấp %d" % int(s.lv[0]) + ("-%d" % int(s.lv[1]) if s.lv[1] > s.lv[0] else "")
 		decor.append({"k": "sign", "x": sx, "txt": [str(s.n), lvt], "dy": 5})
 	for d in decor:
-		d.gy = gy(d.x) + d.dy
+		d.gy = (float(d.py) if d.has("py") else gy(d.x)) + d.dy
+	# không đặt cây/đá trong vũng nước, dung nham
+	decor = decor.filter(func(d): return d.k in ["sign", "house", "fountain"] or not (Data.in_zone(M.get("water", []) + M.get("lava", []), d.x, d.gy - 10)))
 
 func _process(dt: float) -> void:
 	t += dt
@@ -177,6 +185,7 @@ func _draw() -> void:
 		var b = Color(1, 0.35, 0.16, 0.10)
 		draw_polygon(PackedVector2Array([Vector2(cx - 2, GY - 260), Vector2(cx + vw + 2, GY - 260), Vector2(cx + vw + 2, GY), Vector2(cx - 2, GY)]), PackedColorArray([a, a, b, b]))
 	_ground(cx, cy, vw, vh)
+	_layers(cx, vw)
 	# cảnh vật phía sau nhân vật (cây, nhà, biển, NPC, cổng)
 	for d in decor:
 		if d.x < cx - 260 or d.x > cx + vw + 260:
@@ -188,6 +197,121 @@ func _draw() -> void:
 	for p in M.portals:
 		if p.x > cx - 200 and p.x < cx + vw + 200:
 			_portal(p)
+	_rope_hint()
+
+## nước nông / bùn / dung nham, bậc nổi, cầu treo, dây leo và thang (bản đồ nhiều tầng)
+const WATER := {"beach": [Color(0.25, 0.65, 0.9, 0.55), Color(0.85, 0.97, 1, 0.9)], "reef": [Color(0.2, 0.55, 0.8, 0.45), Color(0.8, 0.95, 1, 0.8)],
+	"swamp": [Color(0.32, 0.38, 0.18, 0.75), Color(0.6, 0.75, 0.35, 0.9)], "cave": [Color(0.15, 0.35, 0.6, 0.6), Color(0.6, 0.85, 1, 0.8)],
+	"grass": [Color(0.3, 0.6, 0.9, 0.55), Color(0.85, 0.95, 1, 0.9)], "snow": [Color(0.55, 0.75, 0.95, 0.6), Color(0.95, 1, 1, 0.95)], "lava": [Color(0.3, 0.6, 0.9, 0.5), Color(1, 1, 1, 0.8)]}
+const VINE := ["reef", "swamp"]
+
+func _layers(cx: float, vw: float) -> void:
+	for w in M.get("water", []):
+		if float(w[1]) < cx - 20 or float(w[0]) > cx + vw + 20:
+			continue
+		var col: Array = WATER.get(theme, WATER.beach)
+		var y = float(w[2])
+		var bot = gy((float(w[0]) + float(w[1])) / 2) + 6
+		draw_rect(Rect2(float(w[0]), y, float(w[1]) - float(w[0]), bot - y), col[0])
+		var pts = PackedVector2Array()
+		var x = float(w[0])
+		while x <= float(w[1]):
+			pts.append(Vector2(x, y + sin(x * 0.05 + t * 2.4) * 2.5))
+			x += 8
+		draw_polyline(pts, col[1], 3)
+	for w in M.get("lava", []):
+		if float(w[1]) < cx - 20 or float(w[0]) > cx + vw + 20:
+			continue
+		var y2 = float(w[2])
+		var bot2 = gy((float(w[0]) + float(w[1])) / 2) + 8
+		draw_rect(Rect2(float(w[0]), y2, float(w[1]) - float(w[0]), bot2 - y2), Color(0.95, 0.35, 0.08))
+		draw_rect(Rect2(float(w[0]), y2, float(w[1]) - float(w[0]), 10), Color(1, 0.75, 0.25))
+		var x2 = float(w[0]) + 10
+		var k = 0
+		while x2 < float(w[1]) - 10:
+			var ph = fmod(t * 0.8 + k * 0.37, 1.0)
+			draw_circle(Vector2(x2 + sin(k * 7.0) * 12, y2 + 6 - ph * 10), 3 + 4 * sin(ph * PI), Color(1, 0.85, 0.4, 1 - ph))
+			x2 += 38
+			k += 1
+		_ellipse(Vector2((float(w[0]) + float(w[1])) / 2, y2), (float(w[1]) - float(w[0])) * 0.6, 60, Color(1, 0.45, 0.1, 0.10 + 0.04 * sin(t * 3)))
+	var pi = _side("plat_" + theme)
+	var ptx = Data.tex(pi.get("u", ""))
+	for pl in M.get("plats", []):
+		var x0: float = pl[0]
+		var x1: float = pl[2]
+		if x1 < cx - 60 or x0 > cx + vw + 60:
+			continue
+		if pl.size() > 4 and str(pl[4]) == "bridge":
+			_bridge(pl)
+		elif ptx:
+			var wd = x1 - x0 + 24
+			var dh = clampf(wd * float(pi.h) / float(pi.w), 52, 96)
+			_ellipse(Vector2((x0 + x1) / 2, gy((x0 + x1) / 2) + 2), (x1 - x0) * 0.4, 8, Color(0, 0, 0, 0.12))
+			draw_texture_rect(ptx, Rect2(x0 - 12, float(pl[1]) - float(pi.get("top", 0.12)) * dh, wd, dh), false)
+		else:
+			draw_rect(Rect2(x0, float(pl[1]), x1 - x0, 18), Color("8a6a43"))
+	for r in M.get("ropes", []):
+		var rx: float = r[0]
+		if rx < cx - 40 or rx > cx + vw + 40:
+			continue
+		if r.size() > 3 and str(r[3]) == "ladder":
+			var col = Color("9a6532")
+			draw_line(Vector2(rx - 16, float(r[1]) - 6), Vector2(rx - 16, float(r[2])), Color("5a3818"), 7)
+			draw_line(Vector2(rx + 16, float(r[1]) - 6), Vector2(rx + 16, float(r[2])), Color("5a3818"), 7)
+			draw_line(Vector2(rx - 16, float(r[1]) - 6), Vector2(rx - 16, float(r[2])), col, 4)
+			draw_line(Vector2(rx + 16, float(r[1]) - 6), Vector2(rx + 16, float(r[2])), col, 4)
+			var yy = float(r[1]) + 10
+			while yy < float(r[2]):
+				draw_line(Vector2(rx - 16, yy), Vector2(rx + 16, yy), Color("5a3818"), 6)
+				draw_line(Vector2(rx - 15, yy), Vector2(rx + 15, yy), Color("b57a3e"), 3)
+				yy += 24
+		else:
+			var vine = theme in VINE
+			var c1 = Color("3f7a2c") if vine else Color("6e4a22")
+			var c2 = Color("79c04a") if vine else Color("b48448")
+			var sw = sin(t * 1.3 + rx) * 3.0
+			draw_line(Vector2(rx, float(r[1]) - 4), Vector2(rx + sw, float(r[2]) - 8), Color(0.1, 0.06, 0.03, 0.8), 8)
+			draw_line(Vector2(rx, float(r[1]) - 4), Vector2(rx + sw, float(r[2]) - 8), c1, 5)
+			var y3 = float(r[1]) + 14
+			while y3 < float(r[2]) - 10:
+				var f = (y3 - float(r[1])) / max(1.0, float(r[2]) - float(r[1]))
+				if vine:
+					_ellipse(Vector2(rx + sw * f + (8 if int(y3) % 2 == 0 else -8), y3), 8, 4, c2)
+				else:
+					draw_circle(Vector2(rx + sw * f, y3), 4.5, c2)
+				y3 += 30
+
+## cầu treo: ván gỗ võng xuống giữa, dây hai bên
+func _rope_hint() -> void:
+	if rope_hint == Vector2.INF:
+		return
+	var f: Font = Data.fonts.get("bold")
+	var s = "▲ Nhảy để leo"
+	var w = f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	var p = rope_hint + Vector2(-w / 2, -96 + sin(t * 4) * 3)
+	draw_string_outline(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, UI.INK)
+	draw_string(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("9be05a"))
+
+func _bridge(pl: Array) -> void:
+	var x0: float = pl[0]
+	var y0: float = pl[1]
+	var x1: float = pl[2]
+	var y1: float = pl[3]
+	var n = int((x1 - x0) / 26)
+	var rope = PackedVector2Array()
+	for i in n + 1:
+		var u = float(i) / n
+		var x = lerpf(x0, x1, u)
+		var y = lerpf(y0, y1, u) + sin(u * PI) * 6
+		draw_rect(Rect2(x - 11, y - 2, 22, 11), Color("5a3818"))
+		draw_rect(Rect2(x - 10, y - 1, 20, 8), Color("b57a3e"))
+		rope.append(Vector2(x, y - 34 + sin(u * PI) * 8))
+		if i % 2 == 0:
+			draw_line(Vector2(x, y - 1), Vector2(x, y - 34 + sin(u * PI) * 8), Color("6e4a22"), 2)
+	draw_polyline(rope, Color("6e4a22"), 3)
+	for xx in [x0, x1]:
+		var yy = y0 if xx == x0 else y1
+		draw_rect(Rect2(xx - 5, yy - 44, 10, 46), Color("5a3818"))
 
 func _tile_par(a: Dictionary, cx: float, y: float, h: float, vw: float, k: float) -> void:
 	var tx = Data.tex(a.u)

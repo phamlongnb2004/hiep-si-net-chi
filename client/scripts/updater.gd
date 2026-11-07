@@ -48,7 +48,7 @@ static func sha256_file(p: String) -> String:
 
 ## lúc khởi động: gắn gói đã tải nếu còn nguyên vẹn; hỏng thì quay về gói trước hoặc ảnh có sẵn trong ứng dụng
 ## bản dữ liệu ảnh có sẵn trong ứng dụng này; gói tải về cũ hơn thì bỏ qua (không ghi đè ảnh mới)
-const BUNDLED := 4
+const BUNDLED := 8
 
 static func mount() -> Dictionary:
 	var s = read_state()

@@ -9,7 +9,7 @@ import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
 import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaff, maintOn, maintMsg, banInfo, mutedUntil } from './admin.js';
 
 const TICK_MS = 100;
-const APP_MIN = '2.6.0'; // 2.6.0: thêm bản đồ, khu trùm (bản cũ không có dữ liệu bản đồ mới)
+const APP_MIN = '2.7.0'; // 2.7.0: bản đồ nhiều tầng (bậc nổi, dây, thang); bản cũ có địa hình khác nên không chơi được
 const ARENA_SLOTS = ['12:00', '19:00', '21:00'], ARENA_DUR = 30, ARENA_LEAVE = 40000; // khu trùm: khung giờ mặc định, số phút mở, giây ở lại nhặt đồ sau khi hạ trùm
 const KHU_MAX = 15, KHU_SHOW = 5, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
 const MAX_SAVE = 300 * 1024;
@@ -486,7 +486,7 @@ export class World extends DurableObject {
         return this.sendTo(c, { t: 'res', op: 'khu', ok: true, msg: 'Đã vào khu ' + k + '.' });
       }
       case 'warp': {
-        const p = I.M.portals[m.p | 0]; if (!p || c.f.dead > 0 || Math.abs(c.f.x - p.x) > (p.arena ? 120 : 70)) return this.sendTo(c, { t: 'res', op: 'warp', ok: false });
+        const p = I.M.portals[m.p | 0]; if (!p || c.f.dead > 0 || Math.abs(c.f.x - p.x) > (p.arena ? 120 : 70) || Math.abs(c.f.y - p.y) > 90) return this.sendTo(c, { t: 'res', op: 'warp', ok: false });
         if (R.D.maps[p.to].arena) return this.enterArena(c, p.to);
         return this.enterMap(c, p.to, p.tx);
       }

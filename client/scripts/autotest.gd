@@ -212,6 +212,9 @@ func tour(u: String, act: String) -> void:
 	await wait(3.0)
 	var g: Game = main.game
 	await shot("t1-" + u)
+	if act == "climb":
+		await tour_climb(g)
+		return
 	if act == "maps":
 		await tour_maps(g)
 		return
@@ -306,3 +309,38 @@ func tour_maps(g: Game) -> void:
 		g.me.visible = false
 		await wait(2.0)
 		await shot("map%02d" % i)
+
+## thử leo thang / qua cầu / xuống vực ở Rừng Tuyết (bắt đầu ở cổng Hang Sói, x 3400, tầng 360)
+var pos_n = 0
+func tour_climb(g: Game) -> void:
+	Net.message.connect(func(m): if str(m.get("t")) == "pos": pos_n += 1)
+	var step = func(name: String, joy: Vector2, sec: float) -> void:
+		g.joy = joy
+		await wait(sec)
+		print("%s: x=%d y=%d leo=%s bị kéo=%d" % [name, g.me.position.x, g.me.position.y, str(not g.climb.is_empty()), pos_n])
+	await step.call("đầu", Vector2.ZERO, 0.5)
+	await step.call("đi trái qua cầu", Vector2(-1, 0), 1.6)
+	await shot("c1-cau")
+	await step.call("tới thang 3000", Vector2(-1, 0), 0.05)
+	while g.me.position.x > 3002:
+		g.joy = Vector2(-1, 0)
+		await wait(0.02)
+	g.joy = Vector2(0, 1)
+	await wait(0.3)
+	await step.call("bám thang xuống", Vector2(0, 1), 1.0)
+	await shot("c2-thang")
+	await step.call("xuống đáy", Vector2(0, 1), 1.0)
+	await step.call("đi tới thang 2600", Vector2(-1, 0), 1.6)
+	while g.me.position.x > 2602:
+		g.joy = Vector2(-1, 0)
+		await wait(0.02)
+	g.joy = Vector2.ZERO
+	g.jump()
+	await step.call("bám thang lên", Vector2(0, -1), 0.8)
+	await shot("c3-leo")
+	await step.call("lên đỉnh", Vector2(0, -1), 1.2)
+	await step.call("đi trái", Vector2(-1, 0), 1.0)
+	await shot("c4-tren")
+	g.joy = Vector2.ZERO
+	await wait(1.0)
+	print("vị trí máy chủ khớp: bị kéo về ", pos_n, " lần")

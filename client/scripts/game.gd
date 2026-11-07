@@ -39,6 +39,8 @@ var joy = Vector2.ZERO          # từ cần điều khiển trên màn hình
 var atk_held = false
 var jump_q = 0.0
 var vy = 0.0
+var climb: Array = []        # đang bám dây/thang: [x, yTrên, yDưới, kiểu]
+var drop_t = 0.0              # >0: đang nhảy xuống xuyên bậc nổi
 var air = false
 var focus: Mon = null
 var move_to = -1.0
@@ -104,6 +106,7 @@ func _on_msg(m: Dictionary) -> void:
 		"pos":
 			me.position = Vector2(m.x, m.y)
 			vy = 0
+			climb = []
 			if m.get("respawn"):
 				fx.text(me.position + Vector2(0, -90), "Hồi sinh", Color("8fb4ff"), true)
 		"gain":
@@ -195,7 +198,12 @@ func _build_map(m: Dictionary) -> void:
 	cam.limit_left = 0
 	cam.limit_right = int(M.w)
 	cam.limit_top = -400
-	cam.limit_bottom = 720
+	var lowest = 600.0
+	for t in M.get("terr", []):
+		lowest = max(lowest, float(t[1]))
+	cam.limit_bottom = int(lowest + 120)
+	climb = []
+	drop_t = 0.0
 	cam.position = me.position
 	cam.reset_smoothing()
 	ready_map = true
@@ -377,13 +385,23 @@ func _swing(h: Hero) -> void:
 
 ## ---------- điều khiển nhân vật mình ----------
 func _wall(x: float, y: float) -> bool:
-	return world.gy(x) < y - 3
+	# vách đất cao hơn chân; dốc thoải (tăng ít theo từng bước đi) thì vẫn đi được
+	return world.gy(x) < y - max(3.0, absf(x - me.position.x) * 0.85)
+
+## mặt đứng dưới chân (đất hoặc bậc nổi)
+func floor_at(x: float, y: float) -> float:
+	return Data.floor_y(M, x, y, drop_t > 0)
 
 func _move_x(nx: float) -> bool:
 	nx = clampf(nx, 40, float(M.w) - 40)
 	if _wall(nx, me.position.y):
 		return false
 	me.position.x = nx
+	# đi lên dốc: chân theo mặt dốc
+	if not air:
+		var g = world.gy(nx)
+		if g < me.position.y and me.position.y - g < 24:
+			me.position.y = g
 	return true
 
 func nearest_mon(r: float) -> Mon:
@@ -439,7 +457,31 @@ func do_pot() -> void:
 		Net.send({"t": "pot"})
 
 func jump() -> void:
+	# đứng ở chân dây/thang (hoặc trên đỉnh, đang giữ xuống) thì bám leo thay vì nhảy
+	if climb.is_empty() and can_act():
+		var q = Data.rope_at(M, me.position.x, me.position.y)
+		if not q.is_empty() and me.position.y > float(q[1]) + 8:
+			_grab(q)
+			return
+	if not climb.is_empty():
+		climb = []
+		vy = -JUMP * 0.55
+		air = true
+		return
+	# giữ xuống + nhảy: rơi xuyên bậc nổi đang đứng
+	if (joy.y > 0.5 or Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN)) and not air and world.gy(me.position.x) > me.position.y + 10:
+		drop_t = 0.3
+		air = true
+		vy = 60
+		return
 	jump_q = 0.15
+
+func _grab(q: Array) -> void:
+	climb = q
+	me.position.x = float(q[0])
+	vy = 0
+	focus = null
+	move_to = -1
 
 ## chạm/nhấp vào thế giới: chọn quái, đi tới NPC hoặc đi tới chỗ đó
 ## nói chuyện với NPC gần, hoặc vào cổng khu trùm
@@ -514,13 +556,16 @@ func _process(dt: float) -> void:
 	_control(dt)
 	cam.position = me.position + Vector2(0, -60)
 	cam.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * (fx.shake * 40.0) if fx.shake > 0 else Vector2.ZERO
+	# đứng ở chân dây/thang: gợi ý bấm nhảy để leo
+	var rq = Data.rope_at(M, me.position.x, me.position.y) if climb.is_empty() and not air else []
+	world.rope_hint = Vector2(float(rq[0]), me.position.y) if not rq.is_empty() and me.position.y > float(rq[1]) + 8 else Vector2.INF
 	# NPC gần
 	var nn = ""
 	for n in M.get("npcs", []):
 		if absf(me.position.x - n.x) < 115:
 			nn = str(n.id)
 	for i in M.portals.size():
-		if M.portals[i].get("arena") and absf(me.position.x - float(M.portals[i].x)) < 100:
+		if M.portals[i].get("arena") and absf(me.position.x - float(M.portals[i].x)) < 100 and absf(me.position.y - float(M.portals[i].y)) < 70:
 			nn = "gate:%d" % i
 	if nn != near_npc:
 		near_npc = nn
@@ -564,13 +609,25 @@ func _control(dt: float) -> void:
 			dx = signf(d2)
 		else:
 			move_to = -1
+	drop_t = max(0.0, drop_t - dt)
+	var iy = joy.y
+	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN): iy += 1
+	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP): iy -= 1
+	# đứng trên đỉnh dây/thang, giữ xuống: bám leo xuống
+	if climb.is_empty() and iy > 0.6 and not air:
+		var q2 = Data.rope_at(M, me.position.x, me.position.y, 24)
+		if not q2.is_empty() and absf(me.position.y - float(q2[1])) < 14:
+			_grab(q2)
+	if not climb.is_empty():
+		_climb(dt, iy, dx)
+		return
 	jump_q = max(0.0, jump_q - dt)
 	if jump_q > 0 and not air:
 		vy = -JUMP
 		air = true
 		jump_q = 0
 	# trọng lực
-	var g0 = world.gy(p.x)
+	var g0 = floor_at(p.x, p.y)
 	vy += GRAV * dt
 	var ny = me.position.y + vy * dt
 	if vy >= 0:
@@ -581,7 +638,7 @@ func _control(dt: float) -> void:
 			ny = g0
 			vy = 0
 	me.position.y = ny
-	air = not (vy == 0 and absf(me.position.y - world.gy(me.position.x)) < 1)
+	air = not (vy == 0 and absf(me.position.y - floor_at(me.position.x, me.position.y)) < 1)
 	var spd = float(me_data.get("spd", c.spd))
 	if float(me_data.get("stun", 0)) > 0:
 		spd *= 0.05
@@ -592,7 +649,7 @@ func _control(dt: float) -> void:
 			spd *= 1.35 if b.id == "roll" else 1.25
 	me.moving = dx != 0
 	if me.moving:
-		var s = spd * (0.85 if me.swing > 0 else 1.0) * (0.92 if air else 1.0)
+		var s = spd * (0.85 if me.swing > 0 else 1.0) * (0.92 if air else 1.0) * (0.6 if Data.in_zone(M.get("water", []), me.position.x, me.position.y) else 1.0)
 		if not _move_x(me.position.x + dx * s * dt) and not manual and not air and world.gy(me.position.x + dx * 24) > me.position.y - 125:
 			jump_q = 0.15
 		if not focus:
@@ -610,7 +667,7 @@ func _control(dt: float) -> void:
 			var pt: Dictionary = M.portals[i]
 			if pt.get("arena"):
 				continue
-			if absf(me.position.x - pt.x) < 46:
+			if absf(me.position.x - pt.x) < 46 and absf(me.position.y - float(pt.y)) < 60:
 				warping = true
 				focus = null
 				move_to = -1
@@ -624,6 +681,36 @@ func _control(dt: float) -> void:
 		if cur != last_sent or send_t <= -1.0:
 			Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 1 if air else 0})
 			last_sent = cur
+		send_t = SEND_DT
+
+## leo dây/thang: lên xuống theo cần điều khiển (W/S), tới đỉnh thì bước lên mặt trên, tới chân thì xuống đất
+func _climb(dt: float, iy: float, dx: float) -> void:
+	var q = climb
+	me.air = true
+	me.moving = absf(iy) > 0.3
+	me.position.x = float(q[0])
+	if absf(iy) > 0.3:
+		me.position.y += signf(iy) * 170.0 * dt
+	if me.position.y <= float(q[1]):
+		me.position.y = float(q[1])
+		climb = []
+		air = false
+		vy = 0
+		# đỉnh thang sát mép vách: bước sang chỗ có mặt đứng
+		if absf(floor_at(me.position.x, me.position.y) - me.position.y) > 4:
+			for d in [20, -20, 40, -40, 60, -60]:
+				if absf(floor_at(me.position.x + d, me.position.y) - me.position.y) < 4:
+					me.position.x += d
+					break
+	elif me.position.y >= float(q[2]) or (absf(dx) > 0.5 and absf(iy) < 0.3):
+		# chạm đất hoặc đẩy ngang: buông dây
+		me.position.y = min(me.position.y, float(q[2]))
+		climb = []
+		vy = 0
+		air = true
+	send_t -= dt
+	if send_t <= 0:
+		Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 1})
 		send_t = SEND_DT
 
 func _unhandled_input(ev: InputEvent) -> void:

@@ -124,6 +124,12 @@ class MiniMap extends Control:
 			pts.append(Vector2(t[0] * sx, t[1] * sy))
 		pts.append(Vector2(size.x, size.y))
 		draw_colored_polygon(pts, Color.html(str(M.get("base", "#5c9e3f"))))
+		for pl in M.get("plats", []):
+			draw_line(Vector2(pl[0] * sx, pl[1] * sy), Vector2(pl[2] * sx, pl[3] * sy), Color.html(str(M.get("base", "#5c9e3f"))).lightened(0.25), 2.5)
+		for r in M.get("ropes", []):
+			draw_line(Vector2(r[0] * sx, r[1] * sy), Vector2(r[0] * sx, r[2] * sy), Color(0.85, 0.7, 0.45, 0.9), 1.5)
+		for w in M.get("water", []) + M.get("lava", []):
+			draw_rect(Rect2(w[0] * sx, w[2] * sy, (w[1] - w[0]) * sx, 3), Color(1, 0.5, 0.2, 0.9) if M.get("lava", []).has(w) else Color(0.4, 0.75, 1, 0.9))
 		for z in M.safes:
 			draw_rect(Rect2(z.x * sx, 2, z.w * sx, 4), Color(1, 0.88, 0.43, 0.9))
 		for p in M.portals:
@@ -292,7 +298,7 @@ func setup(g: Game) -> void:
 		joy.jump.connect(g.jump)
 		root.add_child(joy)
 	else:
-		var hint = UI.outlined("A/D: đi · W/Space: nhảy · J: đánh · 1-6: kỹ năng · Q: bình máu · E: nói chuyện · B: túi đồ", 14, Color.WHITE, "semi", 4)
+		var hint = UI.outlined("A/D: đi · W/Space: nhảy, bám dây · S: leo xuống · S+Space: xuống bậc · J: đánh · 1-6: kỹ năng · Q: bình máu · E: nói chuyện · B: túi đồ", 14, Color.WHITE, "semi", 4)
 		hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		hint.position = Vector2(16, -30)
 		root.add_child(hint)

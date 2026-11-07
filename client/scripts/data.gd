@@ -105,6 +105,37 @@ static func ground_y(m: Dictionary, x: float) -> float:
 		return b[1]
 	return a[1] + (b[1] - a[1]) * clampf((x - a[0]) / (b[0] - a[0]), 0.0, 1.0)
 
+## ---------- bản đồ nhiều tầng: bậc nổi [x0, y0, x1, y1, kiểu], dây/thang [x, yTrên, yDưới, kiểu], nước/dung nham [x0, x1, y] ----------
+static func plat_y(p: Array, x: float) -> float:
+	if x < float(p[0]) or x > float(p[2]):
+		return INF
+	var w = float(p[2]) - float(p[0])
+	return float(p[1]) + (float(p[3]) - float(p[1])) * (0.0 if w <= 0 else (x - float(p[0])) / w)
+
+## mặt đứng gần nhất dưới chân (đất hoặc bậc nổi); skip: bỏ qua bậc nổi (đang nhảy xuống xuyên bậc)
+static func floor_y(m: Dictionary, x: float, y: float, skip := false, tol := 6.0) -> float:
+	var best = ground_y(m, x)
+	if skip:
+		return best
+	for p in m.get("plats", []):
+		var py = plat_y(p, x)
+		if py != INF and py >= y - tol and py < best:
+			best = py
+	return best
+
+## dây/thang gần chỗ đứng (trả về mảng dây hoặc rỗng)
+static func rope_at(m: Dictionary, x: float, y: float, r := 30.0) -> Array:
+	for q in m.get("ropes", []):
+		if absf(x - float(q[0])) < r and y >= float(q[1]) - 12 and y <= float(q[2]) + 12:
+			return q
+	return []
+
+static func in_zone(list: Array, x: float, y: float) -> bool:
+	for w in list:
+		if x > float(w[0]) and x < float(w[1]) and y > float(w[2]) - 4:
+			return true
+	return false
+
 static func in_safe(m: Dictionary, x: float) -> bool:
 	for z in m.get("safes", []):
 		if x > z.x + 8 and x < z.x + z.w - 8:

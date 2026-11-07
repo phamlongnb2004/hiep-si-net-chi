@@ -1,4 +1,4 @@
-# Bản đồ, quái và trùm (đợt 1, bản 2.6.0)
+# Bản đồ, quái và trùm (đợt 1 bản 2.6.0; bản đồ nhiều tầng từ 2.7.0)
 
 ## Lộ trình
 | # | Bản đồ | Cấp | Nối với | Khu trùm (cổng ở giữa) |
@@ -46,3 +46,21 @@ Quái do trùm gọi ra không cho thưởng và biến mất khi khu trùm hế
 - Quái/trùm mới: `client/assets/mon2/<loài>/<động tác><khung>.webp`, mỗi động tác 8 khung (đi, đánh; trùm thêm đứng và 3 chiêu).
 - Hiệu ứng chiêu: `client/assets/vfx/<tên>/0..7.webp` (16 hiệu ứng).
 - Bộ bản đồ tách mảnh: `side/{far,mid,ground,capL,capR}_<beach|reef|swamp|cave>`, cảnh vật `ai/<chủ đề>_<tên>`.
+
+## Bản đồ nhiều tầng (từ 2.7.0)
+Mỗi bản đồ một kiểu riêng, đi lên xuống được:
+
+| Bản đồ | Kiểu | Cổng khu trùm |
+|---|---|---|
+| Làng | chòi gác có thang, ban công nổi trên đài phun nước, chòi phải có dây | — |
+| Đồng Bằng | đồi thoải lên xuống, bậc cỏ nổi, dây leo | trên đỉnh đồi giữa |
+| Rừng Tuyết | leo núi từng bậc, vực sâu giữa đỉnh có cầu treo và thang xuống đáy vực (gấu ở đáy) | bên kia cầu |
+| Núi Lửa | hố dung nham (đứng trong là bỏng 7% máu mỗi 0,5 giây) bước qua bằng đá nổi, núi lửa giữa, dây xích | trên miệng núi lửa |
+| Đầm Lầy | vũng bùn (đi chậm), tán cây đứng được, dây leo, gò đất cao | trên gò đất |
+| Bãi Biển | nước nông, dốc cát, vách nhiều tầng có thang, cầu treo lên mỏm trên cùng | trên mỏm cao nhất |
+| Rạn San Hô | rãnh sâu giữa rạn, bậc san hô nổi nhiều tầng, rong biển để leo | dưới đáy rãnh |
+| Khu trùm | Hang Vua Heo: 2 bậc nổi · Hang Sói: gò giữa · Miệng Núi Lửa: 2 hố dung nham giữa 3 rồng · Hang Cua: vũng nước · Ổ Rùa: bậc nổi bậc thang · Hang Rắn: vũng bùn | |
+
+Điều khiển: nhảy (Space/W, nút nhảy, đẩy cần lên) ở chân dây/thang để bám leo; W/S hoặc cần lên/xuống để leo; đứng trên đỉnh thang giữ xuống để leo xuống; giữ xuống + nhảy để rơi xuyên bậc nổi; đẩy ngang hoặc nhảy để buông dây.
+
+Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dốc), `plats` bậc nổi `[x0, y0, x1, y1, "bridge"?]`, `ropes` `[x, yTrên, yDưới, "rope"|"ladder"]`, `water` / `lava` `[x0, x1, yMặt]`. Bãi quái có `p` = số thứ tự bậc nổi thì quái chỉ đi trên bậc đó. Máy chủ kiểm tra người chơi đứng trên đất, bậc nổi hoặc đang bám dây (rules.js: floorY, onRope).
