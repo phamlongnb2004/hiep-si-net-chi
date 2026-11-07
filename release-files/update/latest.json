@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.5.0",
-  "min": "2.5.0",
+  "version": "2.6.0",
+  "min": "2.6.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "a4707372c434f5efe259feff83f369b97609e34032254ba6aba6888687ece868",
-   "size": 62047753
+   "sha256": "a7845083566e70db87032edb62e9df66fb4552e893ded792ac15409a76ce6feb",
+   "size": 68917690
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "a2fea4c653de9e70b1950ab29056b078dbbea2155866a0b4c25c008109fabaf1",
-   "size": 89795232
+   "sha256": "d10420dab48a7d3fb7edac10204144f52c4b1885be7d6bf2bf2eef31013c386f",
+   "size": 97105201
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "f20703824fb3bce29a8ae1728b404bba9e434ac18cffbae468bea2a783b1f777",
-   "size": 64192962
+   "sha256": "cb308cd7e154a2ae3f7130d7a707859c035354fcad3af04b7dd51bee36f26d05",
+   "size": 71082597
   }
  },
  "assets": {
@@ -26,9 +26,10 @@
   "size": 29165352
  },
  "changelog": [
-  "Đồ mới: Giày và Găng theo phái, Dây chuyền dùng cho mọi phái",
-  "Cánh: chỉ rơi khi hạ trùm, tỉ lệ rất thấp; cánh vỗ sau lưng, có hào quang theo độ hiếm",
-  "Thương Nhân Giáp bán thêm giày, găng, dây chuyền"
+  "Bản đồ mới: Bãi Biển Vỏ Sò (cấp 5-15, đi bên trái Làng), Rạn San Hô dưới nước (15-25), Đầm Lầy Sương Độc (30-40, sau Núi Lửa)",
+  "Khu trùm mở theo giờ (12:00, 19:00, 21:00) ở giữa bản đồ: Vua Cua, Rùa Đá, Rắn Chúa, Vua Heo Rừng, Sói Tuyết Đầu Đàn, 3 rồng",
+  "Trùm có 3 chiêu, vùng đỏ báo trước để né; 9 quái mới với cách đánh riêng (phun độc, lao tới, phồng gai, nổ khi chết...)",
+  "Kết liễu trùm: nhận đồ rơi và danh hiệu Kẻ Kết Liễu 24 giờ; kinh nghiệm, vàng chia theo % sát thương"
  ],
- "updated": "2026-11-06T19:28:57.944Z"
+ "updated": "2026-11-07T07:58:20.671Z"
 }
