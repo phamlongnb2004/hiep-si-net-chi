@@ -1,33 +1,33 @@
 {
  "app": {
-  "version": "2.7.2",
+  "version": "2.7.3",
   "min": "2.7.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "e417909581b9d9cec14ba3f6d7928248166c91546bb35a3b714697c6c1b00efd",
-   "size": 71526415
+   "sha256": "4c077399b50ab6418c5bb40a4487e6dda241f8199125faef45d7865475a4998a",
+   "size": 71527751
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "f6a9ac2fac16b451b6081d9588dca5dc0a37cae340668fbfb384ed7e55514038",
-   "size": 99951703
+   "sha256": "3a69154bc84137f3676d29d75fa1da3f73a48de95bc73b04f5ec7dcd6f9aced0",
+   "size": 99955799
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "4be5667613cc21f6c8896a5493ba0e56dcde59018cf3aace10ba79e77243c6b5",
-   "size": 73791978
+   "sha256": "7795d4ca6b88740f66a0a4122143460950c989d1db43787de55358c058af8c14",
+   "size": 73795018
   }
  },
  "assets": {
-  "version": 12,
+  "version": 13,
   "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-12.pck",
-  "sha256": "ab7aea81584a0c028b8fb86e3914741a8139e1d9c6280214001aed3db8859758",
-  "size": 47452112
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-13.pck",
+  "sha256": "4645b7c174db188d5f2b3b33614d4899bb1455e98889fc70315f3a10a35c6f6e",
+  "size": 47452432
  },
  "changelog": [
-  "Vẽ lại mũ nhìn từ sau lưng khi leo thang: chỉ thấy mặt ngoài kín của mũ, không còn lộ lót trong phía trước",
-  "Băng đô võ sĩ khi leo là dải băng ngang trán nhìn thẳng từ sau, nơ thả xuống lưng"
+  "Mũ nhìn ngang ôm đầu hơn: mũ trụ kiếm sĩ lùi về sau gáy, mũ cung thủ hạ xuống chụp lên đầu, băng đô võ sĩ thu nhỏ nằm ngang trán",
+  "Mũ nhìn từ sau lưng khi leo thang vẽ lại, không còn lộ lót trong"
  ],
- "updated": "2026-11-07T15:46:13.753Z"
+ "updated": "2026-11-07T16:00:02.490Z"
 }
