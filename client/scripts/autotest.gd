@@ -479,8 +479,13 @@ func preview_big() -> void:
 			h.cls = cl[r]
 			var hat = c % 4
 			h.look = (c % 4 + 1) % 5 + 5 * (hat + 1)
-			h.climb = c < 4
-			h.moving = c < 4
+			var side = OS.get_environment("HSNC_SIDE") != ""
+			h.climb = c < 4 and not side
+			h.moving = c < 4 and not side
+			if side:
+				# 0..3: mũ 0..3 đứng yên, 4..7: mũ 0..3 đang chạy; không áo choàng
+				h.look = 2 + 5 * (c % 4 + 1)
+				h.moving = c >= 4
 			h.nm = ""
 			h.position = Vector2(95 + c * 195, 215 + r * 238)
 			h.scale = Vector2(2.3, 2.3)

@@ -187,9 +187,11 @@ func _draw() -> void:
 		var ht: Dictionary = L.hat[th]
 		var htx = Data.tex(ht.u)
 		if htx:
-			var hx: float = F.hx + (float(q.hc) - float(set[0].hc) if q.get("hc") != null and set[0].get("hc") != null else 0.0)
-			var x0 = hx - F.hw * 0.32
-			var x1 = hx + F.hw * 0.32
+			# ox/oy/sc: chỉnh riêng từng mũ cho ôm đầu (lùi về sau gáy, hạ xuống, co giãn)
+			var hx: float = F.hx + float(ht.get("ox", 0.0)) + (float(q.hc) - float(set[0].hc) if q.get("hc") != null and set[0].get("hc") != null else 0.0)
+			var hw2: float = F.hw * float(ht.get("sc", 1.0))
+			var x0 = hx - hw2 * 0.32
+			var x1 = hx + hw2 * 0.32
 			var tp: Array = q.tp
 			var n = tp.size()
 			var top: float = q.h
@@ -197,11 +199,10 @@ func _draw() -> void:
 				var cx: float = (j + 0.5) / n * q.w - q.ax
 				if cx >= x0 and cx <= x1:
 					top = min(top, float(tp[j]))
-			var hw: float = F.hw
-			var hh: float = hw * ht.h / ht.w
-			var y: float = -q.h + top + hw * F.hb
+			var hh: float = hw2 * ht.h / ht.w
+			var y: float = -q.h + top + hw2 * F.hb + float(ht.get("oy", 0.0))
 			draw_set_transform_matrix(xf)
-			draw_texture_rect(htx, Rect2(hx - hw / 2, y - hh, hw, hh), false, mod)
+			draw_texture_rect(htx, Rect2(hx - hw2 / 2, y - hh, hw2, hh), false, mod)
 	draw_set_transform(Vector2.ZERO)
 	_labels()
 
