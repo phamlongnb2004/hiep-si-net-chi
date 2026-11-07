@@ -32,6 +32,10 @@ func run() -> void:
 		await tour(OS.get_environment("HSNC_TOUR_USER"), OS.get_environment("HSNC_TOUR_ACT"))
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "climbbig":
+		await preview_big()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_PREVIEW") == "climb":
 		await preview_climb()
 		get_tree().quit()
@@ -449,3 +453,34 @@ func tour_art(g: Game) -> void:
 			g.me.moving = true
 			await shot("art-c%d-%d" % [lad[0], k])
 		g.joy = Vector2.ZERO
+
+
+## xem to: mỗi lớp 4 mũ, khi leo (trên) và khi đứng (dưới), phóng 3 lần
+func preview_big() -> void:
+	var cv = CanvasLayer.new()
+	cv.layer = 100
+	get_tree().root.add_child(cv)
+	var bg = ColorRect.new()
+	bg.color = Color("2a3d5c")
+	bg.size = Vector2(1600, 1000)
+	cv.add_child(bg)
+	var root = Node2D.new()
+	cv.add_child(root)
+	var cl = ["sword", "archer", "mage", "fighter"]
+	var hs: Array = []
+	for r in 4:
+		for c in 8:
+			var h = Hero.new()
+			h.cls = cl[r]
+			var hat = c % 4
+			h.look = (c % 4 + 1) % 5 + 5 * (hat + 1)
+			h.climb = c < 4
+			h.moving = c < 4
+			h.nm = ""
+			h.position = Vector2(100 + c * 190, 230 + r * 245)
+			h.scale = Vector2(2.6, 2.6)
+			root.add_child(h)
+			hs.append(h)
+	for k in 4:
+		await wait(0.14)
+		await shot("big-%d" % k)
