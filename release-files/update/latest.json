@@ -19,19 +19,19 @@
   }
  },
  "assets": {
-  "version": 6,
+  "version": 7,
   "min_app": "2.6.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-6.pck",
-  "sha256": "0d24d26905fd0a1ec2cded65f5c3611566eaaaec5174e2bdfb5d1e5f41dc33f1",
-  "size": 45535324
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-7.pck",
+  "sha256": "3aba78b573f77aa788b45ff7e0af11b160f43524f08819f561e0e82b118cbe47",
+  "size": 45511516
  },
  "changelog": [
   "Thông báo khu trùm và thông báo máy chủ có biểu tượng vẽ mới, chuyển động (sắp mở, đã mở, kết liễu trùm)",
-  "Quái và trùm mới đứng sát mặt đất",
+  "Quái và trùm mới đứng sát mặt đất; sửa vệt màu dưới mặt đất ở bản đồ mới",
   "Bản đồ mới: Bãi Biển Vỏ Sò (cấp 5-15, đi bên trái Làng), Rạn San Hô dưới nước (15-25), Đầm Lầy Sương Độc (30-40, sau Núi Lửa)",
   "Khu trùm mở theo giờ (12:00, 19:00, 21:00) ở giữa bản đồ: Vua Cua, Rùa Đá, Rắn Chúa, Vua Heo Rừng, Sói Tuyết Đầu Đàn, 3 rồng",
   "Trùm có 3 chiêu, vùng đỏ báo trước để né; 9 quái mới với cách đánh riêng (phun độc, lao tới, phồng gai, nổ khi chết...)",
   "Kết liễu trùm: nhận đồ rơi và danh hiệu Kẻ Kết Liễu 24 giờ; kinh nghiệm, vàng chia theo % sát thương"
  ],
- "updated": "2026-11-07T09:00:08.552Z"
+ "updated": "2026-11-07T11:34:49.029Z"
 }
