@@ -444,6 +444,11 @@ func tour_art(g: Game) -> void:
 		g.warping = false
 		await wait(0.8)
 		g.me.position = Vector2(float(q[0]), 560)
+		var lk = int(OS.get_environment("HSNC_LOOK")) if OS.get_environment("HSNC_LOOK") != "" else -1
+		if lk >= 0:
+			g.me.look = lk
+			g.me.wing = int(OS.get_environment("HSNC_WING"))
+			g.me.cls = OS.get_environment("HSNC_CLS2")
 		g.climb = q
 		g.joy = Vector2(0, -1)
 		for k in 3:
@@ -462,13 +467,13 @@ func preview_big() -> void:
 	get_tree().root.add_child(cv)
 	var bg = ColorRect.new()
 	bg.color = Color("2a3d5c")
-	bg.size = Vector2(1600, 1000)
+	bg.size = Vector2(1600, 1100)
 	cv.add_child(bg)
 	var root = Node2D.new()
 	cv.add_child(root)
-	var cl = ["sword", "archer", "mage", "fighter"]
+	var cl = ["sword", "archer", "mage", "fighter"] if OS.get_environment("HSNC_ROWS") == "" else OS.get_environment("HSNC_ROWS").split(",")
 	var hs: Array = []
-	for r in 4:
+	for r in cl.size():
 		for c in 8:
 			var h = Hero.new()
 			h.cls = cl[r]
@@ -477,8 +482,8 @@ func preview_big() -> void:
 			h.climb = c < 4
 			h.moving = c < 4
 			h.nm = ""
-			h.position = Vector2(100 + c * 190, 230 + r * 245)
-			h.scale = Vector2(2.6, 2.6)
+			h.position = Vector2(95 + c * 195, 215 + r * 238)
+			h.scale = Vector2(2.3, 2.3)
 			root.add_child(h)
 			hs.append(h)
 	for k in 4:
