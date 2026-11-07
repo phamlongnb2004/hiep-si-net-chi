@@ -1,35 +1,34 @@
 {
  "app": {
-  "version": "2.7.0",
+  "version": "2.7.1",
   "min": "2.7.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "fb233a0f2682359495088374cfad17c4a11ea4e375d4186b62c292e2d2e625fb",
-   "size": 70232797
+   "sha256": "694024084c7398eba568154209b522a4e6c65f7b6c727292dfd6d00837ef78dd",
+   "size": 71522651
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "6ae89d2e074d70a2024d8921470db06b0cd5c3d14de4e6c89d15f7678d2b94f6",
-   "size": 98562551
+   "sha256": "1b8259c3253b6883a67ce8d4c69daef816ea790f68087f87b81c4ce2bb3130eb",
+   "size": 99951703
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "305da51f09b08405fb2c8c2d569af4e04e045d71b5a28f8b2b100f08c972f5b0",
-   "size": 72506306
+   "sha256": "2baa668030bed7ab118d4f4038a7de56f3b66fa6d013d81783516686c2e66be2",
+   "size": 73791198
   }
  },
  "assets": {
-  "version": 8,
+  "version": 9,
   "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-8.pck",
-  "sha256": "2e9873d9365b2fbacf735f523d00b8a8b30dfb94b3e9c5563fa4746c5e569388",
-  "size": 46028732
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-9.pck",
+  "sha256": "2d7f3f222d60302634bae9f627b9341aea234b5efe6c9215713d75f42b300b0c",
+  "size": 47451152
  },
  "changelog": [
-  "Bản đồ nhiều tầng: dốc, bậc nổi, cầu treo, dây leo, thang, nước nông, hố dung nham; mỗi bản đồ một kiểu riêng",
-  "Nhảy ở chân dây/thang để bám leo; giữ xuống + nhảy để rơi xuyên bậc nổi",
-  "Cổng khu trùm chuyển lên chỗ cao (hoặc đáy rãnh) riêng của từng bản đồ",
-  "Biểu tượng thông báo vẽ mới có hoạt ảnh"
+  "Cổng riêng cho từng khu trùm: Hang Vua Heo, Hang Sói, Miệng Núi Lửa, Hang Cua, Ổ Rùa, Hang Rắn",
+  "Thang gỗ, thang tre, dây thừng, dây leo vẽ mới, ghép từ nhiều khúc theo độ dài",
+  "Nhân vật có dáng leo nhìn từ sau lưng, vẫn thấy áo, mũ, áo choàng và cánh đang đeo; người khác cũng thấy bạn đang leo"
  ],
- "updated": "2026-11-07T12:34:35.971Z"
+ "updated": "2026-11-07T13:22:04.422Z"
 }
