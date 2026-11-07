@@ -212,6 +212,9 @@ func tour(u: String, act: String) -> void:
 	await wait(3.0)
 	var g: Game = main.game
 	await shot("t1-" + u)
+	if act == "ann":
+		await tour_ann(g)
+		return
 	if act == "gate":
 		g.talk()
 		await wait(2.5)
@@ -239,3 +242,34 @@ func tour(u: String, act: String) -> void:
 			last_s = Time.get_ticks_msec()
 			await shot("t%02d-%s" % [n, "skill" if busy else "fight"])
 			n += 1
+
+## thông báo khu trùm: báo trước 5 phút, cổng đóng, lúc mở, kết liễu trùm
+func tour_ann(g: Game) -> void:
+	await wait(2.0)
+	await shot("a1-bao-truoc")
+	g.talk()
+	await wait(1.5)
+	await shot("a2-cong-dong")
+	var gi = -1
+	for i in g.M.portals.size():
+		if g.M.portals[i].get("arena"):
+			gi = i
+	var t0 = Time.get_ticks_msec()
+	while not Data.arena_state(int(g.M.portals[gi].to)).open and Time.get_ticks_msec() - t0 < 120000:
+		await wait(0.5)
+	await wait(2.0)
+	await shot("a3-da-mo")
+	g.talk()
+	await wait(2.5)
+	await shot("a4-vao")
+	t0 = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 60000:
+		var m = g.nearest_mon(1500)
+		if m == null:
+			break
+		g.focus = m
+		await wait(0.2)
+	await wait(1.0)
+	await shot("a5-ket-lieu")
+	await wait(3.0)
+	await shot("a6-sau")

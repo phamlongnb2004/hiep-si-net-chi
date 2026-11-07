@@ -450,8 +450,10 @@ func bind_social() -> void:
 func show_ann(t: String) -> void:
 	if t == "":
 		return
-	ann_l.text = "📢 " + t
-	add_log("📢 " + t, Color("ffe08a"))
+	# phông chữ không có hình 📢: tin đã có biểu tượng riêng (⏰ ⚔) thì để nguyên, còn lại ghi "Thông báo:"
+	var s = t if t.begins_with("⏰") or t.begins_with("⚔") else "Thông báo: " + t
+	ann_l.text = s
+	add_log(s, Color("ffe08a"))
 	var tw = ann_l.create_tween()
 	ann_l.modulate.a = 0
 	tw.tween_property(ann_l, "modulate:a", 1.0, 0.3)

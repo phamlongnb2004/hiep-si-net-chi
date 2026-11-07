@@ -385,7 +385,7 @@ export class World extends DurableObject {
     const M = R.D.maps[mi], A = M.arena, now = Date.now(), win = this.arenaWin(mi, now), vn = t => new Date(t + 7 * 3600e3).toISOString().slice(11, 16);
     const no = msg => this.sendTo(c, { t: 'res', op: 'warp', ok: false, msg });
     if (!win.open) { const left = win.next ? win.next - now : 0, h = Math.floor(left / 3600e3), m = Math.floor(left % 3600e3 / 60e3);
-      return no(M.name + ' đang đóng.' + (win.next ? ' Mở lúc ' + vn(win.next) + ' (còn ' + (h ? h + ' giờ ' : '') + m + ' phút).' : '')); }
+      return no(M.name + ' đang đóng.' + (win.next ? ' Mở lúc ' + vn(win.next) + ' (còn ' + (left < 60e3 ? Math.ceil(left / 1e3) + ' giây' : (h ? h + ' giờ ' : '') + m + ' phút') + ').' : '')); }
     if (c.ch.lv < A.req && !isStaff(this, c.uid)) return no('Cần cấp ' + A.req + ' để vào ' + M.name + '.');
     const k = this.arenaKhu(c.srv, mi, win); if (!k) return no('Trùm ở mọi khu đã bị hạ. Chờ khung giờ sau.');
     this.enterMap(c, mi, null, k, true);
@@ -404,8 +404,8 @@ export class World extends DurableObject {
     for (const srv of new Set([...this.clients.values()].map(c => c.srv))) R.D.maps.forEach((M, mi) => {
       if (!M.arena) return; const w5 = this.arenaWin(mi, now + 300e3), w0 = this.arenaWin(mi, now);
       const k5 = srv + ':' + mi + ':5:' + w5.start, k0 = srv + ':' + mi + ':0:' + w0.start;
-      if (w5.open && !w0.open && w5.start > now && !this.arenaAnn.has(k5)) { this.arenaAnn.add(k5); this.srvLog(srv, '⏰ ' + M.name + ' (' + R.D.maps[M.arena.from].name + ') mở sau 5 phút.', '#ffd23f'); }
-      if (w0.open && now - w0.start < 60e3 && !this.arenaAnn.has(k0)) { this.arenaAnn.add(k0); this.srvLog(srv, '⚔ ' + M.name + ' đã mở! Cổng ở giữa ' + R.D.maps[M.arena.from].name + '.', '#ffd23f'); }
+      if (w5.open && !w0.open && w5.start > now && !this.arenaAnn.has(k5)) { this.arenaAnn.add(k5); this.srvAnn(srv, '⏰ ' + M.name + ' (' + R.D.maps[M.arena.from].name + ') mở sau ' + Math.max(1, Math.round((w5.start - now) / 60e3)) + ' phút'); }
+      if (w0.open && now - w0.start < 60e3 && !this.arenaAnn.has(k0)) { this.arenaAnn.add(k0); this.srvAnn(srv, '⚔ ' + M.name + ' đã mở! Cổng ở giữa ' + R.D.maps[M.arena.from].name); }
     });
     if (this.arenaAnn.size > 500) this.arenaAnn.clear();
   }
@@ -415,7 +415,9 @@ export class World extends DurableObject {
     for (let k = 1; k <= n; k++) list.push([k, this.khuN(c.srv, c.map, k)]);
     return { t: 'khu', cur: c.inst ? c.inst.khu : 1, max: mx, list };
   }
-  hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (k, c, d) => glog(this, k, c, d), ann: (inst, text) => this.srvLog(inst.srv, text, '#ffd23f') }; }
+  hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (k, c, d) => glog(this, k, c, d), ann: (inst, text) => this.srvAnn(inst.srv, text) }; }
+  // thông báo lớn giữa màn hình (kèm dòng trong nhật ký) cho cả máy chủ
+  srvAnn(srv, text) { const s = JSON.stringify({ t: 'ann', text }); for (const c of this.clients.values()) if (c.v2 && c.srv === srv) this.sendTo(c, s); }
   srvLog(srv, text, col) { const s = JSON.stringify({ t: 'log', text, col }); for (const c of this.clients.values()) if (c.v2 && c.srv === srv) this.sendTo(c, s); }
   // báo cho bạn bè đang online cập nhật danh sách (online/offline, bản đồ)
   friendsChanged(c) {
