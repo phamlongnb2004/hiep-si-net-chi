@@ -9,7 +9,7 @@ const rng = Math.random;
 const rand = (a, b) => a + rng() * (b - a);
 const BR_T = 1.75, BR_C = .5, BR_E = 1.35; // rồng khạc: tổng thời gian, hết lấy hơi, ngừng phun (giống side.js)
 const MS = .76;                               // tỉ lệ vẽ quái trong side.js (dùng để ước chỗ miệng rồng)
-const OWN_T = 20, DROP_LIFE = 75, PICK_R = 40;
+const OWN_T = 30, DROP_LIFE = 75, PICK_R = 40; // đồ rơi: 30 giây đầu chỉ người hạ quái nhặt được, sau đó ai cũng nhặt được
 
 // trạng thái chiến đấu của một người chơi (không lưu xuống cơ sở dữ liệu)
 export function makeFighter(ch) {
