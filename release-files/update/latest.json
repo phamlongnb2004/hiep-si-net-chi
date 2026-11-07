@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.7.1",
+  "version": "2.7.2",
   "min": "2.7.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "694024084c7398eba568154209b522a4e6c65f7b6c727292dfd6d00837ef78dd",
-   "size": 71522651
+   "sha256": "e417909581b9d9cec14ba3f6d7928248166c91546bb35a3b714697c6c1b00efd",
+   "size": 71526415
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "1b8259c3253b6883a67ce8d4c69daef816ea790f68087f87b81c4ce2bb3130eb",
+   "sha256": "f6a9ac2fac16b451b6081d9588dca5dc0a37cae340668fbfb384ed7e55514038",
    "size": 99951703
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "2baa668030bed7ab118d4f4038a7de56f3b66fa6d013d81783516686c2e66be2",
-   "size": 73791198
+   "sha256": "4be5667613cc21f6c8896a5493ba0e56dcde59018cf3aace10ba79e77243c6b5",
+   "size": 73791978
   }
  },
  "assets": {
@@ -26,9 +26,8 @@
   "size": 47451152
  },
  "changelog": [
-  "Cổng riêng cho từng khu trùm: Hang Vua Heo, Hang Sói, Miệng Núi Lửa, Hang Cua, Ổ Rùa, Hang Rắn",
-  "Thang gỗ, thang tre, dây thừng, dây leo vẽ mới, ghép từ nhiều khúc theo độ dài",
-  "Nhân vật có dáng leo nhìn từ sau lưng, vẫn thấy áo, mũ, áo choàng và cánh đang đeo; người khác cũng thấy bạn đang leo"
+  "Cánh mọc ra từ sau lưng: khi đi/đứng không còn chìa ra trước mặt; khi leo thang cánh nằm trên lưng, xoè hai bên bả vai",
+  "Cổng riêng cho từng khu trùm, thang/dây ghép khúc, dáng leo nhìn từ sau lưng (từ bản 2.7.1)"
  ],
- "updated": "2026-11-07T13:22:04.422Z"
+ "updated": "2026-11-07T13:38:10.788Z"
 }
