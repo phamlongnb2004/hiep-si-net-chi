@@ -384,6 +384,7 @@ func preview_climb() -> void:
 				cape = 3
 			h.look = a + 5 * (hat + 1) + 25 * (cape + 1)
 			h.climb = true
+			h.face = -1 if c % 2 == 1 else 1
 			h.moving = true
 			h.wing = -1 if c < 7 else c - 6
 			h.nm = "%s %d" % [cl[r], c]

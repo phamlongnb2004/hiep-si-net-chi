@@ -54,6 +54,24 @@ const WING_GLOW := [Color(1, 1, 1, 0.0), Color(0.55, 0.85, 1.0, 0.35), Color(0.7
 const WING_SP := [Color(1, 1, 1), Color(0.7, 0.92, 1.0), Color(0.85, 0.6, 1.0), Color(1.0, 0.85, 0.35)]
 
 ## cánh: 16 khung vỗ cánh, vỗ nhanh khi chạy/nhảy, chậm khi đứng; quầng sáng + hạt sáng theo độ hiếm
+## gap > 0: nhìn từ sau, tách hai nửa cánh ra hai bên bả vai.
+## gap == 0: nhìn nghiêng, nửa cánh phía lưng xoè đủ, nửa phía mặt thu hẹp và nấp sau thân (không chìa ra trước mặt).
+func _wing_tex(tx: Texture2D, rc: Rect2, col: Color, gap: float) -> void:
+	var ts: Vector2 = tx.get_size()
+	var hw = rc.size.x / 2
+	var x0 = rc.position.x
+	if gap > 0:
+		draw_texture_rect_region(tx, Rect2(x0 - gap, rc.position.y, hw, rc.size.y), Rect2(0, 0, ts.x / 2, ts.y), col)
+		draw_texture_rect_region(tx, Rect2(x0 + hw + gap, rc.position.y, hw, rc.size.y), Rect2(ts.x / 2, 0, ts.x / 2, ts.y), col)
+		return
+	var fw = hw * 0.4   # nửa phía mặt
+	if face > 0:
+		draw_texture_rect_region(tx, Rect2(x0, rc.position.y, hw, rc.size.y), Rect2(0, 0, ts.x / 2, ts.y), col)
+		draw_texture_rect_region(tx, Rect2(x0 + hw, rc.position.y + rc.size.y * 0.06, fw, rc.size.y * 0.9), Rect2(ts.x / 2, 0, ts.x / 2, ts.y), col)
+	else:
+		draw_texture_rect_region(tx, Rect2(x0 + hw - fw, rc.position.y + rc.size.y * 0.06, fw, rc.size.y * 0.9), Rect2(0, 0, ts.x / 2, ts.y), col)
+		draw_texture_rect_region(tx, Rect2(x0 + hw, rc.position.y, hw, rc.size.y), Rect2(ts.x / 2, 0, ts.x / 2, ts.y), col)
+
 func _draw_wing(al: float, up: float, back := false) -> void:
 	var fx: Array = Data.A.get("wingfx", [])
 	var r = clampi(wing, 0, 3)
@@ -67,16 +85,18 @@ func _draw_wing(al: float, up: float, back := false) -> void:
 		return
 	var w = 118.0
 	var h = w * tx.get_height() / tx.get_width()
-	var c = Vector2(0 if back else -6 * face, -40 - up + sin(t * 2.2) * 1.5)
-	# lưng nhân vật quay theo hướng nhìn: cánh hơi lệch về sau và thu hẹp (nhìn nghiêng)
-	draw_set_transform(c, 0, Vector2((1.0 if back else 0.78) * HS * 1.25, HS * 1.25))
+	var c = Vector2(0 if back else -10 * face, -40 - up + sin(t * 2.2) * 1.5)
+	# nhìn nghiêng: gốc cánh lệch về phía lưng
+	draw_set_transform(c, 0, Vector2((0.9 if back else 0.9) * HS * 1.25, (0.9 if back else 1.0) * HS * 1.25))
 	var g: Color = WING_GLOW[r]
+	# nhìn từ sau: tách hai nửa cánh ra hai bên bả vai để lộ sống lưng
+	var gap = 14.0 if back else 0.0
 	if g.a > 0:
 		var pulse = 0.75 + 0.25 * sin(t * 3.0)
 		for k in 3:
 			var e = 1.0 + 0.06 * (k + 1)
-			draw_texture_rect(tx, Rect2(-w * e / 2, -h * 0.62 * e, w * e, h * e), false, Color(g.r, g.g, g.b, g.a * pulse * al / (k + 1)))
-	draw_texture_rect(tx, Rect2(-w / 2, -h * 0.62, w, h), false, Color(1, 1, 1, al))
+			_wing_tex(tx, Rect2(-w * e / 2, -h * 0.62 * e, w * e, h * e), Color(g.r, g.g, g.b, g.a * pulse * al / (k + 1)), gap)
+	_wing_tex(tx, Rect2(-w / 2, -h * 0.62, w, h), Color(1, 1, 1, al), gap)
 	draw_set_transform(Vector2.ZERO)
 	var sc: Color = WING_SP[r]
 	for q in _sp:
@@ -212,7 +232,7 @@ func _labels() -> void:
 			draw_rect(Rect2(-21, y + 5, 42 * clampf(hp, 0, 1), 4), Color("5fe08c"))
 
 ## leo thang: nhìn từ sau lưng, 4 khung tay chân luân phiên (chỉ đổi khung khi đang trèo).
-## Mũ và áo choàng dùng ảnh mặt sau; cánh xoè đủ hai bên (không thu hẹp như nhìn nghiêng).
+## Mũ và áo choàng dùng ảnh mặt sau; cánh mọc từ lưng, vẽ đè lên thân, xoè đủ hai bên.
 var _cph = 0.0
 func _draw_climb(al: float) -> bool:
 	var a = look % 5 - 1
@@ -230,9 +250,6 @@ func _draw_climb(al: float) -> bool:
 	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
 	var tc = int(look / 25) - 1
 	var th = int(look / 5) % 5 - 1
-	# cánh: vẽ sau thân để không che người (nhìn từ sau vẫn thấy rõ dáng leo)
-	if wing >= 0:
-		_draw_wing(al, 6.0, true)
 	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
 	draw_texture_rect(tx, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
 	# áo choàng mặt sau: treo từ vai, phủ lưng
@@ -243,6 +260,11 @@ func _draw_climb(al: float) -> bool:
 			var sw = sin(t * 2.4) * 0.03
 			draw_set_transform(Vector2(0, (-q.h + float(q.sy)) * HS), sw, Vector2(HS, HS))
 			draw_texture_rect(ct, Rect2(-float(cp.w) / 2, -4, cp.w, cp.h), false, mod)
+	# cánh mọc từ giữa lưng: nhìn từ sau thì lưng quay về phía người xem nên cánh vẽ đè lên thân
+	# (gốc cánh ở giữa ảnh, hai cánh xoè lên hai bên đầu; vẽ trước mũ để mũ vẫn ở trên)
+	if wing >= 0:
+		var root_y = (-float(q.h) + float(q.sy)) * HS + 9.0
+		_draw_wing(al, -40.0 - root_y, true)
 	# mũ mặt sau trên đỉnh đầu
 	if th >= 0 and L.has("hatb") and th < L.hatb.size():
 		var ht: Dictionary = L.hatb[th]
