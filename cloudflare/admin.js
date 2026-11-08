@@ -325,7 +325,8 @@ const ACT = {
       const free = R.isFree(slot); if (free && cls !== R.CLS_KEYS[0]) return; // dây chuyền, cánh: không theo phái, chỉ một bản
       const base = R.shopItem(cls, slot, r, lvl, 'x'), mx = {};
       for (const k in base.st) mx[k] = Math.round(R.baseStats(slot, lvl, r)[k] * 1.25);
-      gear.push({ cls: free ? '' : cls, slot, r, si, name: base.name, st: base.st, max: mx, icon: free ? `admin-icons/acc/${slot}/${r}.webp` : `admin-icons/gear/${cls}/${r}/${si}.webp` });
+      const bd = R.band(lvl);
+      gear.push({ cls: free ? '' : cls, slot, r, si, name: base.name, st: base.st, max: mx, icon: slot === 'wing' ? `admin-icons/acc/wing/${r}.webp` : free ? `admin-icons/acc2/${slot}/${bd}.webp` : `admin-icons/gear2/${cls}/${bd}/${slot}.webp` });
     });
     const books = {}; for (const cls of R.CLS_KEYS) books[cls] = R.D.skills[cls].map((s, i) => ({ i, n: s.n, d: s.d, req: s.req, price: s.price, icon: `admin-icons/skills/${cls}/${i}.webp` }));
     return { lvl, gear, books, cls: Object.fromEntries(R.CLS_KEYS.map(k => [k, R.D.cls[k].n])), rar: R.D.rar.map(x => ({ n: x.n, c: x.c })),

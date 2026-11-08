@@ -92,3 +92,10 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - `anim/die_<lớp>_<b|0..3>`: trúng đòn → ngã ngửa → chạm đất → nằm gục (giữ tới khi hồi sinh). Phát khi `dead` chuyển sang true (cả người chơi khác, theo cờ chết máy chủ gửi).
 - Khi ngã: cánh chỉ còn ở khung đầu, áo choàng ẩn khi đã ngã, mũ nghiêng theo đầu rồi rơi nằm cạnh đầu.
 - Xem thử: `HSNC_PREVIEW=die` (`HSNC_SET=1` bộ áo khác).
+
+## Đồ theo bậc cấp + trang sức mới (2.8.0)
+- 10 bậc: cấp 1–10, 11–20 … 91–100 (`band(lvl)`); món mới có trường `b`. Tên = tên món + tên bộ của phái theo bậc (`BAND_SET`) + hậu tố độ hiếm (Tinh Xảo / Cổ Đại / Thần Thánh). Trang sức dùng chất liệu chung theo bậc (`BAND_ACC`).
+- Ô đồ mới, mọi phái dùng được: nhẫn (sức đánh + tốc chạy), khuyên tai (máu + sức đánh), đai lưng (máu + giáp), bùa hộ mệnh (giáp + máu + sức đánh). Rơi từ quái (trọng số 0,5) và bán ở Thương Nhân Giáp (nhóm "Trang sức").
+- Cần cấp nhân vật ≥ cấp đồ mới mặc được (máy chủ chặn ở `equip`). Đồ đang mặc / đồ cũ không có `b` giữ nguyên tên và ảnh cũ.
+- Icon: `gear2/<phái>/<bậc>/<ô>.webp` (6 ô theo phái), `acc2/<ô>/<bậc>.webp` (5 trang sức). Xem thử: `HSNC_PREVIEW=items HSNC_CLS=<phái>`.
+- APP_MIN 2.8.0 (bản cũ không hiện được ô đồ mới).

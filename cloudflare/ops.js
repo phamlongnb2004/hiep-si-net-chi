@@ -6,12 +6,13 @@ const { D } = R;
 const own = (ch, it) => !it.cls || it.cls === ch.cls;
 const findInv = (ch, id) => ch.inv.findIndex(it => String(it.id) === String(id));
 const nearNpc = (c, id) => { if (c.ch.map !== 0 || !c.inst) return false; const n = D.maps[0].npcs.find(q => q.id === id); return !!n && Math.abs(c.f.x - n.x) < 200; };
-const ORD = { weapon: 0, armor: 1, hat: 2, cape: 3 };
+const ORD = { weapon: 0, armor: 1, hat: 2, cape: 3, gloves: 4, boots: 5, neck: 6, ring: 7, earring: 8, belt: 9, charm: 10, wing: 11 };
 
 export const OPS = {
   equip(c, m) {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
     const it = ch.inv[i]; if (!own(ch, it)) return { ok: false, msg: 'Không cùng phái.' };
+    if (ch.lv < R.reqLv(it)) return { ok: false, msg: 'Cần đạt cấp ' + R.reqLv(it) + ' để mặc món này.' };
     const old = ch.eq[it.slot]; ch.eq[it.slot] = it; ch.inv.splice(i, 1); if (old) ch.inv.push(old);
     refreshStats(c.f, ch, true); return { ok: true };
   },

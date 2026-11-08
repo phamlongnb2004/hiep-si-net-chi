@@ -198,6 +198,8 @@ func _render_detail(d: Dictionary) -> void:
 	detail.add_child(nm)
 	var own = Data.can_wear(it, game.cls())
 	detail.add_child(UI.label("%s · %s · Cấp %d" % [Data.D.rar[r2].n, Data.SLOT_N[it.slot], int(it.lvl)], 16, Color("5a6b8c"), "semi"))
+	var lv_ok = int(d.get("lv", 1)) >= Data.req_lv(it)
+	detail.add_child(UI.label("Cần cấp %d để mặc" % Data.req_lv(it) + ("" if lv_ok else " (bạn chưa đủ cấp)"), 16, UI.INK if lv_ok else Color("d9345a"), "semi"))
 	if str(it.slot) in Data.FREE:
 		detail.add_child(UI.label("Mọi phái đều dùng được" + (" · chỉ rơi từ trùm" if str(it.slot) == "wing" else ""), 16, Color("2fa84f"), "semi"))
 	else:
@@ -211,8 +213,8 @@ func _render_detail(d: Dictionary) -> void:
 	_stat_lines(it, d.eq.get(it.slot))
 	var row = UI.hbox(8)
 	detail.add_child(row)
-	var be = UI.button("Mặc" if own else "Khác phái", UI.GREEN, 18)
-	be.disabled = not own
+	var be = UI.button(("Mặc" if lv_ok else "Chưa đủ cấp") if own else "Khác phái", UI.GREEN, 18)
+	be.disabled = not own or not lv_ok
 	var iid = it.id
 	be.pressed.connect(func(): Net.send({"t": "equip", "id": iid}); sel = {})
 	row.add_child(be)

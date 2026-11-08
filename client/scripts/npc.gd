@@ -9,7 +9,7 @@ var fit = {}            # {"id", "slot"}
 var msg = ""
 var msg_ok = true
 var gear_cls = ""
-var gear_grp = 0      # 0: mũ áo choàng vũ khí; 1: giày, găng, dây chuyền
+var gear_grp = 0      # 0: mũ áo choàng vũ khí; 1: giày, găng, dây chuyền; 2: nhẫn, khuyên, đai, bùa
 var body: VBoxContainer
 var title: Label
 var tabs: HBoxContainer
@@ -77,8 +77,8 @@ func render() -> void:
 			var cc: String = c
 			b2.pressed.connect(func(): gear_cls = cc; msg = ""; render())
 			tabs.add_child(b2)
-		for gi in 2:
-			var b3 = UI.button(["Giáp & vũ khí", "Giày, găng, dây chuyền"][gi], UI.GREEN if gear_grp == gi else UI.SKY, 16)
+		for gi in 3:
+			var b3 = UI.button(["Giáp & vũ khí", "Giày, găng, dây", "Trang sức"][gi], UI.GREEN if gear_grp == gi else UI.SKY, 16)
 			var g2: int = gi
 			b3.pressed.connect(func(): gear_grp = g2; msg = ""; render())
 			tabs.add_child(b3)
@@ -215,7 +215,7 @@ func _gear(d: Dictionary) -> void:
 		var nm = UI.label(str(Data.D.rar[r].n), 18, Data.rar_color(r) if r > 0 else UI.INK, "bold")
 		nm.custom_minimum_size = Vector2(120, 0)
 		row.add_child(nm)
-		for slot in (["hat", "armor", "cape", "weapon"] if gear_grp == 0 else ["boots", "gloves", "neck"]):
+		for slot in [["hat", "armor", "cape", "weapon"], ["boots", "gloves", "neck"], ["ring", "earring", "belt", "charm"]][gear_grp]:
 			var it = _shop_item(gear_cls, slot, r, lvl)
 			var price = int(round((25 + lvl * 9) * (1.0 + lvl / 3.0) * 3.5 * SHOP_MUL[r] * Data.shop_mul()))
 			var v = UI.vbox(2)
@@ -248,9 +248,13 @@ func _shop_item(c: String, slot: String, r: int, lvl: int) -> Dictionary:
 		"boots": st = {"spd": (1.5 + lvl * 0.25) * m, "def": base * 0.3 * m}
 		"gloves": st = {"atk": base * 0.5 * m, "def": base * 0.2 * m}
 		"neck": st = {"hp": base * 2.5 * m, "atk": base * 0.35 * m}
+		"ring": st = {"atk": base * 0.7 * m, "spd": (1 + lvl * 0.15) * m}
+		"earring": st = {"hp": base * 2 * m, "atk": base * 0.3 * m}
+		"belt": st = {"hp": base * 3 * m, "def": base * 0.45 * m}
+		"charm": st = {"def": base * 0.6 * m, "hp": base * 1.5 * m, "atk": base * 0.2 * m}
 		_: st = {"atk": base * 1.3 * m}
 	for k in st:
 		st[k] = max(1, int(round(st[k])))
 	if slot in Data.FREE:
-		return {"id": "", "slot": slot, "cls": "", "tier": r, "r": r, "lvl": lvl, "name": Data.ACC_NAME[slot][r], "st": st, "shop": 1}
-	return {"id": "", "slot": slot, "cls": c, "tier": r, "r": r, "lvl": lvl, "name": Data.noun(c, slot) + " " + str(Data.D.sets[c][r]), "st": st, "shop": 1}
+		return {"id": "", "slot": slot, "cls": "", "tier": r, "r": r, "lvl": lvl, "b": Data.band(lvl), "name": Data.gen_name(slot, c, r, lvl), "st": st, "shop": 1}
+	return {"id": "", "slot": slot, "cls": c, "tier": r, "r": r, "lvl": lvl, "b": Data.band(lvl), "name": Data.gen_name(slot, c, r, lvl), "st": st, "shop": 1}

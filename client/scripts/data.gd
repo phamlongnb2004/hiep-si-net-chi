@@ -13,10 +13,35 @@ const NOUN := {
 	"mage": {"hat": "Nón Phép", "armor": "Pháp Bào", "cape": "Khăn Choàng", "weapon": "Trượng"},
 	"fighter": {"hat": "Khăn Đầu", "armor": "Võ Phục", "cape": "Khăn Choàng", "weapon": "Găng Vuốt"}}
 const NOUN2 := {"sword": ["Giày Sắt", "Găng Sắt"], "archer": ["Giày Lá", "Bao Tay Cung"], "mage": ["Hài Phép", "Găng Phép"], "fighter": ["Giày Võ", "Bao Tay Võ"]}
-const SLOTS := ["hat", "armor", "cape", "weapon", "boots", "gloves", "neck", "wing"]
-const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh"}
-const FREE := ["neck", "wing"]   # dây chuyền, cánh: mọi phái đều dùng được
+const SLOTS := ["hat", "armor", "cape", "weapon", "boots", "gloves", "neck", "wing", "ring", "earring", "belt", "charm"]
+const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh", "ring": "Nhẫn", "earring": "Khuyên tai", "belt": "Đai lưng", "charm": "Bùa hộ mệnh"}
+const FREE := ["neck", "wing", "ring", "earring", "belt", "charm"]   # trang sức, cánh: mọi phái đều dùng được
 const ACC_NAME := {"neck": ["Dây Chuyền Đồng", "Dây Chuyền Lam Ngọc", "Dây Chuyền Tử Tinh", "Dây Chuyền Thái Dương"], "wing": ["Cánh Thiên Thần", "Cánh Băng Tinh", "Cánh Ma Tinh", "Cánh Phượng Hoàng"]}
+## đồ theo bậc cấp (giống shared/rules.js): 10 bậc, tên bộ theo phái + hậu tố độ hiếm
+const BAND_SET := {
+	"sword": ["Tập Sự", "Thiết Kỵ", "Ngọc Bích", "Hải Long", "Huyết Nguyệt", "Băng Phách", "Ám Dạ", "Thanh Mộc", "Nham Hỏa", "Thiên Đế"],
+	"archer": ["Mộc Cung", "Đồng Diệp", "Lục Phong", "Lam Vũ", "Xích Nguyệt", "Tuyết Ưng", "U Linh", "Tinh Linh", "Viêm Điểu", "Thiên Xạ"],
+	"mage": ["Học Đồ", "Đồng Chú", "Ngọc Thạch", "Thủy Triều", "Huyết Ấn", "Hàn Băng", "Hư Không", "Sinh Mệnh", "Dung Nham", "Tinh Tú"],
+	"fighter": ["Võ Đồng", "Thiết Quyền", "Bích Hổ", "Lam Giao", "Huyết Lang", "Băng Hổ", "Ảnh Sát", "Lục Long", "Hỏa Quyền", "Thần Long"]}
+const BAND_ACC := ["Gỗ Mộc", "Đồng Thau", "Bích Ngọc", "Lam Ngọc", "Huyết Ngọc", "Băng Tinh", "Tử Tinh", "Lục Bảo", "Hỏa Tinh", "Thiên Quang"]
+const RAR_SUF := ["", " Tinh Xảo", " Cổ Đại", " Thần Thánh"]
+const ACC_NOUN := {"neck": "Dây Chuyền", "ring": "Nhẫn", "earring": "Khuyên Tai", "belt": "Đai Lưng", "charm": "Bùa Hộ Mệnh"}
+
+static func band(lvl: int) -> int:
+	return clampi(int(floor((lvl - 1) / 10.0)), 0, 9)
+
+## tên món mới (giống itemName ở máy chủ)
+func gen_name(slot: String, c: String, r: int, lvl: int) -> String:
+	var b = band(lvl)
+	if slot == "wing":
+		return ACC_NAME.wing[r]
+	if slot in FREE:
+		return ACC_NOUN[slot] + " " + BAND_ACC[b] + RAR_SUF[r]
+	return noun(c, slot) + " " + BAND_SET[c][b] + RAR_SUF[r]
+
+## cấp cần để mặc
+static func req_lv(it: Dictionary) -> int:
+	return clampi(int(it.get("lvl", 1)), 1, 100)
 
 ## món đồ này nhân vật phái c có mặc được không
 func can_wear(it: Dictionary, c: String) -> bool:
@@ -182,6 +207,17 @@ func item_icon(it: Dictionary) -> Texture2D:
 	var g: Dictionary = A.get("gear", {})
 	var c = str(it.get("cls", ""))
 	var sl = str(it.get("slot", ""))
+	# đồ theo bậc cấp (có trường b): ảnh riêng theo bậc
+	if it.has("b") and sl != "wing":
+		var b = clampi(int(it.b), 0, 9)
+		if sl in FREE:
+			var ac2: Array = A.get("acc2", {}).get(sl, [])
+			if b < ac2.size():
+				return tex(ac2[b])
+		else:
+			var g2: Array = A.get("gear2", {}).get(c, [])
+			if b < g2.size() and g2[b] is Dictionary and g2[b].has(sl):
+				return tex(g2[b][sl])
 	if sl in FREE:
 		var ac: Array = A.get("acc", {}).get(sl, [])
 		var rr = clampi(int(it.get("r", 0)), 0, 3)

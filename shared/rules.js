@@ -38,14 +38,34 @@ export const NOUN = {
 // giày, găng: theo phái; dây chuyền, cánh: dùng chung mọi phái (cls = '')
 for (const c in NOUN) Object.assign(NOUN[c], { boots: { sword: 'Giày Sắt', archer: 'Giày Lá', mage: 'Hài Phép', fighter: 'Giày Võ' }[c], gloves: { sword: 'Găng Sắt', archer: 'Bao Tay Cung', mage: 'Găng Phép', fighter: 'Bao Tay Võ' }[c] });
 export const ACC_NAME = { neck: ['Dây Chuyền Đồng', 'Dây Chuyền Lam Ngọc', 'Dây Chuyền Tử Tinh', 'Dây Chuyền Thái Dương'], wing: ['Cánh Thiên Thần', 'Cánh Băng Tinh', 'Cánh Ma Tinh', 'Cánh Phượng Hoàng'] };
-export const FREE_SLOTS = ['neck', 'wing'];
+// đồ theo bậc cấp (từ 2.8.0): 10 bậc (cấp 1–10, 11–20 … 91–100); mỗi bậc × phái có tên bộ riêng, độ hiếm thêm hậu tố
+export const BAND_N = 10;
+export const band = lvl => clamp(Math.floor(((lvl | 0) - 1) / 10), 0, BAND_N - 1);
+export const BAND_SET = {
+  sword: ['Tập Sự', 'Thiết Kỵ', 'Ngọc Bích', 'Hải Long', 'Huyết Nguyệt', 'Băng Phách', 'Ám Dạ', 'Thanh Mộc', 'Nham Hỏa', 'Thiên Đế'],
+  archer: ['Mộc Cung', 'Đồng Diệp', 'Lục Phong', 'Lam Vũ', 'Xích Nguyệt', 'Tuyết Ưng', 'U Linh', 'Tinh Linh', 'Viêm Điểu', 'Thiên Xạ'],
+  mage: ['Học Đồ', 'Đồng Chú', 'Ngọc Thạch', 'Thủy Triều', 'Huyết Ấn', 'Hàn Băng', 'Hư Không', 'Sinh Mệnh', 'Dung Nham', 'Tinh Tú'],
+  fighter: ['Võ Đồng', 'Thiết Quyền', 'Bích Hổ', 'Lam Giao', 'Huyết Lang', 'Băng Hổ', 'Ảnh Sát', 'Lục Long', 'Hỏa Quyền', 'Thần Long'] };
+export const BAND_ACC = ['Gỗ Mộc', 'Đồng Thau', 'Bích Ngọc', 'Lam Ngọc', 'Huyết Ngọc', 'Băng Tinh', 'Tử Tinh', 'Lục Bảo', 'Hỏa Tinh', 'Thiên Quang'];
+export const RAR_SUF = ['', ' Tinh Xảo', ' Cổ Đại', ' Thần Thánh'];
+export const ACC_NOUN = { neck: 'Dây Chuyền', ring: 'Nhẫn', earring: 'Khuyên Tai', belt: 'Đai Lưng', charm: 'Bùa Hộ Mệnh' };
+export const FREE_SLOTS = ['neck', 'wing', 'ring', 'earring', 'belt', 'charm'];
 export const isFree = slot => FREE_SLOTS.includes(slot);
 // cánh: chỉ rơi khi hạ trùm, tỉ lệ rất thấp; độ hiếm của cánh rơi ra
 export const W_WING = [60, 28, 10, 2];
 export const W_MOB = [80, 16.5, 3.1, .4], W_BOSS = [30, 48, 18.5, 3.5], W_ELITE = [52, 34, 11.5, 2.5];
-export const SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'wing'];
+export const SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'wing', 'ring', 'earring', 'belt', 'charm'];
 // ô đồ rơi từ quái thường / bán ở cửa hàng (cánh thì không)
-export const DROP_SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck'], DROP_SLOT_W = [1, 1, 1, 1, 1, 1, .6];
+export const DROP_SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'ring', 'earring', 'belt', 'charm'], DROP_SLOT_W = [1, 1, 1, 1, 1, 1, .6, .5, .5, .5, .5];
+// tên món: dây chuyền/nhẫn/khuyên/đai/bùa theo bậc chung; đồ theo phái theo tên bộ của phái; cánh giữ tên theo độ hiếm
+// cấp nhân vật cần để mặc (máy chủ kiểm tra khi mặc; đồ đang mặc từ trước vẫn giữ)
+export const reqLv = it => Math.max(1, Math.min(MAX_LV, (it && it.lvl) | 0));
+export function itemName(slot, c, rk, lvl) {
+  const b = band(lvl);
+  if (slot === 'wing') return ACC_NAME.wing[rk];
+  if (isFree(slot)) return ACC_NOUN[slot] + ' ' + BAND_ACC[b] + RAR_SUF[rk];
+  return NOUN[c][slot] + ' ' + BAND_SET[c][b] + RAR_SUF[rk];
+}
 export const CLS_KEYS = ['sword', 'archer', 'mage', 'fighter'];
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -106,13 +126,17 @@ export function baseStats(slot, lvl, rk) {
   else if (slot === 'boots') { st.spd = (1.5 + lvl * .25) * m; st.def = base * .3 * m; }
   else if (slot === 'gloves') { st.atk = base * .5 * m; st.def = base * .2 * m; }
   else if (slot === 'neck') { st.hp = base * 2.5 * m; st.atk = base * .35 * m; }
+  else if (slot === 'ring') { st.atk = base * .7 * m; st.spd = (1 + lvl * .15) * m; }
+  else if (slot === 'earring') { st.hp = base * 2 * m; st.atk = base * .3 * m; }
+  else if (slot === 'belt') { st.hp = base * 3 * m; st.def = base * .45 * m; }
+  else if (slot === 'charm') { st.def = base * .6 * m; st.hp = base * 1.5 * m; st.atk = base * .2 * m; }
   else if (slot === 'wing') { st.hp = base * 3 * m; st.atk = base * .6 * m; st.def = base * .5 * m; st.spd = (2 + lvl * .3) * m; }
   else st.atk = base * 1.3 * m;
   return st;
 }
 function makeItem(id, slot, c, rk, lvl, st) {
   const R = D.rar[rk], free = isFree(slot);
-  const it = { id, slot, cls: free ? '' : c, tier: rk, style: 0, col: R.c.length === 7 ? R.c : '#8a93a8', r: rk, lvl, name: free ? ACC_NAME[slot][rk] : NOUN[c][slot] + ' ' + D.sets[c][rk], st };
+  const it = { id, slot, cls: free ? '' : c, tier: rk, style: 0, col: R.c.length === 7 ? R.c : '#8a93a8', r: rk, lvl, b: band(lvl), name: itemName(slot, c, rk, lvl), st };
   if (slot === 'weapon') it.wk = c;
   return it;
 }

@@ -36,6 +36,10 @@ func run() -> void:
 		await preview_big()
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "items":
+		await preview_items()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_PREVIEW") in ["jump", "die"]:
 		await preview_jump()
 		get_tree().quit()
@@ -368,6 +372,36 @@ func tour_climb(g: Game) -> void:
 	g.joy = Vector2.ZERO
 	await wait(1.0)
 	print("vị trí máy chủ khớp: bị kéo về ", pos_n, " lần")
+
+
+## xem thử icon đồ theo bậc: mỗi hàng một bậc (cấp 5, 15 … 95); 6 món của phái + 5 trang sức
+func preview_items() -> void:
+	var cv = CanvasLayer.new()
+	cv.layer = 100
+	get_tree().root.add_child(cv)
+	var bg = ColorRect.new()
+	bg.color = Color("2a3d5c")
+	bg.size = Vector2(1400, 900)
+	cv.add_child(bg)
+	var c = OS.get_environment("HSNC_CLS")
+	if c == "":
+		c = "fighter"
+	var col = VBoxContainer.new()
+	col.position = Vector2(20, 10)
+	cv.add_child(col)
+	for b in 10:
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		col.add_child(row)
+		var lvl = b * 10 + 5
+		var k = 0
+		for sl in ["hat", "armor", "cape", "weapon", "boots", "gloves", "neck", "ring", "earring", "belt", "charm"]:
+			var r = (b + k) % 4
+			k += 1
+			var it = {"slot": sl, "cls": "" if sl in Data.FREE else c, "tier": r, "r": r, "lvl": lvl, "b": Data.band(lvl), "up": 0, "st": {"atk": 5}, "name": Data.gen_name(sl, c, r, lvl)}
+			row.add_child(ItemCell.make(it, false, true, false, 80))
+	await wait(0.6)
+	await shot("items-" + c)
 
 
 ## xem thử dáng nhảy: mỗi lớp 2 bộ áo x (đứng + 4 khung nhảy), kèm mũ/áo choàng/cánh
