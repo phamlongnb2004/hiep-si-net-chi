@@ -36,6 +36,10 @@ func run() -> void:
 		await preview_big()
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "jump":
+		await preview_jump()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_PREVIEW") == "climb":
 		await preview_climb()
 		get_tree().quit()
@@ -364,6 +368,39 @@ func tour_climb(g: Game) -> void:
 	g.joy = Vector2.ZERO
 	await wait(1.0)
 	print("vị trí máy chủ khớp: bị kéo về ", pos_n, " lần")
+
+
+## xem thử dáng nhảy: mỗi lớp 2 bộ áo x (đứng + 4 khung nhảy), kèm mũ/áo choàng/cánh
+func preview_jump() -> void:
+	var cv = CanvasLayer.new()
+	cv.layer = 100
+	get_tree().root.add_child(cv)
+	var bg = ColorRect.new()
+	bg.color = Color("2a3d5c")
+	bg.size = Vector2(1400, 900)
+	cv.add_child(bg)
+	var root = Node2D.new()
+	cv.add_child(root)
+	var cl = ["sword", "archer", "mage", "fighter"]
+	var sets = [[0, -1, -1, -1], [3, 2, 2, 1]]
+	if OS.get_environment("HSNC_SET") != "":
+		sets = [[1, 0, -1, -1], [4, 3, 3, 3]]
+	for r in 4:
+		for c in 10:
+			var st = sets[c / 5]
+			var h = Hero.new()
+			h.cls = cl[r]
+			h.look = st[0] + 5 * (st[1] + 1) + 25 * (st[2] + 1)
+			h.wing = st[3]
+			h.jump_force = c % 5 - 1
+			h.air = c % 5 > 0
+			h.nm = ""
+			h.position = Vector2(80 + c * 128, 175 + r * 205)
+			h.scale = Vector2(1.25, 1.25)
+			root.add_child(h)
+	for k in 2:
+		await wait(0.2)
+		await shot("jump-%d" % k)
 
 
 ## xem thử dáng leo thang: 4 lớp x 5 bộ áo, kèm mũ/áo choàng/cánh khác nhau (không cần máy chủ)

@@ -81,3 +81,9 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Cường hóa: tỉ lệ +1→+15 = 95, 85, 75, 65, 55, 45, 36, 28, 21, 15, 10, 7, 5, 3, 2 %; đá = cấp đích + 1; vàng = `(40 + 6×cấp) × (1 + cấp/3) × L^1,6 × 1,5`; thất bại lên +5..+9 tụt 1 cấp, +10 trở lên tụt 2 cấp. Đá rơi từ quái thường: 20% (+0,3%/cấp, tối đa +8%).
 - Admin vẫn chỉnh nhanh được: "x Giá đồ cửa hàng", "Cộng tỉ lệ rèn (%)", "x Vàng".
 - Màn hình tải (`client/scripts/loading.gd`): hiện khi bước vào cổng, vào khu trùm, đổi khu và lúc vào game; nạp trước ảnh của bản đồ mới (cảnh nền, cảnh vật, cổng, thang, cầu, quái) vài ảnh mỗi khung hình; tối thiểu 0,9 giây; chặn điều khiển tới khi xong.
+
+## Dáng nhảy (2.7.6)
+- Mỗi lớp × 5 bộ áo có 4 khung nhảy riêng `anim/jump_<lớp>_<b|0..3>`: lấy đà, bật lên, đỉnh (co gối), rơi (duỗi chân).
+- Khung chọn theo vận tốc dọc ước lượng từ vị trí (áp dụng cả cho người chơi khác): mới rời đất 0,07 s → lấy đà; vy < -260 → bật lên; vy < 200 → đỉnh; còn lại → rơi; chạm đất sau khi bay > 0,12 s thì khụy gối 0,12 s.
+- Neo ngang đặt sao cho đầu trùng chỗ đầu khi đứng (mũ đi theo `hc`/`tp` như các khung khác); cỡ lấy theo khung rơi ≈ 1,03 × chiều cao thân đứng.
+- Xem thử: `HSNC_PREVIEW=jump` (thêm `HSNC_SET=1` để xem bộ áo khác).

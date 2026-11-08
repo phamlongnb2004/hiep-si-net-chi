@@ -34,6 +34,19 @@ const BOB := [0.0, 2.2, 0.0, 2.2]
 func _process(dt: float) -> void:
 	t += dt
 	flash = max(0.0, flash - dt)
+	# vận tốc dọc ước lượng từ vị trí (dùng chọn khung nhảy cho cả người khác)
+	if dt > 0:
+		var v = (position.y - _ly) / dt
+		_vy = lerpf(_vy, clampf(v, -1500, 1500), minf(1.0, dt * 14.0))
+	_ly = position.y
+	if air:
+		_air_t += dt
+		_land_t = 0.0
+	else:
+		if _air_t > 0.12:
+			_land_t = 0.12   # vừa chạm đất: khụy gối một chút
+		_air_t = 0.0
+		_land_t = maxf(0.0, _land_t - dt)
 	# hạt sáng bay ra từ cánh (cánh càng hiếm càng nhiều)
 	if wing >= 0 and not dead:
 		var rate = [1.5, 4.0, 7.0, 12.0][clampi(wing, 0, 3)]
@@ -105,6 +118,31 @@ func _draw_wing(al: float, up: float, back := false) -> void:
 		if r >= 2:
 			draw_circle(q.p, q.s * 2.4 * k2, Color(sc.r, sc.g, sc.b, 0.18 * k2 * al))
 
+var _ly := 0.0
+var _vy := 0.0
+var _air_t := 0.0
+var _land_t := 0.0
+var jump_force := -1   # xem thử: ép khung nhảy (0..3)
+
+## khung nhảy: 0 lấy đà/chạm đất, 1 bật lên, 2 đỉnh, 3 rơi xuống (thiếu ảnh thì trả về rỗng)
+func _jump_frame() -> Dictionary:
+	var a = look % 5 - 1
+	var an: Dictionary = Data.A.get("anim", {})
+	var js: Array = an.get("jump_%s_%s" % [cls, "b" if a < 0 else str(a)], an.get("jump_%s_0" % cls, []))
+	if js.size() < 4:
+		return {}
+	if jump_force >= 0:
+		return js[jump_force]
+	if not air:
+		return js[0] if _land_t > 0.0 else {}
+	if _air_t < 0.07:
+		return js[0]
+	if _vy < -260.0:
+		return js[1]
+	if _vy < 200.0:
+		return js[2]
+	return js[3]
+
 func _frames() -> Array:
 	var a = look % 5 - 1
 	var k = "body_%s_%s" % [cls, "b" if a < 0 else str(a)]
@@ -127,8 +165,11 @@ func _draw() -> void:
 	var fi = int(floor(ph)) % 4
 	var fr = ph - floor(ph)
 	var q: Dictionary = set[0]
+	var jq: Dictionary = _jump_frame() if swing <= 0 else {}
 	if swing > 0:
 		q = set[5]
+	elif not jq.is_empty():
+		q = jq
 	elif air:
 		q = set[1]
 	elif moving:
