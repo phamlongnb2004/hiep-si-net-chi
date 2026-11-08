@@ -1,33 +1,34 @@
 {
  "app": {
-  "version": "2.7.4",
-  "min": "2.7.0",
+  "version": "2.7.5",
+  "min": "2.7.5",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "1b72de4ba094e4489b08279a8af3bf2edfea2ffdccf8d5d3aba021d80a0d88a2",
-   "size": 71557395
+   "sha256": "3a52419b06906cb4eed12b874a5a23e480a6d397c42c6c035c9725c57ab6d821",
+   "size": 71567389
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "220a4b3935310c7bf60e33b1a922826c410cb11fab273c8ca5ec07949989d95b",
-   "size": 99993892
+   "sha256": "afcfcdb75827a5e7b8ed09824ddf513c3794654e3ed8cb10a933e0eb0b874034",
+   "size": 100002233
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "2508002869fdf29bebe058a55aaaf83e2e721b8cd4ea4d4499a84bd3cc0eb691",
-   "size": 73827286
+   "sha256": "f9e7495aa0d6265a48d3214de23455959673e9970db6567fe98830e85be65ad9",
+   "size": 73834622
   }
  },
  "assets": {
-  "version": 15,
-  "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-15.pck",
-  "sha256": "b8b32b302e84a2938c79f44c8180fd930c21f38db758b90317d930416f0d3e41",
-  "size": 47488840
+  "version": 16,
+  "min_app": "2.7.5",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-16.pck",
+  "sha256": "4e38bb274b66d98be8f59eef755db04effb0439de163164e393393f8981c0f78",
+  "size": 47488776
  },
  "changelog": [
-  "Cầu treo vẽ mới: ván gỗ buộc dây ở Rừng Tuyết, ván tre ở Bãi Biển, dây tay vịn võng tự nhiên, cọc buộc dây hai đầu",
-  "Mũ phượng hoàng của cung thủ ôm đầu"
+  "Màn hình tải khi sang bản đồ, vào khu trùm hay đổi khu",
+  "Đồ cửa hàng đắt hơn theo cấp, cường hóa khó hơn (tỉ lệ thấp hơn, tốn thêm đá và vàng), đá cường hóa rơi ít hơn",
+  "Lên cấp chậm hơn, cầu treo vẽ mới"
  ],
- "updated": "2026-11-08T07:23:11.314Z"
+ "updated": "2026-11-08T07:46:51.891Z"
 }
