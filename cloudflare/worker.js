@@ -9,7 +9,7 @@ import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
 import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaff, maintOn, maintMsg, banInfo, mutedUntil } from './admin.js';
 
 const TICK_MS = 100;
-const APP_MIN = '2.7.0'; // 2.7.0: bản đồ nhiều tầng (bậc nổi, dây, thang); bản cũ có địa hình khác nên không chơi được
+const APP_MIN = '2.7.5'; // 2.7.5: giá đồ & cường hóa mới (máy khách tự tính để hiển thị), màn hình tải; bản cũ hiện sai giá
 const ARENA_SLOTS = ['12:00', '19:00', '21:00'], ARENA_DUR = 30, ARENA_LEAVE = 40000; // khu trùm: khung giờ mặc định, số phút mở, giây ở lại nhặt đồ sau khi hạ trùm
 const KHU_MAX = 15, KHU_SHOW = 5, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
 const MAX_SAVE = 300 * 1024;
