@@ -1,34 +1,33 @@
 {
  "app": {
-  "version": "2.7.5",
+  "version": "2.7.6",
   "min": "2.7.5",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "3a52419b06906cb4eed12b874a5a23e480a6d397c42c6c035c9725c57ab6d821",
-   "size": 71567389
+   "sha256": "314f4a812ae0bcb6e61e84981c4040fb60f872e631205d8192bbff0fa5fe4a07",
+   "size": 72752641
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "afcfcdb75827a5e7b8ed09824ddf513c3794654e3ed8cb10a933e0eb0b874034",
-   "size": 100002233
+   "sha256": "fb6fc9028003db168d60ef0f72742ad2b480b23b903edc388e04764c2b72eada",
+   "size": 101243457
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "f9e7495aa0d6265a48d3214de23455959673e9970db6567fe98830e85be65ad9",
-   "size": 73834622
+   "sha256": "7cd3c214f5336f3edf0082d3d8634de6a49540ff3e586eabb4110ac228745013",
+   "size": 75012761
   }
  },
  "assets": {
-  "version": 16,
+  "version": 17,
   "min_app": "2.7.5",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-16.pck",
-  "sha256": "4e38bb274b66d98be8f59eef755db04effb0439de163164e393393f8981c0f78",
-  "size": 47488776
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-17.pck",
+  "sha256": "2af58ef1e20f28415a348e221139a1805f77220ab83e165fdeb4a6ec5fe2b874",
+  "size": 48760200
  },
  "changelog": [
-  "Màn hình tải khi sang bản đồ, vào khu trùm hay đổi khu",
-  "Đồ cửa hàng đắt hơn theo cấp, cường hóa khó hơn (tỉ lệ thấp hơn, tốn thêm đá và vàng), đá cường hóa rơi ít hơn",
-  "Lên cấp chậm hơn, cầu treo vẽ mới"
+  "Nhân vật nhảy mượt hơn: mỗi lớp và mỗi bộ trang phục có dáng lấy đà, bật lên, co gối ở đỉnh và duỗi chân khi rơi",
+  "Chạm đất có khụy gối nhẹ; người chơi khác cũng nhảy với dáng mới"
  ],
- "updated": "2026-11-08T07:46:51.891Z"
+ "updated": "2026-11-08T08:11:17.030Z"
 }
