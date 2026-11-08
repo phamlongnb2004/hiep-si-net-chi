@@ -292,11 +292,20 @@ func _rope_hint() -> void:
 	draw_string_outline(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, UI.INK)
 	draw_string(f, p, s, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("9be05a"))
 
+## cầu treo: ván (một tấm ảnh lặp dọc theo đường võng), dây tay vịn (một khúc ảnh xoay theo đường cong),
+## cọc hai đầu. Thiếu ảnh thì vẽ tay như cũ.
 func _bridge(pl: Array) -> void:
 	var x0: float = pl[0]
 	var y0: float = pl[1]
 	var x1: float = pl[2]
 	var y1: float = pl[3]
+	var sx = "_bamboo" if theme in ["beach", "reef", "swamp"] else ""
+	var pk = _ai("bridge_plank" + sx)
+	var rp = _ai("bridge_rope" + sx)
+	var po = _ai("bridge_post" + sx)
+	if not pk.is_empty() and not rp.is_empty() and not po.is_empty():
+		_bridge_art(x0, y0, x1, y1, pk, rp, po)
+		return
 	var n = int((x1 - x0) / 26)
 	var rope = PackedVector2Array()
 	for i in n + 1:
@@ -312,6 +321,50 @@ func _bridge(pl: Array) -> void:
 	for xx in [x0, x1]:
 		var yy = y0 if xx == x0 else y1
 		draw_rect(Rect2(xx - 5, yy - 44, 10, 46), Color("5a3818"))
+
+func _bridge_art(x0: float, y0: float, x1: float, y1: float, pk: Dictionary, rp: Dictionary, po: Dictionary) -> void:
+	var sag = 4.0
+	var deck = func(u: float) -> Vector2:
+		return Vector2(lerpf(x0, x1, u), lerpf(y0, y1, u) + sin(u * PI) * sag)
+	var rail = func(u: float) -> Vector2:
+		return Vector2(lerpf(x0, x1, u), lerpf(y0, y1, u) - 40.0 + sin(u * PI) * 14.0)
+	var L = x1 - x0
+	# dây treo dọc: nối tay vịn xuống ván, mỗi tấm thứ hai
+	var pw: float = pk.w
+	var n = max(2, int(round(L / pw)))
+	var ptx = Data.tex(pk.u)
+	var rtx = Data.tex(rp.u)
+	for i in n + 1:
+		if i % 2 == 0:
+			var u = float(i) / n
+			draw_line(deck.call(u) + Vector2(0, -2), rail.call(u), Color("8a6434"), 2.5)
+	# tay vịn sau (mờ hơn), rồi ván, rồi tay vịn trước
+	_rope_curve(rtx, rp, rail, L, Color(0.78, 0.74, 0.7, 1.0), Vector2(0, 4))
+	for i in n:
+		var u = (i + 0.5) / n
+		var c: Vector2 = deck.call(u)
+		var d: Vector2 = deck.call(minf(1.0, u + 0.01)) - deck.call(maxf(0.0, u - 0.01))
+		draw_set_transform(c, d.angle(), Vector2.ONE)
+		# đổi tấm theo vị trí cho đỡ lặp
+		var tw = L / n + 1.0
+		draw_texture_rect(ptx, Rect2(-tw / 2, -float(pk.h) * 0.35, tw, pk.h), false, Color(1, 1, 1) if i % 3 else Color(0.92, 0.88, 0.84))
+	draw_set_transform(Vector2.ZERO)
+	_rope_curve(rtx, rp, rail, L, Color.WHITE, Vector2.ZERO)
+	var otx = Data.tex(po.u)
+	for e in [[x0, y0], [x1, y1]]:
+		draw_texture_rect(otx, Rect2(e[0] - float(po.w) / 2, e[1] - float(po.h) + 10, po.w, po.h), false)
+
+## dây cong: ghép các khúc ảnh dây nằm ngang, mỗi khúc xoay theo hướng đường cong
+func _rope_curve(tx: Texture2D, rp: Dictionary, f: Callable, L: float, col: Color, off: Vector2) -> void:
+	var sw: float = rp.w
+	var m = max(2, int(ceil(L / sw)))
+	for i in m:
+		var a: Vector2 = f.call(float(i) / m) + off
+		var b: Vector2 = f.call(float(i + 1) / m) + off
+		draw_set_transform((a + b) / 2, (b - a).angle(), Vector2.ONE)
+		var len = a.distance_to(b) + 1.0
+		draw_texture_rect(tx, Rect2(-len / 2, -float(rp.h) / 2, len, rp.h), false, col)
+	draw_set_transform(Vector2.ZERO)
 
 func _tile_par(a: Dictionary, cx: float, y: float, h: float, vw: float, k: float) -> void:
 	var tx = Data.tex(a.u)
