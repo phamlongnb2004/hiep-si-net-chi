@@ -1,33 +1,33 @@
 {
  "app": {
-  "version": "2.7.3",
+  "version": "2.7.4",
   "min": "2.7.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "4c077399b50ab6418c5bb40a4487e6dda241f8199125faef45d7865475a4998a",
-   "size": 71527751
+   "sha256": "1b72de4ba094e4489b08279a8af3bf2edfea2ffdccf8d5d3aba021d80a0d88a2",
+   "size": 71557395
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "3a69154bc84137f3676d29d75fa1da3f73a48de95bc73b04f5ec7dcd6f9aced0",
-   "size": 99955799
+   "sha256": "220a4b3935310c7bf60e33b1a922826c410cb11fab273c8ca5ec07949989d95b",
+   "size": 99993892
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "7795d4ca6b88740f66a0a4122143460950c989d1db43787de55358c058af8c14",
-   "size": 73795018
+   "sha256": "2508002869fdf29bebe058a55aaaf83e2e721b8cd4ea4d4499a84bd3cc0eb691",
+   "size": 73827286
   }
  },
  "assets": {
-  "version": 14,
+  "version": 15,
   "min_app": "2.7.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-14.pck",
-  "sha256": "64033341c577c8aeeec79f21e3c0305c4bf9da24e19ba26307dcb11d16148cf3",
-  "size": 47452432
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-15.pck",
+  "sha256": "b8b32b302e84a2938c79f44c8180fd930c21f38db758b90317d930416f0d3e41",
+  "size": 47488840
  },
  "changelog": [
-  "Mũ phượng hoàng của cung thủ hạ xuống ôm đầu, ngọc nằm ngang trán",
-  "Mũ nhìn ngang ôm đầu hơn: mũ trụ kiếm sĩ lùi về sau gáy, mũ cung thủ chụp lên đầu, băng đô võ sĩ nằm ngang trán"
+  "Cầu treo vẽ mới: ván gỗ buộc dây ở Rừng Tuyết, ván tre ở Bãi Biển, dây tay vịn võng tự nhiên, cọc buộc dây hai đầu",
+  "Mũ phượng hoàng của cung thủ ôm đầu"
  ],
- "updated": "2026-11-07T16:10:03.305Z"
+ "updated": "2026-11-08T07:23:11.314Z"
 }
