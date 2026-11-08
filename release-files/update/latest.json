@@ -1,33 +1,33 @@
 {
  "app": {
-  "version": "2.7.6",
+  "version": "2.7.7",
   "min": "2.7.5",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "314f4a812ae0bcb6e61e84981c4040fb60f872e631205d8192bbff0fa5fe4a07",
-   "size": 72752641
+   "sha256": "fb78f2b9f4d894ba92a93bf3af83697015dd360113f827654847eb8a9f7d2f9c",
+   "size": 73779603
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "fb6fc9028003db168d60ef0f72742ad2b480b23b903edc388e04764c2b72eada",
-   "size": 101243457
+   "sha256": "7c72139dd28a93af5ba064d397127d4c2b3ef8fae9e8ebfccb65d07a6bf7802f",
+   "size": 102333049
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "7cd3c214f5336f3edf0082d3d8634de6a49540ff3e586eabb4110ac228745013",
-   "size": 75012761
+   "sha256": "7672bff6283db04afd45f69108c84e937a08627d5956f1a9ad24f2b0bb206be2",
+   "size": 76036542
   }
  },
  "assets": {
-  "version": 17,
+  "version": 18,
   "min_app": "2.7.5",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-17.pck",
-  "sha256": "2af58ef1e20f28415a348e221139a1805f77220ab83e165fdeb4a6ec5fe2b874",
-  "size": 48760200
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-18.pck",
+  "sha256": "c6d573e24d8f1eee2141f1ccfc800e860268d086c50704538037abb056df3983",
+  "size": 49876888
  },
  "changelog": [
-  "Nhân vật nhảy mượt hơn: mỗi lớp và mỗi bộ trang phục có dáng lấy đà, bật lên, co gối ở đỉnh và duỗi chân khi rơi",
-  "Chạm đất có khụy gối nhẹ; người chơi khác cũng nhảy với dáng mới"
+  "Thêm dáng bị hạ gục: trúng đòn lảo đảo, ngã ngửa rồi nằm gục cho mọi phái và mọi bộ trang phục",
+  "Người chơi xung quanh cũng thấy bạn ngã; mũ rơi xuống cạnh đầu"
  ],
- "updated": "2026-11-08T08:11:17.030Z"
+ "updated": "2026-11-08T08:34:16.420Z"
 }
