@@ -268,11 +268,12 @@ const VIEWS = {
     const t = r.tune, ro = !can('owner');
     const num = (v, o) => inp({ type: 'number', value: v, step: o.step || .1, min: o.min, max: o.max, disabled: ro });
     const G = { exp: num(t.exp, { min: .1, max: 20 }), gold: num(t.gold, { min: .1, max: 20 }), drop: num(t.drop, { min: .1, max: 10 }), potPrice: num(t.potPrice, { step: 1, min: 1, max: 100000 }),
-      shopMul: num(t.shopMul, { min: .1, max: 20 }), forgeBonus: num(t.forgeBonus, { step: 1, min: -50, max: 50 }), eliteChance: num(t.eliteChance, { step: .01, min: 0, max: .5 }), kiMul: num(t.kiMul ?? 1, { min: 0, max: 5 }), ptMul: num(t.ptMul ?? 1, { min: .1, max: 5 }), wingChance: num(t.wingChance ?? .015, { step: .005, min: 0, max: 1 }) };
+      shopMul: num(t.shopMul, { min: .1, max: 20 }), forgeBonus: num(t.forgeBonus, { step: 1, min: -50, max: 50 }), eliteChance: num(t.eliteChance, { step: .01, min: 0, max: .5 }), kiMul: num(t.kiMul ?? 1, { min: 0, max: 5 }), ptMul: num(t.ptMul ?? 1, { min: .1, max: 5 }), wingChance: num(t.wingChance ?? .015, { step: .005, min: 0, max: 1 }), lvMul: num(t.lvMul ?? 1, { min: .2, max: 10 }) };
     body.append(card(['scale', 'c-vio', 'Toàn game'], h('p', { class: 'note' }, 'Áp dụng ngay trên máy chủ, không cần ra bản ứng dụng mới. 1 = như gốc.' + (ro ? ' (Chỉ chủ mới sửa được.)' : '')),
       h('div', { class: 'row' }, field('x Kinh nghiệm', G.exp), field('x Vàng', G.gold), field('x Tỉ lệ rơi đồ', G.drop), field('Giá bình máu (vàng)', G.potPrice)),
       h('div', { class: 'row', style: 'margin-top:8px' }, field('x Giá đồ cửa hàng', G.shopMul), field('Cộng tỉ lệ rèn (%)', G.forgeBonus), field('Tỉ lệ quái tinh anh (0–0,5)', G.eliteChance)),
-      h('div', { class: 'row', style: 'margin-top:8px' }, field('x KI kỹ năng tốn (0 = không tốn)', G.kiMul), field('x Sức mạnh mỗi điểm tiềm năng', G.ptMul), field('Tỉ lệ rơi cánh mỗi lần hạ trùm (0,015 = 1,5%)', G.wingChance))));
+      h('div', { class: 'row', style: 'margin-top:8px' }, field('x KI kỹ năng tốn (0 = không tốn)', G.kiMul), field('x Sức mạnh mỗi điểm tiềm năng', G.ptMul), field('Tỉ lệ rơi cánh mỗi lần hạ trùm (0,015 = 1,5%)', G.wingChance)),
+      h('div', { class: 'row', style: 'margin-top:8px' }, field('x Kinh nghiệm cần để lên cấp (2 = lên cấp chậm gấp đôi)', G.lvMul))));
     const M = {}, tb = h('tbody');
     for (const [k, m] of Object.entries(r.mons)) {
       const o = t.mon[k] || {}; M[k] = {};

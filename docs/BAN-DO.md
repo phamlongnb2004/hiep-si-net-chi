@@ -70,3 +70,8 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Thang và dây là **một khúc ảnh lặp theo chiều dọc** (`ai/ladder_wood`, `ai/ladder_bamboo`, `ai/rope`, `ai/vine`); `w`/`h` trong assets.json là kích thước hiển thị của một khúc. Thang tre dùng ở đầm lầy, bãi biển, rạn san hô; dây leo xanh ở đầm lầy và rạn san hô.
 - Nhân vật leo: nhìn từ sau lưng, 4 khung (`anim/climb_<lớp>_<b|0..3>`, trường `hx/hy/hw/sy` = tâm đầu, đỉnh đầu, bề rộng đầu, vai), mũ và áo choàng mặt sau (`layer/<lớp>/hatb`, `capeb`), cánh xoè đủ hai bên sau lưng.
 - Gửi trạng thái leo cho người khác: tin `in` có `air: 2` khi đang bám dây/thang; máy chủ chuyển nguyên giá trị vào ảnh chụp (`air` = 0 đứng, 1 nhảy, 2 leo).
+
+## Tốc độ lên cấp (11/2026)
+- Kinh nghiệm cần để lên cấp tính theo số quái **cùng cấp** phải hạ: `6 + 2,2 × cấp` con (cấp 1 ~8, cấp 10 ~28, cấp 20 ~50, cấp 30 ~72, cấp 40 ~94), không thấp hơn công thức cũ (cấp 75+ vẫn giữ độ khó cũ). Quái tinh anh x3, trùm nhiều hơn.
+- Ước tính: cấp 1→10 khoảng 150 quái, 1→20 khoảng 530, 1→30 khoảng 1.130, 1→40 khoảng 1.950 (trước đây 1→30 chỉ ~80 quái).
+- Admin chỉnh nhanh ở **Cân bằng → Toàn game → "x Kinh nghiệm cần để lên cấp"** (`lvMul`, 0,2–10; 2 = chậm gấp đôi), hoặc "x Kinh nghiệm" để đổi kinh nghiệm mỗi quái.

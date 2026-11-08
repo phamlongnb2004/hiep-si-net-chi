@@ -14,14 +14,14 @@ export const ELITE_CHANCE = .07;              // quái thường thỉnh thoản
 export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
 // Tham số cân bằng do admin chỉnh trên máy chủ (không cần ra bản ứng dụng mới). Mặc định = luật gốc.
 // ev: sự kiện tạm thời (x2 kinh nghiệm...), máy chủ tự tắt khi hết giờ.
-export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, mon: {} };
+export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, lvMul: 1, mon: {} };
 export const TUNE = { ...TUNE_DEFAULT, mon: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
 // áp tham số mới (đã kiểm giới hạn) vào TUNE; trả về bản đã chuẩn hóa để lưu
 export function setTune(t) {
   const n = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
   const o = {
     exp: n(t.exp, .1, 20, 1), gold: n(t.gold, .1, 20, 1), drop: n(t.drop, .1, 10, 1), potPrice: Math.round(n(t.potPrice, 1, 100000, POT_PRICE)),
-    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), wingChance: n(t.wingChance, 0, 1, WING_CHANCE), mon: {} };
+    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), wingChance: n(t.wingChance, 0, 1, WING_CHANCE), lvMul: n(t.lvMul, .2, 10, 1), mon: {} };
   for (const k in (t.mon || {})) if (D.mons[k]) { const m = t.mon[k] || {}, q = {};
     for (const f of ['hp', 'atk', 'def', 'exp', 'gold', 'drop']) { const v = n(m[f], .1, 20, 1); if (v !== 1) q[f] = v; }
     if (Object.keys(q).length) o.mon[k] = q; }
@@ -55,7 +55,10 @@ const pickW = (rng, ws) => { let x = rng() * ws.reduce((a, b) => a + b), k = 0; 
 /* ---------- cấp, chỉ số ---------- */
 // cấp 1-30 giữ như cũ; sau 30 mỗi cấp khó hơn 15%, sau 60 mỗi cấp khó hơn 18% (cấp 99 cần ~500 triệu kinh nghiệm)
 export const expMul = l => l <= 30 ? 1 : l <= 60 ? Math.pow(1.15, l - 30) : Math.pow(1.15, 30) * Math.pow(1.18, l - 60);
-export const expNeed = l => Math.floor(30 * Math.pow(l, 1.45) * expMul(l));
+// kinh nghiệm lên cấp: tính theo số quái cùng cấp phải hạ (6 + 2,2×cấp: cấp 1 ~8 con, cấp 10 ~28, cấp 20 ~50, cấp 30 ~72, cấp 40 ~94),
+// không thấp hơn công thức cũ (cấp rất cao vẫn giữ độ khó cũ). Hệ số TUNE.lvMul để admin chỉnh nhanh (mặc định 1).
+const expOld = l => 30 * Math.pow(l, 1.45) * expMul(l);
+export const expNeed = l => Math.floor(Math.max(expOld(l), (6 + 2.2 * l) * monCurve(l, 4)) * (TUNE.lvMul || 1));
 export const itemStat = (it, k) => Math.round(((it.st && it.st[k]) || 0) * (1 + .12 * (it.up || 0)));
 export const sellPrice = it => Math.round((4 + it.lvl * 2.2) * D.rar[it.r].m * (1 + .35 * (it.up || 0)));
 export const score = it => it ? itemStat(it, 'atk') * 2 + itemStat(it, 'def') * 1.5 + itemStat(it, 'hp') * .1 + itemStat(it, 'spd') * .6 : 0;
