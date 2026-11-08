@@ -75,3 +75,9 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Kinh nghiệm cần để lên cấp tính theo số quái **cùng cấp** phải hạ: `6 + 2,2 × cấp` con (cấp 1 ~8, cấp 10 ~28, cấp 20 ~50, cấp 30 ~72, cấp 40 ~94), không thấp hơn công thức cũ (cấp 75+ vẫn giữ độ khó cũ). Quái tinh anh x3, trùm nhiều hơn.
 - Ước tính: cấp 1→10 khoảng 150 quái, 1→20 khoảng 530, 1→30 khoảng 1.130, 1→40 khoảng 1.950 (trước đây 1→30 chỉ ~80 quái).
 - Admin chỉnh nhanh ở **Cân bằng → Toàn game → "x Kinh nghiệm cần để lên cấp"** (`lvMul`, 0,2–10; 2 = chậm gấp đôi), hoặc "x Kinh nghiệm" để đổi kinh nghiệm mỗi quái.
+
+## Giá đồ, cường hóa, màn hình tải (2.7.5)
+- Giá đồ cửa hàng: `(25 + 9×cấp) × (1 + cấp/3) × 3,5 × hệ số độ hiếm [1; 3,5; 10; 32]` — đồ trắng cùng cấp ≈ 45–85 lần hạ quái, đồ huyền thoại ≈ 1.500–2.700.
+- Cường hóa: tỉ lệ +1→+15 = 95, 85, 75, 65, 55, 45, 36, 28, 21, 15, 10, 7, 5, 3, 2 %; đá = cấp đích + 1; vàng = `(40 + 6×cấp) × (1 + cấp/3) × L^1,6 × 1,5`; thất bại lên +5..+9 tụt 1 cấp, +10 trở lên tụt 2 cấp. Đá rơi từ quái thường: 20% (+0,3%/cấp, tối đa +8%).
+- Admin vẫn chỉnh nhanh được: "x Giá đồ cửa hàng", "Cộng tỉ lệ rèn (%)", "x Vàng".
+- Màn hình tải (`client/scripts/loading.gd`): hiện khi bước vào cổng, vào khu trùm, đổi khu và lúc vào game; nạp trước ảnh của bản đồ mới (cảnh nền, cảnh vật, cổng, thang, cầu, quái) vài ảnh mỗi khung hình; tối thiểu 0,9 giây; chặn điều khiển tới khi xong.

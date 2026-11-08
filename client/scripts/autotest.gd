@@ -436,6 +436,9 @@ func tour_art(g: Game) -> void:
 		g._build_map({"m": i, "k": 1, "x": x, "y": Data.floor_y(M, x, -100.0), "mons": [], "drops": []})
 		g.warping = true
 		g.me.visible = false
+		if i == 3 and x == 2700:
+			await wait(0.35)
+			await shot("art-loading")
 		await wait(1.5)
 		await shot("art-m%d-%d" % [i, int(x)])
 	# leo thử ngay trên bản đồ dựng tại chỗ (thang Rừng Tuyết x 2600, bãi biển thang tre x 3140)

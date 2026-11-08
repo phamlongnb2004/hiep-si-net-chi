@@ -167,8 +167,9 @@ func shop_mul() -> float:
 func forge_info(it: Dictionary) -> Dictionary:
 	var L = int(it.get("up", 0)) + 1
 	var rate: Array = D.forge.rate
-	return {"L": L, "rate": clampi(int(rate[min(L - 1, rate.size() - 1)]) + int(cfg.get("forgeBonus", 0)), 1, 100), "stones": 1 + int(floor((L - 1) / 2.0)),
-		"gold": int(round((40.0 + float(it.lvl) * 6.0) * pow(L, 1.5))), "drop": 0 if L <= 5 else (1 if L <= 10 else 2)}
+	var lv = float(it.lvl)
+	return {"L": L, "rate": clampi(int(rate[min(L - 1, rate.size() - 1)]) + int(cfg.get("forgeBonus", 0)), 1, 100), "stones": L + 1,
+		"gold": int(round((40.0 + lv * 6.0) * (1.0 + lv / 3.0) * pow(L, 1.6) * 1.5)), "drop": 0 if L <= 4 else (1 if L <= 9 else 2)}
 
 func rar_color(r: int) -> Color:
 	return Color.html(str(D.rar[clampi(r, 0, 3)].c))

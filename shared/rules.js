@@ -129,7 +129,8 @@ export function genItem(rng, lvl, mode, cls, id) {
 // đồ bán ở NPC Trang Bị: chỉ số mặc định, không khóa
 export const SHOP_TIER_MUL = [1, 3.5, 10, 32];
 export const shopLevel = lv => Math.max(1, Math.floor(lv / 5) * 5);
-export const shopPrice = (lvl, rk) => Math.round((25 + lvl * 9) * SHOP_TIER_MUL[rk] * TUNE.shopMul);
+// giá tăng theo cấp đồ nhanh như vàng rơi theo cấp quái (×(1 + cấp/3)): đồ trắng cùng cấp ≈ 45–60 lần hạ quái, đồ huyền thoại ≈ 1.500–2.000
+export const shopPrice = (lvl, rk) => Math.round((25 + lvl * 9) * (1 + lvl / 3) * 3.5 * SHOP_TIER_MUL[rk] * TUNE.shopMul);
 export function shopItem(c, slot, rk, lvl, id) {
   const b = baseStats(slot, lvl, rk), st = {};
   for (const k in b) st[k] = Math.max(1, Math.round(b[k]));
@@ -152,7 +153,8 @@ export function maxItemStat(it) {
 /* ---------- lò rèn ---------- */
 export function forgeInfo(it) {
   const L = (it.up || 0) + 1;
-  return { L, rate: Math.max(1, Math.min(100, D.forge.rate[L - 1] + TUNE.forgeBonus)), stones: 1 + Math.floor((L - 1) / 2), gold: Math.round((40 + it.lvl * 6) * Math.pow(L, 1.5)), drop: L <= 5 ? 0 : L <= 10 ? 1 : 2 };
+  // đá = cấp đích + 1, vàng tăng theo cấp đồ và cấp rèn; thất bại từ +5 tụt 1 cấp, từ +10 tụt 2 cấp
+  return { L, rate: Math.max(1, Math.min(100, D.forge.rate[L - 1] + TUNE.forgeBonus)), stones: L + 1, gold: Math.round((40 + it.lvl * 6) * (1 + it.lvl / 3) * Math.pow(L, 1.6) * 1.5), drop: L <= 4 ? 0 : L <= 9 ? 1 : 2 };
 }
 
 /* ---------- quái ---------- */
@@ -188,7 +190,7 @@ export function monDrops(rng, type, lv, cls, nextId, elite) {
   if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, 'boss', cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
   if (t.boss && rng() < TUNE.wingChance * (evOn() ? TUNE.ev.drop : 1)) ds.push({ k: 'item', item: genItem(rng, lv, 'wing', cls, nextId()) });
   if (rng() < (elite ? .35 : .14)) ds.push({ k: 'pot' });
-  const sn = t.boss ? ri(rng, 5, 8) : elite ? ri(rng, 1, 3) : (rng() < .34 + Math.min(.1, lv * .004) ? 1 : 0);
+  const sn = t.boss ? ri(rng, 5, 8) : elite ? ri(rng, 1, 3) : (rng() < .2 + Math.min(.08, lv * .003) ? 1 : 0);
   if (sn) ds.push({ k: 'stone', n: sn });
   return ds;
 }

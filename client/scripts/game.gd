@@ -54,6 +54,7 @@ const POT_CD = 3.0
 var warping = false
 var near_npc = ""
 var fade = 0.0
+var loading: LoadScreen    # màn hình tải khi sang bản đồ/khu khác
 var last_sent = Vector3.ZERO
 
 func _ready() -> void:
@@ -74,6 +75,8 @@ func _ready() -> void:
 	me = Hero.new()
 	me.is_me = true
 	ents.add_child(me)
+	loading = LoadScreen.new()
+	add_child(loading)
 	Net.message.connect(_on_msg)
 	get_viewport().size_changed.connect(_zoom)
 	_zoom()
@@ -132,6 +135,9 @@ func _on_msg(m: Dictionary) -> void:
 				log_line.emit(str(m.msg), Color("9be05a") if m.get("ok") else Color("ffb347"))
 			if m.get("op") == "warp":
 				warping = false
+				loading.cancel()
+			if m.get("op") == "khu" and not m.get("ok"):
+				loading.cancel()
 
 func _set_cfg(c: Dictionary) -> void:
 	Data.cfg = c
@@ -207,6 +213,7 @@ func _build_map(m: Dictionary) -> void:
 	cam.position = me.position
 	cam.reset_smoothing()
 	ready_map = true
+	loading.load_map(mi)
 	map_changed.emit(str(M.name))
 
 func _add_drop(d: Dictionary) -> void:
@@ -417,8 +424,15 @@ func nearest_mon(r: float) -> Mon:
 			b = mo
 	return b
 
+func _portal_name(i: int) -> String:
+	var ps: Array = M.get("portals", [])
+	if i < 0 or i >= ps.size():
+		return ""
+	var to = int(ps[i].get("to", -1))
+	return str(Data.D.maps[to].name) if to >= 0 and to < Data.D.maps.size() else ""
+
 func can_act() -> bool:
-	return ready_map and Net.online() and not me.dead and not warping
+	return ready_map and Net.online() and not me.dead and not warping and not loading.busy
 
 func do_attack() -> void:
 	if not can_act() or atk_t > 0:
@@ -489,6 +503,7 @@ func _grab(q: Array) -> void:
 func talk() -> void:
 	if near_npc.begins_with("gate:"):
 		if not warping and can_act():
+			loading.begin(_portal_name(int(near_npc.substr(5))))
 			Net.send({"t": "warp", "p": int(near_npc.substr(5))})
 		return
 	if near_npc != "":
@@ -674,6 +689,7 @@ func _control(dt: float) -> void:
 				focus = null
 				move_to = -1
 				fade = 1.0
+				loading.begin(_portal_name(i))
 				Net.send({"t": "warp", "p": i})
 				break
 	# gửi vị trí 10 lần/giây (và ngay khi dừng lại)

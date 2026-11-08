@@ -217,7 +217,7 @@ func _gear(d: Dictionary) -> void:
 		row.add_child(nm)
 		for slot in (["hat", "armor", "cape", "weapon"] if gear_grp == 0 else ["boots", "gloves", "neck"]):
 			var it = _shop_item(gear_cls, slot, r, lvl)
-			var price = int(round((25 + lvl * 9) * SHOP_MUL[r] * Data.shop_mul()))
+			var price = int(round((25 + lvl * 9) * (1.0 + lvl / 3.0) * 3.5 * SHOP_MUL[r] * Data.shop_mul()))
 			var v = UI.vbox(2)
 			var cell = ItemCell.make(it, false, Data.can_wear(it, game.cls()), false, 70)
 			v.add_child(cell)

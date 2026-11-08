@@ -582,6 +582,6 @@ func open_khu(m: Dictionary) -> void:
 		var b = UI.button("Khu %d\n%d/%d" % [k, n, mx], col, 17)
 		b.custom_minimum_size = Vector2(96, 70)
 		b.disabled = k == cur or n >= mx
-		b.pressed.connect(func(): Net.send({"t": "khu", "k": k}); khu_pop.queue_free())
+		b.pressed.connect(func(): game.loading.begin("%s · Khu %d" % [str(game.M.name), k]); Net.send({"t": "khu", "k": k}); khu_pop.queue_free())
 		g.add_child(b)
 	v.add_child(UI.label("Đang ở khu %d." % cur, 16, UI.INK, "semi"))
