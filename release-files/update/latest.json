@@ -1,33 +1,35 @@
 {
  "app": {
-  "version": "2.7.7",
-  "min": "2.7.5",
+  "version": "2.8.0",
+  "min": "2.8.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "fb78f2b9f4d894ba92a93bf3af83697015dd360113f827654847eb8a9f7d2f9c",
-   "size": 73779603
+   "sha256": "38568227ecccceba830d626740c7f052090200688686c04abe58a4ef835aa649",
+   "size": 74429408
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "7c72139dd28a93af5ba064d397127d4c2b3ef8fae9e8ebfccb65d07a6bf7802f",
-   "size": 102333049
+   "sha256": "36c89dedc658330f7025c97f9a84cb73094907ff7b2f199e73e56b0b02342bdb",
+   "size": 103240721
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "7672bff6283db04afd45f69108c84e937a08627d5956f1a9ad24f2b0bb206be2",
-   "size": 76036542
+   "sha256": "30570e45a14d83d4529d8866a8889d2946759122154d506add9a752ca07a9c6e",
+   "size": 76687052
   }
  },
  "assets": {
-  "version": 18,
-  "min_app": "2.7.5",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-18.pck",
-  "sha256": "c6d573e24d8f1eee2141f1ccfc800e860268d086c50704538037abb056df3983",
-  "size": 49876888
+  "version": 19,
+  "min_app": "2.8.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-19.pck",
+  "sha256": "cd0dcfb2b7bb943f47345a7c3a82bbe9288d480400e5c8c41732ade9229f5ce5",
+  "size": 50851664
  },
  "changelog": [
-  "Thêm dáng bị hạ gục: trúng đòn lảo đảo, ngã ngửa rồi nằm gục cho mọi phái và mọi bộ trang phục",
-  "Người chơi xung quanh cũng thấy bạn ngã; mũ rơi xuống cạnh đầu"
+  "Đồ theo bậc cấp 1–100: mỗi 10 cấp có bộ đồ mới với tên và hình riêng cho từng phái",
+  "Thêm 4 loại trang sức mới: Nhẫn, Khuyên tai, Đai lưng, Bùa hộ mệnh (mọi phái dùng được)",
+  "Phải đủ cấp mới mặc được đồ; đồ đang có vẫn giữ nguyên",
+  "Thương Nhân Giáp có thêm mục Trang sức"
  ],
- "updated": "2026-11-08T08:34:16.420Z"
+ "updated": "2026-11-08T12:08:21.157Z"
 }
