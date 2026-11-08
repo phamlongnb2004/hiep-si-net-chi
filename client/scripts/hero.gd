@@ -39,6 +39,12 @@ func _process(dt: float) -> void:
 		var v = (position.y - _ly) / dt
 		_vy = lerpf(_vy, clampf(v, -1500, 1500), minf(1.0, dt * 14.0))
 	_ly = position.y
+	# hạ gục: bắt đầu chuỗi ngã khi vừa chuyển sang chết
+	if dead and not _was_dead:
+		_dead_t = 0.0
+	_was_dead = dead
+	if dead:
+		_dead_t += dt
 	if air:
 		_air_t += dt
 		_land_t = 0.0
@@ -122,6 +128,9 @@ var _ly := 0.0
 var _vy := 0.0
 var _air_t := 0.0
 var _land_t := 0.0
+var _was_dead := false
+var _dead_t := 99.0
+var die_force := -1    # xem thử: ép khung ngã (0..3)
 var jump_force := -1   # xem thử: ép khung nhảy (0..3)
 
 ## khung nhảy: 0 lấy đà/chạm đất, 1 bật lên, 2 đỉnh, 3 rơi xuống (thiếu ảnh thì trả về rỗng)
@@ -143,6 +152,18 @@ func _jump_frame() -> Dictionary:
 		return js[2]
 	return js[3]
 
+## khung ngã: 0 trúng đòn, 1 ngã ngửa, 2 chạm đất, 3 nằm gục (giữ nguyên tới khi hồi sinh)
+func _die_frame() -> Array:
+	if not dead and die_force < 0:
+		return []
+	var a = look % 5 - 1
+	var an: Dictionary = Data.A.get("anim", {})
+	var ds: Array = an.get("die_%s_%s" % [cls, "b" if a < 0 else str(a)], an.get("die_%s_0" % cls, []))
+	if ds.size() < 4:
+		return []
+	var i = die_force if die_force >= 0 else (0 if _dead_t < 0.16 else 1 if _dead_t < 0.32 else 2 if _dead_t < 0.46 else 3)
+	return [i, ds[i]]
+
 func _frames() -> Array:
 	var a = look % 5 - 1
 	var k = "body_%s_%s" % [cls, "b" if a < 0 else str(a)]
@@ -155,9 +176,15 @@ func _draw() -> void:
 	var set = _frames()
 	if set.is_empty():
 		return
-	var al = 0.45 if dead else 1.0
+	var dfr = _die_frame()
+	var al = (1.0 if not dfr.is_empty() else 0.45) if dead else 1.0
 	if flash > 0 and int(t * 30) % 2 == 0:
 		al *= 0.5
+	if not dfr.is_empty():
+		_draw_die(dfr[0], dfr[1], al)
+		draw_set_transform(Vector2.ZERO)
+		_labels()
+		return
 	if climb and _draw_climb(al):
 		_labels()
 		return
@@ -246,6 +273,53 @@ func _draw() -> void:
 			draw_texture_rect(htx, Rect2(hx - hw2 / 2, y - hh, hw2, hh), false, mod)
 	draw_set_transform(Vector2.ZERO)
 	_labels()
+
+func _draw_die(i: int, q: Dictionary, al: float) -> void:
+	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
+	var F: Dictionary = FIT.get(cls, FIT.sword)
+	var th = int(look / 5) % 5 - 1
+	var tc = int(look / 25) - 1
+	var mod = Color(1, 1, 1, al)
+	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
+	_ellipse(Vector2(0, 1.5), 34.0 if i >= 2 else 26.0, 7, Color(0.1, 0.12, 0.2, 0.28 * al))
+	if wing >= 0 and i == 0:
+		_draw_wing(al * 0.8, 0.0)
+	var xf = Transform2D().scaled(Vector2(HS, HS)) * Transform2D().scaled(Vector2(face, 1))
+	# áo choàng chỉ khi còn đứng
+	if i == 0 and tc >= 0 and L.has("cape") and tc < L.cape.size():
+		var cp: Dictionary = L.cape[tc]
+		var ct = Data.tex(cp.u)
+		if ct:
+			var cw: float = F.ch * cp.w / cp.h
+			draw_set_transform_matrix(xf * Transform2D().translated(Vector2(F.cx, -q.h * (1 - F.cy))) * Transform2D(0.25, Vector2.ZERO))
+			draw_texture_rect(ct, Rect2(-cw * 0.92, -F.ch * 0.06, cw, F.ch), false, mod)
+	var bt = Data.tex(q.u)
+	if bt:
+		draw_set_transform_matrix(xf)
+		draw_texture_rect(bt, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
+	# mũ: còn trên đầu ở khung trúng đòn, rơi xuống đất cạnh đầu khi đã nằm
+	if th >= 0 and L.has("hat") and th < L.hat.size():
+		var ht: Dictionary = L.hat[th]
+		var htx = Data.tex(ht.u)
+		if htx:
+			var hw2: float = F.hw * float(ht.get("sc", 1.0))
+			var hh: float = hw2 * ht.h / ht.w
+			if i <= 1 and q.has("tp"):
+				var hx: float = F.hx + float(ht.get("ox", 0.0)) + float(q.get("hc", 0.0)) - float(_frames()[0].get("hc", 0.0))
+				var tp: Array = q.tp
+				var top: float = q.h
+				for j in tp.size():
+					var cx: float = (j + 0.5) / tp.size() * q.w - q.ax
+					if cx >= hx - hw2 * 0.32 and cx <= hx + hw2 * 0.32:
+						top = min(top, float(tp[j]))
+				var y: float = -q.h + top + hw2 * F.hb + float(ht.get("oy", 0.0))
+				draw_set_transform_matrix(xf * Transform2D(-0.35 * i, Vector2(hx, y)))
+				draw_texture_rect(htx, Rect2(-hw2 / 2, -hh, hw2, hh), false, mod)
+			else:
+				# nằm ngửa đầu bên trái: mũ lăn ra sau đầu
+				var gx: float = -q.ax + hw2 * 0.05
+				draw_set_transform_matrix(xf * Transform2D(-1.15, Vector2(gx, 0)))
+				draw_texture_rect(htx, Rect2(-hw2 * 0.15, -hh * 0.9, hw2, hh), false, mod)
 
 func _labels() -> void:
 	if show_name and nm != "":

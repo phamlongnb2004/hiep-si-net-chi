@@ -36,7 +36,7 @@ func run() -> void:
 		await preview_big()
 		get_tree().quit()
 		return
-	if OS.get_environment("HSNC_PREVIEW") == "jump":
+	if OS.get_environment("HSNC_PREVIEW") in ["jump", "die"]:
 		await preview_jump()
 		get_tree().quit()
 		return
@@ -392,8 +392,11 @@ func preview_jump() -> void:
 			h.cls = cl[r]
 			h.look = st[0] + 5 * (st[1] + 1) + 25 * (st[2] + 1)
 			h.wing = st[3]
-			h.jump_force = c % 5 - 1
-			h.air = c % 5 > 0
+			if OS.get_environment("HSNC_PREVIEW") == "die":
+				h.die_force = c % 5 - 1
+			else:
+				h.jump_force = c % 5 - 1
+				h.air = c % 5 > 0
 			h.nm = ""
 			h.position = Vector2(80 + c * 128, 175 + r * 205)
 			h.scale = Vector2(1.25, 1.25)

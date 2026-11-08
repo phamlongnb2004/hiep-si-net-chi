@@ -87,3 +87,8 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Khung chọn theo vận tốc dọc ước lượng từ vị trí (áp dụng cả cho người chơi khác): mới rời đất 0,07 s → lấy đà; vy < -260 → bật lên; vy < 200 → đỉnh; còn lại → rơi; chạm đất sau khi bay > 0,12 s thì khụy gối 0,12 s.
 - Neo ngang đặt sao cho đầu trùng chỗ đầu khi đứng (mũ đi theo `hc`/`tp` như các khung khác); cỡ lấy theo khung rơi ≈ 1,03 × chiều cao thân đứng.
 - Xem thử: `HSNC_PREVIEW=jump` (thêm `HSNC_SET=1` để xem bộ áo khác).
+
+## Dáng bị hạ gục (2.7.7)
+- `anim/die_<lớp>_<b|0..3>`: trúng đòn → ngã ngửa → chạm đất → nằm gục (giữ tới khi hồi sinh). Phát khi `dead` chuyển sang true (cả người chơi khác, theo cờ chết máy chủ gửi).
+- Khi ngã: cánh chỉ còn ở khung đầu, áo choàng ẩn khi đã ngã, mũ nghiêng theo đầu rồi rơi nằm cạnh đầu.
+- Xem thử: `HSNC_PREVIEW=die` (`HSNC_SET=1` bộ áo khác).
