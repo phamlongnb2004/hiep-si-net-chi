@@ -107,9 +107,13 @@ func _on_msg(m: Dictionary) -> void:
 			if ready_map:
 				_snap(m)
 		"pos":
-			me.position = Vector2(m.x, m.y)
-			# Hiệu chỉnh vị trí do máy chủ không được triệt tiêu vận tốc rơi.
-			# Chỉ hồi sinh mới cần đặt lại toàn bộ trạng thái chuyển động.
+			# Gói hiệu chỉnh do kiểm tra di chuyển thường chỉ sửa trục X.
+			# Không lấy Y cũ từ server, vì nhân vật vẫn đang rơi theo mô phỏng local.
+			if m.get("respawn") or m.get("kb"):
+				me.position = Vector2(m.x, m.y)
+			else:
+				me.position.x = m.x
+			# Chỉ hồi sinh mới đặt lại trạng thái chuyển động.
 			if m.get("respawn"):
 				vy = 0
 				air = false
