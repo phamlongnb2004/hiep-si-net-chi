@@ -15,6 +15,8 @@ func _ready() -> void:
 	var r = Updater.mount()
 	if r.ok:
 		Data.reload()
+	# nạp ngầm ảnh nhân vật, trang bị, hiệu ứng trong lúc người chơi đăng nhập, để vào game không bị khựng
+	Data.warm_all()
 	var main = preload("res://scripts/main.gd").new()
 	main.name = "Main"
 	main.assets_version = int(r.get("assets", 0))

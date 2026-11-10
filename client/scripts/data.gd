@@ -7,6 +7,16 @@ var A: Dictionary = {}        # mô tả ảnh: anim, layer, mon, side, ai, gear
 var _tex = {}
 var fonts = {}
 
+## Nạp ảnh ngầm bằng luồng nền để lần đầu dùng ảnh trong game không bị đứng hình.
+## Nhóm ảnh nhân vật, trang bị, hiệu ứng chiêu, giao diện được nạp sẵn ngay khi mở game (warm_all).
+## Muốn nhẹ bộ nhớ hơn (~41 MB) thì bỏ "wingfx" khỏi danh sách; ảnh nào chưa nạp sẵn vẫn nạp lúc cần như cũ.
+const WARM_GROUPS := ["fx", "vfx", "annfx", "hud", "layer", "gear", "gear2", "acc", "acc2", "anim", "wingfx"]
+const WARM_INFLIGHT := 12     # số ảnh nạp nền cùng lúc, đủ nhanh mà không tranh CPU với màn hình đăng nhập
+var warm_total := 0           # tổng số ảnh trong đợt nạp sẵn (để thanh tải tính phần trăm)
+var _bg: Array = []           # hàng đợi ảnh cần nạp sẵn
+var _bg_i := 0
+var _pend := {}               # ảnh đã xin nạp nền, chưa nhận về: khóa ảnh -> đường dẫn res://
+
 const NOUN := {
 	"sword": {"hat": "Mũ Giáp", "armor": "Giáp Kỵ Sĩ", "cape": "Áo Choàng", "weapon": "Kiếm"},
 	"archer": {"hat": "Mũ Trùm", "armor": "Áo Giáp Lá", "cape": "Áo Choàng", "weapon": "Cung"},
@@ -64,6 +74,9 @@ func reload() -> void:
 	D = _json("res://data/data.json")
 	A = _json("res://assets/assets.json")
 	_tex.clear()
+	_bg.clear()
+	_bg_i = 0
+	warm_total = 0
 
 func _json(p: String) -> Dictionary:
 	var f = FileAccess.open(p, FileAccess.READ)
@@ -82,10 +95,99 @@ func tex(rel) -> Texture2D:
 		return _tex[k]
 	var t: Texture2D = null
 	var p = "res://assets/" + k
-	if ResourceLoader.exists(p):
+	if _pend.has(k):
+		var st = ResourceLoader.load_threaded_get_status(_pend[k])
+		if st == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			# ảnh chưa xong: không chặn khung hình và cũng không cache null
+			return null
+		if st != ResourceLoader.THREAD_LOAD_LOADED:
+			_pend.erase(k)
+			_tex[k] = null
+			return null
+		t = ResourceLoader.load_threaded_get(_pend[k])
+		_pend.erase(k)
+	elif ResourceLoader.exists(p):
 		t = load(p)
 	_tex[k] = t
 	return t
+
+## xin nạp một ảnh ở luồng nền; về sau tex() lấy thẳng từ bộ nhớ đệm
+func prefetch(rel) -> bool:
+	if rel == null:
+		return true
+	var k = str(rel)
+	if k == "" or _tex.has(k) or _pend.has(k):
+		return true
+	# giữ giới hạn tải chung, kể cả khi màn hình tải bản đồ yêu cầu thêm ảnh
+	if _pend.size() >= WARM_INFLIGHT:
+		return false
+	var p = "res://assets/" + k
+	if not ResourceLoader.exists(p):
+		_tex[k] = null
+		return true
+	if ResourceLoader.load_threaded_request(p) == OK:
+		_pend[k] = p
+	else:
+		# tránh lặp lại một yêu cầu không hợp lệ ở mọi khung hình
+		_tex[k] = null
+	return true
+
+## true nếu ảnh đã được yêu cầu hoặc đã có kết quả trong cache
+func has_tex(rel) -> bool:
+	if rel == null:
+		return false
+	var k = str(rel)
+	return _tex.has(k) or _pend.has(k)
+
+## lập danh sách ảnh nhân vật, trang bị, hiệu ứng rồi nạp dần ngầm (gọi một lần sau khi dữ liệu đã nạp xong)
+func warm_all() -> void:
+	var urls: Array = []
+	for g in WARM_GROUPS:
+		_collect(A.get(g), urls)
+	var seen := {}
+	_bg.clear()
+	_bg_i = 0
+	for u in urls:
+		if not seen.has(u):
+			seen[u] = true
+			_bg.append(u)
+	warm_total = _bg.size()
+
+## số ảnh trong đợt nạp sẵn còn chưa xong
+func warm_left() -> int:
+	return (_bg.size() - _bg_i) + _pend.size()
+
+## gom mọi đường dẫn .webp nằm trong một nhánh của assets.json
+static func _collect(v, out: Array) -> void:
+	if v is String:
+		if v.ends_with(".webp"):
+			out.append(v)
+	elif v is Array:
+		for x in v:
+			_collect(x, out)
+	elif v is Dictionary:
+		for key in v:
+			_collect(v[key], out)
+
+func _process(_dt: float) -> void:
+	# nhận ảnh đã nạp xong từ luồng nền
+	if not _pend.is_empty():
+		var done: Array = []
+		for k in _pend:
+			var st = ResourceLoader.load_threaded_get_status(_pend[k])
+			if st == ResourceLoader.THREAD_LOAD_LOADED:
+				_tex[k] = ResourceLoader.load_threaded_get(_pend[k])
+				done.append(k)
+			elif st != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				_tex[k] = null   # nạp lỗi: giữ như cũ, không thử lại liên tục
+				done.append(k)
+		for k in done:
+			_pend.erase(k)
+	# đẩy thêm ảnh vào hàng nạp nền cho đủ WARM_INFLIGHT
+	while _bg_i < _bg.size() and _pend.size() < WARM_INFLIGHT - 4:
+		if not prefetch(_bg[_bg_i]):
+			break
+		_bg_i += 1
 
 func _font(fam: String, w: int) -> Font:
 	var base = "res://fonts/%s-%d-" % [fam, w]

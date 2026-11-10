@@ -16,5 +16,11 @@
   // V1=off: tắt giao thức cũ (bản web/ứng dụng vỏ) sau khi đã phát hành ứng dụng gốc; giữ biến đặt trên Cloudflare (ADMINS, MIN_APP...)
   "keep_vars": true,
   "vars": { "V1": "on", "ASSETLINKS": "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"android_app\",\"package_name\":\"vn.hiepsinetchi.game\",\"sha256_cert_fingerprints\":[\"22:18:40:AE:DC:20:68:11:6B:DB:06:EF:D4:0E:76:C7:62:33:F0:54:D0:BF:3E:03:02:B2:07:46:6A:D6:35:8A\"]}}]" },
+  "previews": {
+    "vars": { "V1": "on", "ASSETLINKS": "[]" },
+    "durable_objects": {
+      "bindings": [{ "name": "WORLD", "class_name": "World" }]
+    }
+  },
   "observability": { "enabled": true }
 }
