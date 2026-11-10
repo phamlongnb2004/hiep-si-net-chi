@@ -74,18 +74,21 @@ export class MapInst {
     let x = +m.x, y = +m.y; if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     x = clamp(x, 40, this.M.w - 40);
     const spd = f.spd * R.buffMul(f.buffs, 'spd') * (f.stunT > 0 ? .05 : f.slowT > 0 ? f.slowM : 1), lim = spd * dt * 1.35 + 30 + (f.dashT > 0 ? f.dashLen : 0);
-    let bad = false;
-    if (Math.abs(x - f.x) > lim) { x = f.x + Math.sign(x - f.x) * lim; bad = true; }
-    // vách: không đi xuyên qua khối đất cao hơn chân mình
+    let badX = false, badY = false;
+    if (Math.abs(x - f.x) > lim) { x = f.x + Math.sign(x - f.x) * lim; badX = true; }
+    // Vách: không đi xuyên qua khối đất cao hơn chân mình.
     const dir = Math.sign(x - f.x), top = Math.min(f.y, y);
-    if (dir) for (let s = f.x + dir * 8; dir > 0 ? s <= x : s >= x; s += dir * 8) if (this.gY(s) < top - 6) { x = s - dir * 8; bad = true; break; }
-    // mặt đứng dưới chân (đất hoặc bậc nổi); đang bám dây/thang thì được ở lưng chừng
+    if (dir) for (let s = f.x + dir * 8; dir > 0 ? s <= x : s >= x; s += dir * 8) if (this.gY(s) < top - 6) { x = s - dir * 8; badX = true; break; }
+    // Mặt đứng dưới chân (đất hoặc bậc nổi); đang bám dây/thang thì được ở lưng chừng.
     const g = this.fY(x, y), rope = R.onRope(this.M, x, y);
     if (y > g) y = g;
     // Giới hạn độ cao chỉ khi đang bay lên; không kéo nhân vật đang rơi từ vách cao xuống.
-    if (!rope && y < f.y && y < g - 150) { y = g - 150; bad = true; }
+    if (!rope && y < f.y && y < g - 150) { y = g - 150; badY = true; }
     f.x = x; f.y = y; f.face = m.f < 0 ? -1 : 1; f.air = m.air == 2 ? 2 : m.air ? 1 : 0; f.mv = m.mv ? 1 : 0;
-    if (bad) { c.badMoves = (c.badMoves || 0) + 1; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y) }); }
+    if (badX || badY) {
+      c.badMoves = (c.badMoves || 0) + 1;
+      this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), yfix: badY ? 1 : 0 });
+    }
   }
 
   /* ---------- chiến đấu ---------- */
