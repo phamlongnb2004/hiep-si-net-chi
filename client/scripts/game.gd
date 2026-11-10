@@ -109,7 +109,7 @@ func _on_msg(m: Dictionary) -> void:
 		"pos":
 			# Gói hiệu chỉnh do kiểm tra di chuyển thường chỉ sửa trục X.
 			# Không lấy Y cũ từ server, vì nhân vật vẫn đang rơi theo mô phỏng local.
-			if m.get("respawn") or m.get("kb"):
+			if m.get("respawn") or m.get("kb") or m.get("yfix"):
 				me.position = Vector2(m.x, m.y)
 			else:
 				me.position.x = m.x
