@@ -14,6 +14,7 @@ const TIPS := [
 ]
 const MIN_T := 0.9        # hiện ít nhất chừng này giây cho đỡ chớp
 const WAIT_MAX := 10.0    # chờ máy chủ quá lâu thì tự đóng
+const WARM_MAX := 15.0    # chờ nạp ngầm ảnh nhân vật/hiệu ứng (Data.warm_all) tối đa chừng này giây rồi vào luôn
 
 var root: Control
 var bg: TextureRect
@@ -119,7 +120,8 @@ func load_map(mi: int) -> void:
 	var far = side.get("far_" + th, side.get("far_grass", {}))
 	bg.texture = Data.tex(far.get("u", "")) if far is Dictionary else null
 	queue = _assets_for(M, th)
-	total = max(1, queue.size())
+	# gồm cả phần ảnh nhân vật/hiệu ứng đang nạp ngầm (lần vào game đầu tiên), để vào xong là mượt ngay
+	total = max(1, queue.size() + Data.warm_left())
 
 func cancel() -> void:
 	if visible and waiting:
@@ -191,9 +193,14 @@ func _process(dt: float) -> void:
 		while not queue.is_empty() and n < 6:
 			Data.tex(queue.pop_front())
 			n += 1
-		var real = 0.3 + 0.7 * (1.0 - float(queue.size()) / float(total))
+		var warm = Data.warm_left()
+		var real = 0.3 + 0.7 * (1.0 - minf(1.0, float(queue.size() + warm) / float(total)))
+		if shown > WARM_MAX:
+			# nạp ngầm quá lâu (máy chậm): thôi chờ, ảnh nào chưa xong sẽ nạp lúc cần như cũ
+			queue.clear()
+			real = 1.0
 		prog = move_toward(prog, real, dt * 1.6)
-		if queue.is_empty() and prog >= 0.999 and shown >= MIN_T:
+		if queue.is_empty() and (warm == 0 or shown > WARM_MAX) and prog >= 0.999 and shown >= MIN_T:
 			_finish()
 	_bar()
 

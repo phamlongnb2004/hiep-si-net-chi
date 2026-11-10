@@ -13,6 +13,7 @@ var user = ""
 var srv = 1
 var state = "closed"
 var ping_ms = 0
+var _ping_hist: Array = []   # vài mẫu ping gần nhất, để hiển thị trung vị
 
 var _ws: WebSocketPeer = null
 var _want = false            # người chơi đang ở trong game: mất kết nối thì tự nối lại
@@ -147,6 +148,7 @@ func _process(dt: float) -> void:
 	if st == WebSocketPeer.STATE_OPEN:
 		if state != "online":
 			_tries = 0
+			_ping_hist.clear()
 			_last_rx = Time.get_ticks_msec()
 			_set_state("online", "")
 		while _ws.get_available_packet_count() > 0:
@@ -154,7 +156,15 @@ func _process(dt: float) -> void:
 			var j = JSON.parse_string(_ws.get_packet().get_string_from_utf8())
 			if j is Dictionary:
 				if j.get("t") == "pong":
-					ping_ms = int(Time.get_ticks_msec() - float(j.get("at", 0)))
+					# khung hình vừa rồi bị khựng (>0,2 giây) thì mẫu này đo cả độ khựng của máy, không phải độ trễ mạng: bỏ qua.
+					# Số hiển thị là trung vị 5 mẫu gần nhất để một lần giật không làm ping vọt lên.
+					if dt < 0.2:
+						_ping_hist.append(int(Time.get_ticks_msec() - float(j.get("at", 0))))
+						if _ping_hist.size() > 5:
+							_ping_hist.pop_front()
+						var srt = _ping_hist.duplicate()
+						srt.sort()
+						ping_ms = int(srt[srt.size() >> 1])
 					continue
 				if j.get("t") == "err":
 					_on_err(j)
