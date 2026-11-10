@@ -107,7 +107,7 @@ func spr(img: Dictionary, p: Vector2, h: float, mx: float, a := "pop", o := {}) 
 	sprs.append(d)
 
 func proj(p: Vector2, ang: float, sp: float, rng: float, kind: String, sz := 1.0) -> void:
-	projs.append({"p": p, "v": Vector2(cos(ang), sin(ang)) * sp, "range": rng, "trav": 0.0, "kind": kind, "sz": sz, "ang": ang, "hist": []})
+	projs.append({"p": p, "v": Vector2(cos(ang), sin(ang)) * sp, "range": rng, "trav": 0.0, "kind": kind, "sz": sz, "ang": ang, "hist": [], "hit_cd": 0.0})
 
 func breath(m: Node2D, tgt: Node2D, kind: String) -> void:
 	for b in breaths:
@@ -157,7 +157,7 @@ func skill(cls: String, i: int, who: Node2D, aim: float, tgt: Node2D, face: int)
 		"archer5":
 			for w in 6:
 				for k in 12:
-					projs.append({"p": p + Vector2(0, -32), "v": Vector2(cos(w * .26 + k * TAU / 12), sin(w * .26 + k * TAU / 12)) * 620, "range": 420.0, "trav": -w * 0.28 * 620, "kind": "arrow", "sz": 1.0, "ang": w * .26 + k * TAU / 12})
+					projs.append({"p": p + Vector2(0, -32), "v": Vector2(cos(w * .26 + k * TAU / 12), sin(w * .26 + k * TAU / 12)) * 620, "range": 420.0, "trav": -w * 0.28 * 620, "kind": "arrow", "sz": 1.0, "ang": w * .26 + k * TAU / 12, "hit_cd": 0.0})
 		"fighter1": proj(p + Vector2(0, -30), aim, 760, 620, "ki", 2.2)
 		_: spr(im, p + Vector2(0, -30), 140, 0.4)
 
@@ -202,7 +202,11 @@ func _process(dt: float) -> void:
 			if q.hist.size() > 10:
 				q.hist.pop_back()
 		var hit = false
-		if q.trav > 20 and g and "mons" in g:
+		# Đạn chỉ là hiệu ứng hiển thị; máy chủ đã xử lý va chạm thật.
+		# Kiểm tra chạm mỗi 0,05 giây thay vì quét toàn bộ quái ở mọi khung hình.
+		q.hit_cd = maxf(0.0, float(q.get("hit_cd", 0.0)) - dt)
+		if q.trav > 20 and q.hit_cd <= 0.0 and g and "mons" in g:
+			q.hit_cd = 0.05
 			for m in g.mons.values():
 				if m.dead():
 					continue
