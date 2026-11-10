@@ -31,6 +31,7 @@ var t := 0.0
 var shown := 0.0
 var prog := 0.0
 var queue: Array = []
+var bg_rel := ""
 var total := 0
 var fading := -1.0
 
@@ -103,6 +104,7 @@ func begin(map_name := "") -> void:
 	shown = 0.0
 	prog = 0.0
 	queue.clear()
+	bg_rel = ""
 	total = 0
 	title.text = map_name
 	tip.text = TIPS[randi() % TIPS.size()]
@@ -118,8 +120,12 @@ func load_map(mi: int) -> void:
 	var th = str(M.get("theme", "grass"))
 	var side: Dictionary = Data.A.get("side", {})
 	var far = side.get("far_" + th, side.get("far_grass", {}))
-	bg.texture = Data.tex(far.get("u", "")) if far is Dictionary else null
+	bg_rel = str(far.get("u", "")) if far is Dictionary else ""
+	bg.texture = null
 	queue = _assets_for(M, th)
+	# bảo đảm ảnh nền xa cũng được nạp nền, không gọi load() đồng bộ trong lúc đổi bản đồ
+	if bg_rel != "" and not queue.has(bg_rel):
+		queue.push_front(bg_rel)
 	# gồm cả phần ảnh nhân vật/hiệu ứng đang nạp ngầm (lần vào game đầu tiên), để vào xong là mượt ngay
 	total = max(1, queue.size() + Data.warm_left())
 
@@ -171,6 +177,16 @@ func _bar() -> void:
 	pct_l.text = "%d%%" % int(round(prog * 100))
 
 func _process(dt: float) -> void:
+	# tiếp tục nạp nền cả sau khi màn hình đã hết thời gian chờ tối đa
+	var n = 0
+	while not queue.is_empty() and n < 6:
+		var rel = str(queue.front())
+		if not Data.prefetch(rel):
+			break
+		queue.pop_front()
+		n += 1
+	if bg_rel != "" and Data.has_tex(bg_rel):
+		bg.texture = Data.tex(bg_rel)
 	if not visible:
 		return
 	t += dt
@@ -188,19 +204,14 @@ func _process(dt: float) -> void:
 		if t > WAIT_MAX:
 			_finish()
 	else:
-		# nạp vài ảnh mỗi khung hình
-		var n = 0
-		while not queue.is_empty() and n < 6:
-			Data.tex(queue.pop_front())
-			n += 1
 		var warm = Data.warm_left()
+		var timed_out = shown >= WARM_MAX
 		var real = 0.3 + 0.7 * (1.0 - minf(1.0, float(queue.size() + warm) / float(total)))
-		if shown > WARM_MAX:
-			# nạp ngầm quá lâu (máy chậm): thôi chờ, ảnh nào chưa xong sẽ nạp lúc cần như cũ
-			queue.clear()
+		if timed_out:
+			# hết thời gian chờ: vào game nhưng vẫn tiếp tục nạp các ảnh còn lại ở nền
 			real = 1.0
 		prog = move_toward(prog, real, dt * 1.6)
-		if queue.is_empty() and (warm == 0 or shown > WARM_MAX) and prog >= 0.999 and shown >= MIN_T:
+		if (timed_out or (queue.is_empty() and warm == 0)) and prog >= 0.999 and shown >= MIN_T:
 			_finish()
 	_bar()
 

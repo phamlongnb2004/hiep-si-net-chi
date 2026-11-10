@@ -96,7 +96,14 @@ func tex(rel) -> Texture2D:
 	var t: Texture2D = null
 	var p = "res://assets/" + k
 	if _pend.has(k):
-		# đang nạp nền: chờ nốt (nhanh hơn nạp lại từ đầu) rồi lấy luôn
+		var st = ResourceLoader.load_threaded_get_status(_pend[k])
+		if st == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			# ảnh chưa xong: không chặn khung hình và cũng không cache null
+			return null
+		if st != ResourceLoader.THREAD_LOAD_LOADED:
+			_pend.erase(k)
+			_tex[k] = null
+			return null
 		t = ResourceLoader.load_threaded_get(_pend[k])
 		_pend.erase(k)
 	elif ResourceLoader.exists(p):
@@ -105,18 +112,32 @@ func tex(rel) -> Texture2D:
 	return t
 
 ## xin nạp một ảnh ở luồng nền; về sau tex() lấy thẳng từ bộ nhớ đệm
-func prefetch(rel) -> void:
+func prefetch(rel) -> bool:
 	if rel == null:
-		return
+		return true
 	var k = str(rel)
 	if k == "" or _tex.has(k) or _pend.has(k):
-		return
+		return true
+	# giữ giới hạn tải chung, kể cả khi màn hình tải bản đồ yêu cầu thêm ảnh
+	if _pend.size() >= WARM_INFLIGHT:
+		return false
 	var p = "res://assets/" + k
 	if not ResourceLoader.exists(p):
 		_tex[k] = null
-		return
+		return true
 	if ResourceLoader.load_threaded_request(p) == OK:
 		_pend[k] = p
+	else:
+		# tránh lặp lại một yêu cầu không hợp lệ ở mọi khung hình
+		_tex[k] = null
+	return true
+
+## true nếu ảnh đã được yêu cầu hoặc đã có kết quả trong cache
+func has_tex(rel) -> bool:
+	if rel == null:
+		return false
+	var k = str(rel)
+	return _tex.has(k) or _pend.has(k)
 
 ## lập danh sách ảnh nhân vật, trang bị, hiệu ứng rồi nạp dần ngầm (gọi một lần sau khi dữ liệu đã nạp xong)
 func warm_all() -> void:
@@ -163,8 +184,9 @@ func _process(_dt: float) -> void:
 		for k in done:
 			_pend.erase(k)
 	# đẩy thêm ảnh vào hàng nạp nền cho đủ WARM_INFLIGHT
-	while _bg_i < _bg.size() and _pend.size() < WARM_INFLIGHT:
-		prefetch(_bg[_bg_i])
+	while _bg_i < _bg.size() and _pend.size() < WARM_INFLIGHT - 4:
+		if not prefetch(_bg[_bg_i]):
+			break
 		_bg_i += 1
 
 func _font(fam: String, w: int) -> Font:
