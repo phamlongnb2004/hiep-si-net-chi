@@ -274,6 +274,8 @@ func _upd_breath(b: Dictionary, dt: float) -> void:
 			var l = randf_range(0.42, 0.56)
 			b.parts.append({"p": mo, "v": d * sp * randf_range(0.85, 1.08), "life": l, "max": l, "s": randf_range(0.8, 1.2), "pull": false})
 	var rise: float = BRK[b.kn].rise
+	# Lấy World một lần cho cả cụm hạt, không tra node ở từng hạt mỗi frame.
+	var world = get_parent().get_node_or_null("World")
 	for i in range(b.parts.size() - 1, -1, -1):
 		var q = b.parts[i]
 		q.life -= dt
@@ -284,9 +286,8 @@ func _upd_breath(b: Dictionary, dt: float) -> void:
 			var dr = pow(0.35, dt)
 			q.v.x *= dr
 			q.v.y = q.v.y * dr + rise * dt * 2.2
-			var w = get_parent().get_node_or_null("World")
-			if w:
-				var gq: float = w.gy(q.p.x) - 6
+			if world:
+				var gq: float = world.gy(q.p.x) - 6
 				if q.p.y > gq:
 					q.p.y = gq
 					q.v.y = -absf(q.v.y) * 0.15

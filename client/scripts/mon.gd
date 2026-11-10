@@ -33,6 +33,7 @@ var _m2: Dictionary = {}  # ảnh kiểu mới: mỗi động tác 8 khung (asse
 var sc = 1.0              # phóng to (trùm mượn ảnh quái thường)
 var tint_c = Color.WHITE
 var flyh = 0.0            # bay/bơi lơ lửng cao bao nhiêu
+var _fly_y_ref := 0.0     # mốc thân rồng, tính một lần thay vì tạo mảng/sort mỗi lần vẽ
 var anim = ""             # động tác chạy một lần: atk, s1, s2, s3
 var anim_t = 0.0
 var anim_dur = 0.0
@@ -54,6 +55,16 @@ func setup(info: Dictionary) -> void:
 	sc = float(_info.get("sc", 1.0))
 	tint_c = Color.html(str(_info.get("tint", "ffffff")))
 	flyh = float(_info.get("fly", 0))
+	# Dữ liệu căn thân rồng không đổi theo frame; tính sẵn thay vì slice + sort trong _draw().
+	if _k == "dragon":
+		var frames: Array = Data.A.get("mon", {}).get(_art, [])
+		if frames.size() >= 5:
+			var refs: Array = []
+			for i in range(1, 5):
+				var frame: Dictionary = frames[i]
+				refs.append(float(frame.hr) * (1.0 - float(frame.get("cy", 0.6) if frame.get("cy") != null else 0.6)))
+			refs.sort()
+			_fly_y_ref = float(refs[1])
 	walk = randf() * 6.0
 
 ## chiều cao thân khi vẽ (đã tính phóng to)
@@ -151,11 +162,7 @@ func _draw() -> void:
 	var fw: float = fh * float(q.ar)
 	var y0 = -fh
 	if fly and q.get("cy") != null:
-		var refs: Array = []
-		for z in F.slice(1, 5):
-			refs.append(float(z.hr) * (1.0 - float(z.get("cy", 0.6) if z.get("cy") != null else 0.6)))
-		refs.sort()
-		y0 = -refs[1] * H - float(q.cy) * fh
+		y0 = -_fly_y_ref * H - float(q.cy) * fh
 	var breathe = sin(t * 2 + id) * 0.015 if (not fly and not mv and lunge <= 0) else 0.0
 	draw_set_transform_matrix(xf * Transform2D().scaled(Vector2(1, 1 + breathe)))
 	var tx = Data.tex(q.u)

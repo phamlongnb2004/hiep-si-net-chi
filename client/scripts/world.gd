@@ -209,34 +209,47 @@ const VINE := ["reef", "swamp"]
 const LADDER := {"swamp": "ladder_bamboo", "beach": "ladder_bamboo", "reef": "ladder_bamboo"}
 
 func _layers(cx: float, vw: float) -> void:
+	var view_l = cx - 20.0
+	var view_r = cx + vw + 20.0
 	for w in M.get("water", []):
-		if float(w[1]) < cx - 20 or float(w[0]) > cx + vw + 20:
+		var zone_l = float(w[0])
+		var zone_r = float(w[1])
+		if zone_r < view_l or zone_l > view_r:
 			continue
+		# Chỉ dựng mặt nước trong vùng camera nhìn thấy; không tạo hàng nghìn điểm
+		# cho toàn bộ vũng nước dài ở ngoài màn hình mỗi khung hình.
+		var x0 = maxf(zone_l, view_l)
+		var x1 = minf(zone_r, view_r)
 		var col: Array = WATER.get(theme, WATER.beach)
 		var y = float(w[2])
-		var bot = gy((float(w[0]) + float(w[1])) / 2) + 6
-		draw_rect(Rect2(float(w[0]), y, float(w[1]) - float(w[0]), bot - y), col[0])
+		var bot = gy((zone_l + zone_r) * 0.5) + 6
+		draw_rect(Rect2(x0, y, x1 - x0, bot - y), col[0])
 		var pts = PackedVector2Array()
-		var x = float(w[0])
-		while x <= float(w[1]):
+		var x = x0
+		while x <= x1:
 			pts.append(Vector2(x, y + sin(x * 0.05 + t * 2.4) * 2.5))
-			x += 8
-		draw_polyline(pts, col[1], 3)
+			x += 12.0
+		if pts.size() > 1:
+			draw_polyline(pts, col[1], 3)
 	for w in M.get("lava", []):
-		if float(w[1]) < cx - 20 or float(w[0]) > cx + vw + 20:
+		var zone_l = float(w[0])
+		var zone_r = float(w[1])
+		if zone_r < view_l or zone_l > view_r:
 			continue
+		var x0 = maxf(zone_l, view_l)
+		var x1 = minf(zone_r, view_r)
 		var y2 = float(w[2])
-		var bot2 = gy((float(w[0]) + float(w[1])) / 2) + 8
-		draw_rect(Rect2(float(w[0]), y2, float(w[1]) - float(w[0]), bot2 - y2), Color(0.95, 0.35, 0.08))
-		draw_rect(Rect2(float(w[0]), y2, float(w[1]) - float(w[0]), 10), Color(1, 0.75, 0.25))
-		var x2 = float(w[0]) + 10
+		var bot2 = gy((zone_l + zone_r) * 0.5) + 8
+		draw_rect(Rect2(x0, y2, x1 - x0, bot2 - y2), Color(0.95, 0.35, 0.08))
+		draw_rect(Rect2(x0, y2, x1 - x0, 10), Color(1, 0.75, 0.25))
+		var x2 = x0 + 10
 		var k = 0
-		while x2 < float(w[1]) - 10:
+		while x2 < x1 - 10:
 			var ph = fmod(t * 0.8 + k * 0.37, 1.0)
 			draw_circle(Vector2(x2 + sin(k * 7.0) * 12, y2 + 6 - ph * 10), 3 + 4 * sin(ph * PI), Color(1, 0.85, 0.4, 1 - ph))
 			x2 += 38
 			k += 1
-		_ellipse(Vector2((float(w[0]) + float(w[1])) / 2, y2), (float(w[1]) - float(w[0])) * 0.6, 60, Color(1, 0.45, 0.1, 0.10 + 0.04 * sin(t * 3)))
+		_ellipse(Vector2((x0 + x1) * 0.5, y2), (x1 - x0) * 0.6, 60, Color(1, 0.45, 0.1, 0.10 + 0.04 * sin(t * 3)))
 	var pi = _side("plat_" + theme)
 	var ptx = Data.tex(pi.get("u", ""))
 	for pl in M.get("plats", []):
