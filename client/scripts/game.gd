@@ -108,9 +108,12 @@ func _on_msg(m: Dictionary) -> void:
 				_snap(m)
 		"pos":
 			me.position = Vector2(m.x, m.y)
-			vy = 0
-			climb = []
+			# Hiệu chỉnh vị trí do máy chủ không được triệt tiêu vận tốc rơi.
+			# Chỉ hồi sinh mới cần đặt lại toàn bộ trạng thái chuyển động.
 			if m.get("respawn"):
+				vy = 0
+				air = false
+				climb = []
 				fx.text(me.position + Vector2(0, -90), "Hồi sinh", Color("8fb4ff"), true)
 		"gain":
 			var mo: Mon = mons.get(int(m.m))
