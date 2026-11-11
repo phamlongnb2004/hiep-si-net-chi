@@ -105,8 +105,12 @@ func _process(dt: float) -> void:
 			anim = ""
 	if die_t >= 0:
 		die_t += dt
-	visible = not dead() or (die_t >= 0 and die_t < 0.75)
+	visible = not dead() or (die_t >= 0 and die_t < die_len())
 	queue_redraw()
+
+## thời gian chết: quái có khung "die" (Ma Long) diễn hết động tác rồi mới mờ đi
+func die_len() -> float:
+	return 2.4 if not _m2.is_empty() and _m2.a.has("die") else 0.75
 
 func _br_frame(bt: float) -> int:
 	if bt < BR_C * 0.7: return 0
@@ -196,7 +200,7 @@ func _bar(top: float, sw: float) -> void:
 	var boss: bool = _info.get("boss", false)
 	var ly2 = top - 8
 	if hp < hp_max or boss or focused or elite:
-		var bw = 120.0 if boss else 48.0
+		var bw = (220.0 if _info.get("world", false) else 120.0) if boss else 48.0
 		draw_rect(Rect2(-bw / 2 - 1.5, ly2 - 1.5, bw + 3, 8), Color("0f1422"))
 		draw_rect(Rect2(-bw / 2, ly2, bw * clampf(hp / hp_max, 0, 1), 5), Color("d9345a"))
 	var f2: Font = Data.fonts.get("bold")
@@ -216,20 +220,34 @@ func _draw2() -> void:
 	var mv = flags & 64 != 0 or absf(target.x - position.x) > 0.6
 	var fr: Array = A.get("idle", A.move)
 	var k := 0
-	if anim != "" and A.has(anim):
+	var dl := die_len()
+	if die_t >= 0 and A.has("die"):
+		fr = A.die
+		k = mini(fr.size() - 1, int(die_t / (dl * 0.7) * fr.size()))
+	elif anim != "" and A.has(anim):
 		fr = A[anim]
-		k = mini(7, int(anim_t / anim_dur * 8.0))
+		k = mini(fr.size() - 1, int(anim_t / anim_dur * fr.size()))
+	elif hit_t > 0 and A.has("hit"):
+		fr = A.hit
+		k = mini(fr.size() - 1, int((0.18 - hit_t) / 0.18 * fr.size()))
 	elif mv or not A.has("idle"):
 		fr = A.move
-		k = int(t * (11.0 if mv else 7.0) + id) % 8
+		k = int(t * (11.0 if mv else 7.0) * fr.size() / 8.0 + id) % fr.size()
 	else:
-		k = int(t * 7.0 + id) % 8
+		k = int(t * 7.0 * fr.size() / 8.0 + id) % fr.size()
 	var bob = sin(t * 2.6 + id) * 5.0 if flyh > 0 else 0.0
 	var y0: float = -H - flyh + bob
 	var al = 1.0
 	if die_t >= 0:
-		al = (1.0 - die_t / 0.75) * (0.25 if int(die_t * 20) % 2 == 0 else 1.0)
+		if A.has("die"):
+			al = clampf((dl - die_t) / (dl * 0.3), 0, 1)
+		else:
+			al = (1.0 - die_t / 0.75) * (0.25 if int(die_t * 20) % 2 == 0 else 1.0)
 	var col = Color(tint_c, al)
+	var world: bool = _info.get("world", false)
+	if world and hp < hp_max * 0.6 and die_t < 0:
+		var rg = 0.5 + sin(t * 6.0) * 0.5   # nổi giận: ửng đỏ nhịp nhàng
+		col = col * Color(1.0, 1.0 - 0.25 * rg, 1.0 - 0.3 * rg)
 	if hit_t > 0:
 		var q = hit_t / 0.18
 		col = Color(1, 1 - 0.55 * q, 1 - 0.55 * q, al)
@@ -249,7 +267,16 @@ func _draw2() -> void:
 		draw_texture_rect(tx, r, false, col)
 	draw_set_transform(Vector2.ZERO)
 	if flags & 128:
-		draw_arc(Vector2(0, y0 + H * 0.5), W * 0.42, 0, TAU, 30, Color(0.6, 0.85, 1, 0.55 + sin(t * 8) * 0.2), 3)
+		var sh: Dictionary = Data.A.get("vfx", {}).get("ml_shield", {})
+		if world and not sh.is_empty():
+			var sf: Array = sh.f
+			var stx = Data.tex(sf[int(t * 10) % sf.size()])
+			if stx:
+				var sh_h = H * 1.15
+				var sh_w = sh_h * float(sh.w) / float(sh.h)
+				draw_texture_rect(stx, Rect2(-sh_w / 2, y0 + H * 0.5 - sh_h / 2, sh_w, sh_h), false, Color(1, 1, 1, 0.8))
+		else:
+			draw_arc(Vector2(0, y0 + H * 0.5), W * 0.42, 0, TAU, 30, Color(0.6, 0.85, 1, 0.55 + sin(t * 8) * 0.2), 3)
 	var top = y0 + 4
 	_status(top)
 	_bar(top, W * 0.36)

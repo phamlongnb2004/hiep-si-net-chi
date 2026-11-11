@@ -99,3 +99,15 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Cần cấp nhân vật ≥ cấp đồ mới mặc được (máy chủ chặn ở `equip`). Đồ đang mặc / đồ cũ không có `b` giữ nguyên tên và ảnh cũ.
 - Icon: `gear2/<phái>/<bậc>/<ô>.webp` (6 ô theo phái), `acc2/<ô>/<bậc>.webp` (5 trang sức). Xem thử: `HSNC_PREVIEW=items HSNC_CLS=<phái>`.
 - APP_MIN 2.8.0 (bản cũ không hiện được ô đồ mới).
+
+## Boss Hoang Dã, trứng và pet (2.9.0)
+- **Ma Long Hắc Vực** (`mons.malong`, `world: true`): mỗi máy chủ có người online, khoảng 30 phút (27–33, lần đầu 8–14 phút sau khi máy chủ chạy) xuất hiện 1 con ở bản đồ săn ngẫu nhiên (1–6), khu ngẫu nhiên trong 5 khu đầu (không báo khu). Báo trước 1 phút (tên bản đồ), báo khi xuất hiện, báo người kết liễu; 15–20 phút không ai hạ thì bay đi. Lập lịch ở `worker.js wbTick/wbSpawn`; khu có boss được giữ (`inst.keep`). GM: nút "Gọi Ma Long" (lệnh `worldboss`).
+- Cấp boss = cấp quái cao nhất bản đồ + 10; máu ×400, công ×3, giáp ×2,5 so với quái cùng cấp; không bị đẩy/choáng như trùm; hồi 2%/giây khi 20 giây không ai đánh; về chỗ cũ không hồi máu.
+- 3 giai đoạn theo máu (>60%, 60–30%, <30%): chiêu có `ph` chỉ dùng từ giai đoạn đó; dưới 60% nổi giận (công ×1,25, chiêu nhanh hơn 25%, ửng đỏ). Triệu Hồi rồng con: còn rồng con thì boss có khiên (nhận 15% sát thương).
+- Đòn cuối (đã góp ≥1% máu) nhận 1 **Trứng** ngẫu nhiên trong 4 loài vào thẳng túi (được vượt giới hạn túi). Người góp ≥1% chia kinh nghiệm/vàng như trùm. Trứng (`slot: 'egg'`) giao dịch được, không bán cửa hàng, không mặc, không rèn.
+- **Bà Ấp Trứng** (NPC `egg`, Làng x=1070, tổ ở bên phải): ấp 1 quả một lúc, 24 giờ; trả 2.000.000 vàng rút ngắn còn một nửa thời gian còn lại (1 lần/quả); nở khi hết giờ (chuồng tối đa 3). Dữ liệu: `ch.hatch {sp,start,end,cut}`, `ch.pets[]`, `ch.petOn`.
+- **Pet**: 4 loài (Rồng Lửa thiên sức đánh, Cáo Băng chí mạng, Sói Sấm tốc đánh, Rùa Ngọc máu). Sao 1–5 (35/30/20/10/5%) nhân điểm ×0,8…×1,3. Mỗi cấp +3 điểm ngẫu nhiên (50% vào chỉ số thiên hướng). Cấp tối đa 100, không vượt cấp chủ + 5; nhận kinh nghiệm như chủ, chủ thêm 10% kinh nghiệm của pet. Kỹ năng tự dùng ở cấp 10/40/80 (hồi 8/15/40 giây). Giai đoạn: Non 1–39, Trưởng thành 40–79, Thần thú 80–100. Ngất khi hết máu (bị quái đang đánh chủ đánh trúng), tự hồi sinh sau 60 giây. Đổi tên miễn phí 1 lần (2–12 ký tự); thả pet = xóa vĩnh viễn, phải nhập đúng tên, nút chờ 3 giây.
+- Thao tác: `hatch_start/hatch_cut/hatch_open` (phải đứng gần NPC), `pet_on/pet_name/pet_free` (ở đâu cũng được). Ảnh chụp có `q`: `[chủ, loài, giai đoạn, x, y, hướng, động tác(0/1 đánh/2 chiêu/3 ngất), máu%, tên, cấp, bay]`; sự kiện `pa` (pet đánh), `ps` (pet chiêu), `plv`, `pf`.
+- Ảnh: `mon2/malong`, `mon2/dragonling`, `vfx/ml_*`, `vfx/pf_*`, `vfx/hit_*`, `pet/<loài>/<giai đoạn>/`, `egg/<loài>/`, `npc/egg`, `npc/nest`. Thân và chiêu vẽ tách riêng. Xem thử: `HSNC_PREVIEW=pets`.
+- Chưa có: đồ pet (vòng cổ, giáp lưng, móng vuốt, bùa linh) — để đợt sau.
+- APP_MIN 2.9.0.

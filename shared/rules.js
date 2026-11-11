@@ -163,11 +163,12 @@ export function shopItem(c, slot, rk, lvl, id) {
 // đồ cũ (trước khi có phái) thuộc về phái của nhân vật: giống fixIt trong gear.js
 export function fixItem(it, cls) {
   if (!it) return;
+  if (it.slot === 'egg') { it.cls = ''; it.tier = 3; if (!PET_SP[it.sp]) it.sp = 'fire'; return; }
   if (isFree(it.slot)) { it.cls = ''; it.tier = clamp(it.r | 0, 0, 3); return; }
   if (!D.sets[it.cls]) it.cls = D.sets[it.wk] ? it.wk : cls;
   it.tier = clamp(it.r | 0, 0, 3); if (it.slot === 'weapon') it.wk = it.cls;
 }
-export const validItem = it => !!(it && typeof it === 'object' && SLOTS.includes(it.slot) && it.st && typeof it.name === 'string' && D.rar[it.r] && typeof it.col === 'string' && /^#[0-9a-fA-F]{6}$/.test(it.col));
+export const validItem = it => !!(it && typeof it === 'object' && (SLOTS.includes(it.slot) || it.slot === 'egg') && it.st && typeof it.name === 'string' && D.rar[it.r] && typeof it.col === 'string' && /^#[0-9a-fA-F]{6}$/.test(it.col));
 // chỉ số lớn nhất có thể có của một món (để đánh dấu bản lưu bất thường, không sửa)
 export function maxItemStat(it) {
   const m = D.rar[3].m * 1.25, base = 3 + (it.lvl || 1) * 1.4;
@@ -187,7 +188,7 @@ export function forgeInfo(it) {
 const MON_LV = [ // cấp, máu, công, thủ, kinh nghiệm
   [1, 30, 7, .5, 12], [5, 120, 17, 4, 70], [9, 330, 33, 8, 230], [12, 430, 40, 9.5, 380], [15, 650, 55, 12, 600],
   [19, 1000, 75, 15, 1000], [24, 1400, 100, 19, 1450], [30, 2000, 130, 24, 2200], [60, 5200, 300, 50, 17600], [100, 11000, 560, 90, 283000]];
-const MON_FAM = { snail: { hp: 1, atk: .9, def: 1.8 }, croc: { hp: 1.3, atk: 1, def: 1.2 }, jelly: { hp: .85, atk: 1, def: .8 }, gull: { hp: .85, atk: 1, def: .9 }, swordfish: { hp: .9, atk: 1.1, def: 1 }, snakelet: { hp: .5, atk: .6, def: .6 } }; // có thể thêm chênh lệch theo loài, vd { bear: { hp: 1.02, atk: 1, def: 1 } } (giữ nhỏ để cấp cao vẫn mạnh hơn)
+const MON_FAM = { snail: { hp: 1, atk: .9, def: 1.8 }, croc: { hp: 1.3, atk: 1, def: 1.2 }, jelly: { hp: .85, atk: 1, def: .8 }, gull: { hp: .85, atk: 1, def: .9 }, swordfish: { hp: .9, atk: 1.1, def: 1 }, snakelet: { hp: .5, atk: .6, def: .6 }, dragonling: { hp: 1.2, atk: .9, def: .9 } }; // có thể thêm chênh lệch theo loài, vd { bear: { hp: 1.02, atk: 1, def: 1 } } (giữ nhỏ để cấp cao vẫn mạnh hơn)
 export function monCurve(lv, i) {
   const T = MON_LV; lv = Math.max(1, lv);
   let a = T[0], b = T[1];
@@ -198,6 +199,8 @@ export function monCurve(lv, i) {
 const famOf = type => MON_FAM[type.replace(/\d+$/, '')] || { hp: 1, atk: 1, def: 1 };
 export function monStats(type, lv, elite) {
   const t = D.mons[type], e = elite ? ELITE : { hp: 1, atk: 1, def: 1 };
+  // Boss Hoang Dã: theo đường cong quái thường cùng cấp, nhân hệ số lớn
+  if (t.world) return { hpMax: Math.round(monCurve(lv, 1) * t.hpm * mt(type, 'hp')), atk: monCurve(lv, 2) * t.atkm * mt(type, 'atk'), def: monCurve(lv, 3) * t.defm * mt(type, 'def') };
   if (t.boss) return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp * mt(type, 'hp')), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk * mt(type, 'atk'), def: (t.def + lv * .5) * e.def * mt(type, 'def') };
   const F = famOf(type);
   return { hpMax: Math.round(monCurve(lv, 1) * F.hp * e.hp * mt(type, 'hp')), atk: monCurve(lv, 2) * F.atk * e.atk * mt(type, 'atk'), def: monCurve(lv, 3) * F.def * e.def * mt(type, 'def') };
@@ -322,6 +325,10 @@ export function normalizeChar(d) {
   if (ptUsed(c) > ptTotal(c)) c.pt = {};
   c.ptReset = Math.max(0, Math.floor(+c.ptReset || 0));
   c.inv.forEach(it => fixItem(it, c.cls)); for (const k of SLOTS) fixItem(c.eq[k], c.cls);
+  // pet (từ 2.9.0): tối đa PET_MAX con, pet đang ra trận, trứng đang ấp
+  c.pets = (Array.isArray(c.pets) ? c.pets : []).filter(p => p && PET_SP[p.sp]).slice(0, PET_MAX).map(fixPet);
+  if (!c.pets.some(p => p.id === c.petOn)) c.petOn = '';
+  c.hatch = c.hatch && PET_SP[c.hatch.sp] && +c.hatch.end > 0 ? { sp: c.hatch.sp, start: +c.hatch.start || 0, end: +c.hatch.end, cut: c.hatch.cut ? 1 : 0 } : null;
   // đồ khác phái đang mặc (bản cũ): đưa vào túi giống gear.js
   for (const k of SLOTS) { const it = c.eq[k]; if (it && !isFree(k) && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }
   let n = 1; const seen = new Set();
@@ -342,3 +349,52 @@ export function anomalies(c) {
   }
   return a;
 }
+
+/* ================= PET (từ 2.9.0) =================
+ * Boss Hoang Dã rơi trứng (món 'egg' trong túi, giao dịch được, không bán cửa hàng) → ấp ở Bà Ấp Trứng → pet.
+ * Pet theo chủ đánh quái, lên cấp bằng kinh nghiệm quái (chủ hưởng ké PET_SHARE), cộng điểm chỉ số ngẫu nhiên.
+ */
+export const PET_SP = {
+  fire: { n: 'Rồng Lửa', bias: 'atk', el: 'fire', sk: ['Phóng Cầu Lửa', 'Phun Lửa', 'Hỏa Long Giáng Thế'] },
+  ice: { n: 'Cáo Băng', bias: 'crit', el: 'ice', sk: ['Băng Tiễn', 'Gió Tuyết', 'Bão Băng Chín Đuôi'] },
+  wolf: { n: 'Sói Sấm', bias: 'aspd', el: 'thunder', sk: ['Tia Chớp', 'Lôi Độn', 'Thiên Lôi Giáng'] },
+  turtle: { n: 'Rùa Ngọc', bias: 'hp', el: 'jade', sk: ['Khiên Ngọc', 'Suối Hồi Phục', 'Thành Đồng Vách Sắt'] }
+};
+export const PET_KEYS = Object.keys(PET_SP);
+export const PET_STAT = { hp: 'Máu', atk: 'Sức đánh', def: 'Giáp', aspd: 'Tốc đánh', crit: 'Chí mạng' };
+export const PET_MAX = 3, PET_SK_LV = [10, 40, 80], PET_SK_CD = [8, 15, 40], PET_REVIVE = 60, PET_SHARE = .1, PET_PT = 3;
+export const HATCH_MS = 24 * 3600e3, HATCH_CUT = .5, HATCH_GOLD = 2000000;
+export const STAR_MUL = [.8, .9, 1, 1.15, 1.3];
+export const petStage = lv => lv >= 80 ? 2 : lv >= 40 ? 1 : 0;
+export const eggName = sp => 'Trứng ' + PET_SP[sp].n;
+export function newEgg(sp, id) { return { id, slot: 'egg', sp, name: eggName(sp), r: 3, col: '#ffb020', lvl: 1, st: {}, tier: 3, cls: '' }; }
+export function fixPet(p) {
+  const q = { id: String(p.id || ''), sp: p.sp, name: typeof p.name === 'string' && p.name ? p.name.slice(0, 12) : PET_SP[p.sp].n,
+    lv: clamp(Math.floor(+p.lv || 1), 1, MAX_LV), exp: Math.max(0, Math.floor(+p.exp || 0)), star: clamp(p.star | 0 || 1, 1, 5), rn: p.rn ? 1 : 0, pt: {}, eq: p.eq && typeof p.eq === 'object' ? p.eq : {} };
+  for (const k in PET_STAT) q.pt[k] = Math.max(0, Math.floor(+(p.pt && p.pt[k]) || 0));
+  if (!q.id) q.id = 'p' + Math.floor(Math.random() * 1e9).toString(36);
+  return q;
+}
+export function newPet(rng, sp, id) {
+  const r = rng() * 100, star = r < 35 ? 1 : r < 65 ? 2 : r < 85 ? 3 : r < 95 ? 4 : 5;
+  const p = fixPet({ id, sp, lv: 1, star });
+  for (let i = 0; i < PET_PT * 2; i++) petPoint(rng, p); // điểm khởi đầu ngẫu nhiên
+  return p;
+}
+// một điểm chỉ số ngẫu nhiên: 50% vào chỉ số thiên hướng của loài, còn lại chia đều
+export function petPoint(rng, p) { const ks = Object.keys(PET_STAT), k = rng() < .5 ? PET_SP[p.sp].bias : ks[Math.floor(rng() * ks.length)]; p.pt[k] = (p.pt[k] | 0) + 1; }
+export function petStats(p) {
+  const m = STAR_MUL[p.star - 1] || 1, L = p.lv, t = p.pt;
+  return { maxHp: Math.round(80 + 22 * L + t.hp * 14 * m), atk: Math.round((5 + 1.5 * L + t.atk * 1.3 * m) * 10) / 10, def: Math.round((2 + .7 * L + t.def * .9 * m) * 10) / 10,
+    aspd: Math.min(2.2, 1 + t.aspd * .012 * m), crit: Math.min(.5, .03 + t.crit * .003 * m) };
+}
+// cap: pet không vượt quá cấp chủ + 5
+export function petAddExp(rng, p, n, cap = MAX_LV) {
+  cap = Math.min(MAX_LV, cap);
+  if (p.lv >= cap) { p.exp = Math.min(p.exp + n, expNeed(p.lv) - 1); return 0; }
+  p.exp += n; let up = 0;
+  while (p.lv < cap && p.exp >= expNeed(p.lv)) { p.exp -= expNeed(p.lv); p.lv++; up++; for (let i = 0; i < PET_PT; i++) petPoint(rng, p); }
+  if (p.lv >= cap) p.exp = Math.min(p.exp, expNeed(p.lv) - 1);
+  return up;
+}
+export const okPetName = s => typeof s === 'string' && s.trim().length >= 2 && s.trim().length <= 12 && /^[\p{L}\p{N} _]+$/u.test(s.trim());

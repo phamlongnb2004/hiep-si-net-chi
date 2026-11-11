@@ -70,8 +70,8 @@ func _cell(sz := 74) -> PanelContainer:
 	return p
 
 func _item_cell(it: Dictionary, selected: bool, equipped := false) -> PanelContainer:
-	var own = Data.can_wear(it, game.cls())
-	var better = own and not equipped and Data.score(it) > Data.score(game.me_data.eq.get(it.slot))
+	var own = Data.can_wear(it, game.cls()) or str(it.get("slot", "")) == "egg"
+	var better = own and not equipped and str(it.get("slot", "")) != "egg" and Data.score(it) > Data.score(game.me_data.eq.get(it.slot))
 	return ItemCell.make(it, selected, own, better)
 
 func _click(c: Control, f: Callable) -> void:
@@ -193,6 +193,15 @@ func _render_detail(d: Dictionary) -> void:
 		sel = {}
 		return
 	var r2 = int(it.r)
+	if str(it.slot) == "egg":
+		detail.add_child(UI.label(Data.item_name(it), 22, Data.rar_color(r2), "bold"))
+		detail.add_child(UI.label("Trứng Thần Thú · rơi khi kết liễu Ma Long Hắc Vực", 16, Color("5a6b8c"), "semi"))
+		detail.add_child(UI.label("Mang tới Bà Ấp Trứng trong Làng để ấp. Trứng nở sau 24 giờ thành pet theo bạn chiến đấu.", 16, UI.INK, "body"))
+		detail.add_child(UI.label("Giao dịch được · Không bán cho cửa hàng", 15, Color("2fa84f"), "semi"))
+		var bp = UI.button("Xem chuồng pet", UI.SKY, 18)
+		bp.pressed.connect(func(): game.open_npc.emit("pets"))
+		detail.add_child(bp)
+		return
 	var nm = UI.label(Data.item_name(it), 22, Data.rar_color(r2) if r2 > 0 else UI.INK, "bold")
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail.add_child(nm)

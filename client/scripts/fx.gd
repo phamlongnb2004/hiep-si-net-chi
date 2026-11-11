@@ -54,7 +54,7 @@ func vfx(name: String, p: Vector2, h: float, flip := false, o := {}) -> void:
 	var d: Dictionary = Data.A.get("vfx", {}).get(name, {})
 	if d.is_empty():
 		return
-	var e = {"d": d, "p": p, "h": h, "t": 0.0, "max": 0.62, "flip": flip, "v": Vector2.ZERO, "loop": false, "id": 0}
+	var e = {"d": d, "p": p, "h": h, "t": 0.0, "max": float(d.get("dur", 0.62)), "flip": flip, "v": Vector2.ZERO, "loop": false, "id": 0}
 	e.merge(o, true)
 	vfxs.append(e)
 
@@ -295,7 +295,8 @@ func _upd_breath(b: Dictionary, dt: float) -> void:
 
 func _vfx_frame(v: Dictionary) -> Texture2D:
 	var F: Array = v.d.f
-	var k = int(v.t * 13.0) % 8 if v.loop else mini(7, int(v.t / v.max * 8.0))
+	var n := F.size()
+	var k = int(v.t * 13.0) % n if v.loop else mini(n - 1, int(v.t / v.max * n))
 	return Data.tex(F[k])
 
 func _vfx_draw(L: Node2D, v: Dictionary, k := 1.0) -> void:

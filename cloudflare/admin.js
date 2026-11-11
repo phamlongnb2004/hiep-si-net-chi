@@ -537,6 +537,7 @@ export async function onGM(w, c, m) {
       for (let i = 0; i < n; i++) I.addMon(String(m.type), lv, c.f.x + c.f.face * (120 + i * 50), true);
       log({ type: m.type, lv, n }); return reply(true, 'Đã gọi ' + n + ' ' + R.D.mons[m.type].n + ' cấp ' + lv + '.');
     }
+    case 'worldboss': { if (!I || !I.M.spots || !I.M.spots.length) return reply(false, 'Đứng ở bản đồ săn quái.'); const old = w.wb && w.wb.get(c.srv); if (old && old.m && !old.m.dead) return reply(false, 'Boss đang có ở ' + old.inst.M.name + '.'); if (!w.wb) w.wb = new Map(); w.wbSpawn(c.srv, c.map, I.khu, c.f.x + c.f.face * 400); log({ map: c.map }); return reply(true, 'Đã gọi Ma Long Hắc Vực.'); }
     case 'killall': { if (!I) return reply(false, ''); let n = 0; for (const q of I.mons) if (!q.dead) { I.kill(q, null); n++; } log({ n }); return reply(true, 'Đã dọn ' + n + ' quái (không rơi đồ).'); }
     case 'give': {
       if (ROLE[c.gm.role] < ROLE.owner) return reply(false, 'Chỉ chủ mới tặng đồ, vàng, kinh nghiệm.');

@@ -62,7 +62,7 @@ export class MapInst {
   dropInfo(d) { return { id: d.id, k: d.k, n: d.n || 0, x: Math.round(d.x), y: Math.round(d.y), item: d.item || null, own: d.own }; }
   join(c, x) {
     const f = c.f, p = x != null ? x : this.M.spawn.x; f.x = p; f.y = this.gY(p); f.air = 0; f.moveAt = Date.now();
-    this.players.set(c.id, c);
+    this.players.set(c.id, c); this.syncPet(c);
     this.h.send(c, { t: 'map', m: this.mi, k: this.khu, x: Math.round(f.x), y: Math.round(f.y), mons: this.mons.map(m => this.monInfo(m)), drops: this.drops.map(d => this.dropInfo(d)) });
   }
   leave(c) { this.players.delete(c.id); for (const m of this.mons) if (m.tgt === c.id) { m.tgt = 0; if (m.state === 'chase') m.state = 'return'; } }
@@ -99,13 +99,14 @@ export class MapInst {
   hitMon(c, m, raw, o) {
     if (m.dead) return 0; o = o || {}; const f = c.f;
     const ab = m.t.ab, gd = m.guard > 0 && ab && ab.k === 'shell' ? ab.def : 1;
-    const r = R.dmgToMon(rng, raw, m.def * gd, f.crit + R.buffMul(f.buffs, 'crit'), o.dot, f.pen);
-    m.hp -= r.d;
+    const r = R.dmgToMon(rng, raw, m.def * gd, o.pet ? o.pet : f.crit + R.buffMul(f.buffs, 'crit'), o.dot, o.pet ? 0 : f.pen);
+    if (m.t.world && m.guard > 0) r.d = Math.max(1, Math.round(r.d * .15)); // khiên khi còn rồng con
+    m.hp -= r.d; m.calm = 0;
     if (m.lh[m.lh.length - 1] !== c.id) { m.lh.push(c.id); if (m.lh.length > 30) m.lh.shift(); }
     // cá nóc phồng gai: đánh vào bị dội lại một phần sát thương
     if (m.guard > 0 && ab && ab.k === 'spike' && !o.dot && !o.ref) this.hurt(c, r.d * ab.ref, { noDodge: true, flat: true });
     // hút máu: hồi theo sát thương gây ra (không tính độc)
-    if (f.ls > 0 && !o.dot && f.hp > 0 && f.hp < f.maxHp) { f.lsAcc += Math.min(r.d, m.hp + r.d) * f.ls; if (f.lsAcc >= 1) { const h = Math.floor(f.lsAcc); f.lsAcc -= h; f.hp = Math.min(f.maxHp, f.hp + h); c.meDirty = true; } } m.dmg.set(c.id, (m.dmg.get(c.id) || 0) + r.d);
+    if (f.ls > 0 && !o.dot && !o.pet && f.hp > 0 && f.hp < f.maxHp) { f.lsAcc += Math.min(r.d, m.hp + r.d) * f.ls; if (f.lsAcc >= 1) { const h = Math.floor(f.lsAcc); f.lsAcc -= h; f.hp = Math.min(f.maxHp, f.hp + h); c.meDirty = true; } } m.dmg.set(c.id, (m.dmg.get(c.id) || 0) + r.d);
     if (o.kb) m.kx += Math.sign(m.x - f.x || f.face) * o.kb * (m.t.boss ? .15 : 1);
     if (m.state === 'idle') { m.state = 'chase'; m.tgt = c.id; }
     this.ev.push(['h', m.id, r.d, (r.c ? 1 : 0) | (o.dot ? 2 : 0), c.id]);
@@ -165,7 +166,7 @@ export class MapInst {
     const f = c.f, ch = c.ch, cl = D.cls[ch.cls]; if (f.dead > 0 || f.atkCd > .05 || f.stunT > 0) return;
     const tgt = this.findTarget(f, m.tg | 0, cl.reach + 20);
     const aim = tgt ? Math.atan2(tgt.y - f.y, tgt.x - f.x) : (f.face > 0 ? 0 : Math.PI);
-    f.face = Math.cos(aim) >= 0 ? 1 : -1; f.atkCd = cl.cd;
+    f.face = Math.cos(aim) >= 0 ? 1 : -1; f.atkCd = cl.cd; if (tgt) f.lastTgt = tgt.id;
     let big = 0;
     if (ch.cls === 'fighter') { f.combo++; f.comboT = .9; big = f.combo % 3 === 0 ? 1 : 0; this.melee(c, aim, big ? 95 : 64, 1.4, big ? 1.9 : .75, big ? 260 : 90); }
     else this.run(c, [R.BASIC[ch.cls]], aim, tgt, 0);
@@ -178,7 +179,7 @@ export class MapInst {
     const cost = R.kiCost(ch.lv, i);
     if (f.ki < cost) { if (f.kiWarn <= 0) { f.kiWarn = 2; this.h.log(c, 'Không đủ KI (cần ' + cost + '). Chờ KI hồi hoặc cộng điểm vào KI.', '#7fc8ff'); } return; }
     f.ki -= cost; f.cds[i] = S.cd; f.gcd = D.world.gcd;
-    const tgt = this.findTarget(f, m.tg | 0, 460), aim = tgt ? Math.atan2(tgt.y - f.y, tgt.x - f.x) : (f.face > 0 ? 0 : Math.PI);
+    const tgt = this.findTarget(f, m.tg | 0, 460), aim = tgt ? Math.atan2(tgt.y - f.y, tgt.x - f.x) : (f.face > 0 ? 0 : Math.PI); if (tgt) f.lastTgt = tgt.id;
     f.face = Math.cos(aim) >= 0 ? 1 : -1;
     const sx = f.x; this.run(c, R.SKILL_FX[ch.cls][i], aim, tgt, 0);
     this.ev.push(['s', c.id, i, +aim.toFixed(2), tgt ? tgt.id : 0, Math.round(sx)]);
@@ -246,8 +247,12 @@ export class MapInst {
       const ch = c.ch, ee = Math.max(1, Math.round(e * k)), gg = Math.max(1, Math.round(g * k));
       if (c === best) ch.kills++;
       ch.gold += gg;
-      const up = R.addExp(ch, ee);
-      this.h.send(c, { t: 'gain', m: m.id, exp: ee, gold: gg, pct: share ? Math.round(k * 100) : 0 });
+      let up = R.addExp(ch, ee), pe = 0;
+      // pet đang ra trận (còn tỉnh) nhận kinh nghiệm như chủ; chủ hưởng ké một phần kinh nghiệm của pet
+      const pt = c.pet && c.pet.faint <= 0 ? ch.pets.find(q => q.id === ch.petOn) : null;
+      if (pt) { pe = ee; const st0 = R.petStage(pt.lv), pu = R.petAddExp(rng, pt, pe, ch.lv + 5); up += R.addExp(ch, Math.max(1, Math.round(pe * R.PET_SHARE)));
+        if (pu) { this.syncPet(c, true); this.ev.push(['plv', c.id, pt.lv, R.petStage(pt.lv) !== st0 ? 1 : 0]); this.h.log(c, pt.name + ' lên cấp ' + pt.lv + (R.PET_SK_LV.includes(pt.lv) ? ' · mở kỹ năng ' + R.PET_SP[pt.sp].sk[R.PET_SK_LV.indexOf(pt.lv)] : '') + (R.petStage(pt.lv) !== st0 ? ' · tiến hóa!' : ''), '#7dffb0'); } }
+      this.h.send(c, { t: 'gain', m: m.id, exp: ee, gold: gg, pct: share ? Math.round(k * 100) : 0, pexp: pe });
       if (up) { refreshStats(c.f, ch, false); this.ev.push(['lv', c.id, ch.lv]); this.h.log(c, 'Lên cấp ' + ch.lv + ' · +' + up * R.PT_PER_LV + ' điểm tiềm năng (Túi đồ → Chỉ số)', '#ffd23f'); }
       c.meDirty = true; this.h.dirty(c);
     }
@@ -258,9 +263,17 @@ export class MapInst {
       if (d.item) got.push(d.item.name);
       if (d.item && d.item.r >= 2 && this.h.glog) this.h.glog('drop', best, 'Rơi ' + d.item.name + ' (' + D.rar[d.item.r].n + ') từ ' + m.t.n + ' cấp ' + m.lv + (m.el ? ' tinh anh' : ''));
     }
+    if (m.t.world) { // Boss Hoang Dã: đòn cuối nhận 1 quả trứng (vào thẳng túi đồ), boss tan thành tro
+      const sp = R.PET_KEYS[Math.floor(rng() * R.PET_KEYS.length)], egg = R.newEgg(sp, 'e' + Date.now().toString(36) + (this.seq++));
+      ch.inv.push(egg); this.fx('ml_ash', m.x, m.y - 90, 300); this.fx('egg_glow', m.x, m.y, 160);
+      this.h.log(best, 'Bạn nhận được ' + egg.name + '! Mang tới Bà Ấp Trứng trong Làng để ấp.', '#ffd23f');
+      if (this.h.glog) this.h.glog('drop', best, 'Kết liễu ' + m.t.n + ', nhận ' + egg.name);
+      this.later(2.5, () => { m.gone = true; });
+      if (this.h.wb) this.h.wb(this, 'dead', best, egg);
+    }
     if (m.t.boss) {
       ch.title = { n: 'Kẻ Kết Liễu', until: Date.now() + 864e5 };
-      if (this.h.ann) this.h.ann(this, '⚔ ' + ch.name + ' đã kết liễu ' + m.t.n + '!');
+      if (this.h.ann && !m.t.world) this.h.ann(this, '⚔ ' + ch.name + ' đã kết liễu ' + m.t.n + '!');
       const msg = 'Kết liễu: ' + ch.name + (got.length ? ' · Đồ rơi: ' + got.join(', ') : '');
       for (const [c, k] of share) this.h.log(c, msg + ' · Bạn góp ' + Math.round(k * 100) + '% sát thương', '#ffd23f');
     }
@@ -291,6 +304,7 @@ export class MapInst {
   }
   tickPlayer(c, dt) {
     const f = c.f;
+    if (c.pet) this.tickPet(c, dt);
     if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), respawn: 1 }); c.meDirty = true; } return; }
     f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.dashT = Math.max(0, f.dashT - dt);
     for (let i = 0; i < 6; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
@@ -310,6 +324,7 @@ export class MapInst {
     for (const m of this.mons) {
       if (m.dead) { if (m.noRe) continue; m.respawn -= dt; if (m.respawn <= 0) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.monY(m, m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); } continue; }
       const px = m.x, ab = m.t.ab;
+      if (m.t.world) this.tickWorld(m, dt);
       m.cd -= dt; m.shoot -= dt; m.ac -= dt; m.lunge = Math.max(0, m.lunge - dt); if (m.guard > 0) m.guard -= dt;
       if (m.kx) { m.x = clamp(m.x + m.kx * dt, 30, this.M.w - 30); m.kx *= Math.pow(.02, dt); if (Math.abs(m.kx) < 4) m.kx = 0; }
       if (m.slow > 0) m.slow -= dt;
@@ -334,7 +349,10 @@ export class MapInst {
             if (!m.hold && !m.br) want = Math.sign(dx) * spd;
             if (adx > 2 && !m.br) m.face = dx >= 0 ? 1 : -1;
             // trùm: luân phiên các chiêu (có vùng báo trước)
-            if (m.t.sk && !m.br && !(m.wind > 0) && (m.skT -= dt) <= 0 && adx < m.t.aggro) { m.skT = rand(m.t.skcd[0], m.t.skcd[1]); this.startSkill(m, m.t.sk[m.ski++ % m.t.sk.length], tc); continue; }
+            if (m.t.sk && !m.br && !(m.wind > 0) && (m.skT -= dt) <= 0 && adx < m.t.aggro) {
+              m.skT = rand(m.t.skcd[0], m.t.skcd[1]) * (m.rage ? .75 : 1);
+              const ph = m.hp > m.hpMax * .6 ? 1 : m.hp > m.hpMax * .3 ? 2 : 3, L = m.t.sk.filter(q => (q.ph || 1) <= ph);
+              this.startSkill(m, L[m.ski++ % L.length], tc); continue; }
             // quái có chiêu riêng
             if (ab && !(m.wind > 0)) {
               if ((ab.k === 'spit' || ab.k === 'charge') && m.ac <= 0 && adx >= ab.min && adx <= ab.max && dy < 120) { m.ac = ab.cd + rand(0, 1.5); this.startAbility(m, ab, tc); continue; }
@@ -355,8 +373,8 @@ export class MapInst {
             if (m.t.kind === 'dragon' && m.shoot <= 0 && !m.br && adx < 500 && adx > 120) { m.shoot = 3.6; m.br = { t: 0, hit: 0, reach: 0, tgt: tc.id }; this.ev.push(['b', m.id, tc.id]); }
           }
         } else {
-          const d = m.sx - m.x; want = Math.sign(d) * spd * 1.2; m.hp = Math.min(m.hpMax, m.hp + m.hpMax * .25 * dt);
-          if (Math.abs(d) < 12) { m.state = 'idle'; m.hp = m.hpMax; want = 0; }
+          const d = m.sx - m.x; want = Math.sign(d) * spd * 1.2; if (!m.t.world) m.hp = Math.min(m.hpMax, m.hp + m.hpMax * .25 * dt);
+          if (Math.abs(d) < 12) { m.state = 'idle'; if (!m.t.world) m.hp = m.hpMax; want = 0; }
         }
       }
       if (m.dashT > 0) { m.dashT -= dt; m.vx = m.dashV; if (m.dashT <= 0) { m.dashV = 0; m.vx = 0; } }
@@ -479,6 +497,78 @@ export class MapInst {
       if (dead) this.projs.splice(i, 1);
     }
   }
+  /* ---------- Boss Hoang Dã: nổi giận, khiên khi còn rồng con, hồi máu khi không ai đánh ---------- */
+  tickWorld(m, dt) {
+    if (!m.rage && m.hp < m.hpMax * .6) { m.rage = 1; m.atk *= 1.25; this.ev.push(['bs', m.id, 'roar', 1.2, 'Nổi giận']); this.fx('ml_rage', m.x, m.y - 100, 320); }
+    const mini = this.mons.some(o => o.temp && !o.dead && o.type === 'dragonling');
+    m.guard = mini ? 1 : 0;
+    if (m.rage && (this.tk % 30) === 0) this.fx('ml_rage', m.x, m.y - 100, 320);
+    if ((m.calm = (m.calm || 0) + dt) > 20 && m.hp < m.hpMax) m.hp = Math.min(m.hpMax, m.hp + m.hpMax * .02 * dt);
+  }
+  /* ---------- PET: theo chủ, tự đánh quái, kỹ năng mở ở cấp 10/40/80, ngất 1 phút rồi tự hồi sinh ---------- */
+  syncPet(c, keep) {
+    const ch = c.ch, p = ch && ch.petOn ? ch.pets.find(q => q.id === ch.petOn) : null;
+    if (!p) { c.pet = null; return; }
+    const st = R.petStats(p), o = c.pet && c.pet.id === p.id ? c.pet : null;
+    c.pet = { id: p.id, sp: p.sp, name: p.name, lv: p.lv, stage: R.petStage(p.lv), st, maxHp: st.maxHp,
+      hp: o && keep ? Math.min(st.maxHp, o.hp + (st.maxHp - o.maxHp)) : o ? Math.min(o.hp, st.maxHp) : st.maxHp,
+      x: o ? o.x : c.f.x - 50, y: o ? o.y : c.f.y, face: o ? o.face : 1, act: 0, actT: 0, cd: 0, sk: o ? o.sk : [3, 6, 12], faint: o ? o.faint : 0, hurtT: 0, tgt: 0, air: 0 };
+  }
+  tickPet(c, dt) {
+    const P = c.pet, f = c.f, ch = c.ch, p = ch.pets.find(q => q.id === P.id); if (!p) { c.pet = null; return; }
+    if (P.faint > 0) { P.faint -= dt; if (P.faint <= 0) { P.faint = 0; P.hp = P.maxHp; this.fx('pet_revive', P.x, P.y - 30, 150); this.h.log(c, P.name + ' đã hồi sinh!', '#7dffb0'); } return; }
+    P.actT = Math.max(0, P.actT - dt); if (P.actT <= 0) P.act = 0;
+    P.cd -= dt; for (let i = 0; i < 3; i++) P.sk[i] -= dt;
+    // mục tiêu: quái chủ vừa đánh, không thì quái đang đánh chủ (gần chủ)
+    let m = null;
+    if (f.dead <= 0) {
+      if (f.lastTgt) { m = this.mons.find(q => q.id === f.lastTgt && !q.dead); if (!m || Math.abs(m.x - f.x) > 520) { m = null; f.lastTgt = 0; } }
+      if (!m) { let bd = 380; for (const q of this.mons) if (!q.dead && q.tgt === c.id && Math.abs(q.x - f.x) < bd) { bd = Math.abs(q.x - f.x); m = q; } }
+    }
+    let goal = f.x - f.face * 52;
+    if (m) { const side = P.x <= m.x ? -1 : 1; goal = m.x + side * (m.t.r * .8 + 22); }
+    if (Math.abs(P.x - f.x) > 700 || Math.abs(P.y - f.y) > 400) { P.x = f.x - f.face * 40; P.y = f.y; } // bị bỏ xa: dịch chuyển về cạnh chủ
+    const d = goal - P.x, spd = Math.max(280, f.spd * 1.3);
+    if (Math.abs(d) > 6) { P.x += Math.sign(d) * Math.min(Math.abs(d), spd * dt); P.face = d > 0 ? 1 : -1; }
+    P.x = clamp(P.x, 40, this.M.w - 40);
+    const g = this.fY(P.x, Math.max(f.y, P.y - 40)); P.y += (g - P.y) * Math.min(1, dt * 12);
+    P.air = f.air && Math.abs(P.x - f.x) < 140 ? 1 : 0;
+    if (m) {
+      P.face = m.x >= P.x ? 1 : -1;
+      const close = Math.abs(m.x - P.x) < m.t.r + 46 && Math.abs(m.y - P.y) < 140;
+      const ready = R.PET_SK_LV.map((L, i) => p.lv >= L && P.sk[i] <= 0), i = ready.lastIndexOf(true);
+      if (i >= 0 && Math.abs(m.x - P.x) < 420) { P.sk[i] = R.PET_SK_CD[i]; this.petSkill(c, P, m, i); }
+      else if (close && P.cd <= 0) { P.cd = 1.3 / P.st.aspd; P.act = 1; P.actT = .35; this.hitMon(c, m, P.st.atk, { pet: P.st.crit, kb: 30 }); this.ev.push(['pa', c.id, m.id]); }
+      // quái đang đánh chủ ở gần pet thì pet cũng bị thương
+      if ((P.hurtT -= dt) <= 0) { P.hurtT = 1.2; let dmg = 0;
+        for (const q of this.mons) if (!q.dead && q.tgt === c.id && Math.abs(q.x - P.x) < q.t.range + 40 && Math.abs(q.y - P.y) < 120) dmg += Math.max(1, q.atk * .55 - P.st.def * .5);
+        if (dmg > 0) { P.hp -= Math.round(dmg); if (P.hp <= 0) { P.hp = 0; P.faint = R.PET_REVIVE; this.ev.push(['pf', c.id]); this.h.log(c, P.name + ' bị ngất! Tự hồi sinh sau 1 phút.', '#ff9a7a'); } } }
+    } else if (P.hp < P.maxHp) P.hp = Math.min(P.maxHp, P.hp + P.maxHp * .03 * dt);
+  }
+  petSkill(c, P, m, i) {
+    const f = c.f, A = P.st.atk, el = R.PET_SP[P.sp].el, hit = (q, k, o) => { if (!q.dead) this.hitMon(c, q, A * k, { pet: P.st.crit, kb: 60 }); if (o) this.status(q, { ...o, by: c.id }); };
+    const near = (x, r) => this.mons.filter(q => !q.dead && Math.abs(q.x - x) < r + q.t.r && Math.abs(q.y - m.y) < 160);
+    P.act = 2; P.actT = .7;
+    this.ev.push(['ps', c.id, i, Math.round(m.x), Math.round(m.y), m.id]);
+    const T = (t, fn) => this.later(t, () => { if (this.players.has(c.id) && c.pet === P) fn(); });
+    if (P.sp === 'fire') {
+      if (i === 0) T(.45, () => hit(m, 2.2));
+      else if (i === 1) T(.35, () => { for (const q of near(P.x + P.face * 110, 130)) hit(q, 1.6, { pois: [3, A * .3] }); });
+      else T(.6, () => { for (const q of near(m.x, 220)) hit(q, 4); });
+    } else if (P.sp === 'ice') {
+      if (i === 0) T(.4, () => hit(m, 2, { slow: 2 }));
+      else if (i === 1) T(.4, () => { for (const q of near(m.x, 160)) hit(q, 1.4, { stun: 1.6 }); });
+      else T(.5, () => { for (const q of near(P.x, 280)) hit(q, 3.2, { slow: 3 }); });
+    } else if (P.sp === 'wolf') {
+      if (i === 0) { const L = near(m.x, 320).slice(0, 3); L.forEach((q, k) => T(.25 + k * .15, () => hit(q, 1.6))); }
+      else if (i === 1) { P.x = m.x - P.face * (m.t.r * .6); T(.2, () => hit(m, 2.2, { stun: 1.2 })); }
+      else { const L = near(m.x, 420).slice(0, 6); L.forEach((q, k) => T(.3 + k * .12, () => hit(q, 3))); }
+    } else {
+      if (i === 0) { f.buffs = f.buffs.filter(b => b.id !== 'petshield'); f.buffs.push({ id: 'petshield', t: 6, max: 6, take: .7 }); c.meDirty = true; }
+      else if (i === 1) { const h = Math.round(f.maxHp * .15); if (f.dead <= 0) { f.hp = Math.min(f.maxHp, f.hp + h); this.ev.push(['ph', c.id, h]); c.meDirty = true; } P.hp = Math.min(P.maxHp, P.hp + P.maxHp * .3); }
+      else { f.buffs = f.buffs.filter(b => b.id !== 'petwall'); f.buffs.push({ id: 'petwall', t: 5, max: 5, take: .5 }); c.meDirty = true; }
+    }
+  }
   // ảnh chụp trạng thái gửi 10 lần/giây
   snap(extra) {
     const p = [];
@@ -487,7 +577,10 @@ export class MapInst {
     const m = [];
     for (const q of this.mons) m.push([q.id, Math.round(q.x), Math.round(q.y), Math.max(0, Math.round(q.hp)), q.face,
       (q.dead ? 1 : 0) | (q.stun > 0 ? 2 : 0) | (q.slow > 0 ? 4 : 0) | (q.pois ? 8 : 0) | (q.lunge > 0 ? 16 : 0) | (q.br ? 32 : 0) | (Math.abs(q.vx) > 12 ? 64 : 0) | (q.guard > 0 ? 128 : 0)]);
+    const q = [];
+    for (const c of this.players.values()) { const P = c.pet; if (!P || c.hidden) continue;
+      q.push([c.id, P.sp, P.stage, Math.round(P.x), Math.round(P.y), P.face, P.faint > 0 ? 3 : P.act, +(P.hp / P.maxHp).toFixed(2), P.name, P.lv, P.air ? 1 : 0]); }
     const ev = this.ev; this.ev = [];
-    return { t: 'snap', tk: this.tk, p, m, e: ev };
+    return { t: 'snap', tk: this.tk, p, m, q, e: ev };
   }
 }

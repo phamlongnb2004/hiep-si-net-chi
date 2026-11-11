@@ -27,6 +27,7 @@ var my_id = 0
 var staff = ""                # vai trò quản trị của tài khoản này (rỗng = người chơi)
 var me_data: Dictionary = {}     # tin 'me' (chỉ số, túi đồ...) do máy chủ gửi
 var heroes = {}                 # id -> Hero (người khác)
+var pets = {}                   # id chủ -> Pet (cả pet của mình)
 var mons = {}                   # id -> Mon
 var drops = {}                  # id -> Drop
 var mi = -1
@@ -158,6 +159,8 @@ func _set_me(d: Dictionary, full: bool) -> void:
 	me.nm = str(me_data.get("name", ""))
 	me.lv = int(me_data.get("lv", 1))
 	me.dead = int(me_data.get("dead", 0)) == 1
+	if world:
+		world.hatch = me_data.get("hatch") if me_data.get("hatch") is Dictionary else null
 	var sc: Array = me_data.get("cds", [])
 	for i in mini(6, sc.size()):
 		cds[i] = float(sc[i])
@@ -186,7 +189,8 @@ func _build_map(m: Dictionary) -> void:
 	for h in heroes.values(): h.queue_free()
 	for x in mons.values(): x.queue_free()
 	for x in drops.values(): x.queue_free()
-	heroes.clear(); mons.clear(); drops.clear()
+	for x in pets.values(): x.queue_free()
+	heroes.clear(); mons.clear(); drops.clear(); pets.clear()
 	fx.projs.clear(); fx.sprs.clear(); fx.breaths.clear()
 	for info in m.mons:
 		var mo = Mon.new()
@@ -262,8 +266,44 @@ func _snap(m: Dictionary) -> void:
 		mo.flags = int(q[5])
 		if mo.br_t < 0:
 			mo.face = int(q[4])
+	var pseen = {}
+	for q in m.get("q", []):
+		var oid = int(q[0])
+		pseen[oid] = true
+		var pt: Pet = pets.get(oid)
+		if pt == null:
+			pt = Pet.new()
+			pt.setup(q)
+			pt.mine = oid == my_id
+			ents.add_child(pt)
+			pets[oid] = pt
+		else:
+			pt.apply(q)
+	for oid in pets.keys():
+		if not pseen.has(oid):
+			pets[oid].queue_free()
+			pets.erase(oid)
 	for e in m.e:
 		_event(e)
+
+const PET_EL := {"fire": "fire", "ice": "ice", "wolf": "thunder", "turtle": "jade"}
+const PET_FX := {"fire": ["pf_fireball", "pf_firecone", "pf_fireult"], "ice": ["pf_iceshard", "pf_blizzard", "pf_iceult"],
+	"wolf": ["pf_chain", "pf_strike", "pf_thunderult"], "turtle": ["pf_shield", "pf_heal", "pf_jadeult"]}
+## hiệu ứng chiêu pet (vẽ riêng, đè lên động tác xuất chiêu của thân)
+func _pet_skill(p: Pet, i: int, at: Vector2) -> void:
+	var nmx: String = PET_FX.get(p.sp, PET_FX.fire)[clampi(i, 0, 2)]
+	var flip = at.x < p.position.x
+	if p.sp == "turtle":
+		var o = _who(p.owner_id)
+		var op: Vector2 = o.position if o else p.position
+		fx.vfx(nmx, op + Vector2(0, -30), 150 if i < 2 else 200)
+		return
+	if p.sp == "fire" and i == 1 or p.sp == "ice" and i == 2:
+		fx.vfx(nmx, p.position + Vector2(-110 if flip else 110, -30), 170, flip)
+	else:
+		fx.vfx(nmx, at + Vector2(0, -40), 150 if i < 2 else 230, flip)
+	if i == 2 and me and absf(at.x - me.position.x) < 600:
+		fx.shake = max(fx.shake, 0.15)
 
 func _who(id: int) -> Node2D:
 	return me if id == my_id else heroes.get(id)
@@ -305,6 +345,27 @@ func _event(e: Array) -> void:
 			if w4 and int(e[1]) != my_id:
 				_swing(w4)
 				fx.skill(w4.cls, int(e[2]), w4, float(e[3]), mons.get(int(e[4])), w4.face)
+		"pa":  # pet đánh thường: chủ, quái
+			var pa: Pet = pets.get(int(e[1]))
+			var pm: Mon = mons.get(int(e[2]))
+			if pa:
+				pa.play("atk", 0.35)
+				if pm:
+					fx.vfx("hit_" + PET_EL.get(pa.sp, "fire"), pm.position + Vector2(0, -pm.hh() * 0.45 - pm.lift()), 70, pm.position.x < pa.position.x)
+		"ps":  # pet xuất chiêu: chủ, số chiêu, x, y, quái
+			var ps: Pet = pets.get(int(e[1]))
+			if ps:
+				ps.play("cast", 0.7)
+				_pet_skill(ps, int(e[2]), Vector2(e[3], e[4]))
+		"plv":  # pet lên cấp (e[3] = 1: tiến hóa)
+			var pl: Pet = pets.get(int(e[1]))
+			if pl:
+				fx.vfx("pf_levelup", pl.position + Vector2(0, -20), 120)
+				fx.text(pl.position + Vector2(0, -pl.height() - 30), "Tiến hóa!" if int(e[3]) == 1 else "Lên cấp %d" % int(e[2]), Color("7dffb0"), true)
+		"pf":  # pet ngất
+			var pf: Pet = pets.get(int(e[1]))
+			if pf:
+				fx.text(pf.position + Vector2(0, -pf.height() - 20), "Ngất!", Color("ff9a7a"), int(e[1]) == my_id)
 		"nm":  # quái mới (quản trị gọi ra)
 			if e[1] is Dictionary and not mons.has(int(e[1].id)):
 				var nmo = Mon.new()

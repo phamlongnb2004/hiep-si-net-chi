@@ -13,6 +13,11 @@ var gear_grp = 0      # 0: mũ áo choàng vũ khí; 1: giày, găng, dây chuy�
 var body: VBoxContainer
 var title: Label
 var tabs: HBoxContainer
+var timer_lb: Label = null   # đếm ngược trứng đang ấp
+var free_arm = ""            # pet đang chờ xác nhận thả (bước 2)
+var free_at = 0.0
+var free_btn: Button = null
+var name_edit = ""           # pet đang mở ô đổi tên
 
 func setup(g: Game) -> void:
 	game = g
@@ -47,15 +52,17 @@ func setup(g: Game) -> void:
 	body = UI.vbox(8)
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(body)
-	g.me_changed.connect(func(): if visible: render())
+	g.me_changed.connect(func(): if visible and name_edit == "" and free_arm == "": render())
 	Net.message.connect(func(m):
-		if visible and m.get("t") == "res" and m.get("op") in ["forge", "book", "learn", "buypot", "shopbuy"] and m.get("msg"):
+		if visible and m.get("t") == "res" and m.get("op") in ["forge", "book", "learn", "buypot", "shopbuy", "hatch_start", "hatch_cut", "hatch_open", "pet_on", "pet_name", "pet_free"] and m.get("msg"):
 			msg = str(m.msg); msg_ok = bool(m.get("ok", false)) and int(m.get("win", 1)) == 1; render())
 	visible = false
 
 func open(id: String) -> void:
-	mode = id if id in ["shop", "gear"] else "forge"
-	tab = {"shop": "books", "gear": "gear"}.get(mode, "forge")
+	mode = id if id in ["shop", "gear"] else ("egg" if id in ["egg", "pets"] else "forge")
+	tab = {"shop": "books", "gear": "gear", "egg": "pets" if id == "pets" else "hatch"}.get(mode, "forge")
+	free_arm = ""
+	name_edit = ""
 	msg = ""
 	fit = {}
 	visible = true
@@ -70,7 +77,15 @@ func render() -> void:
 	var d = game.me_data
 	if d.is_empty():
 		return
-	title.text = {"shop": "Thương Nhân Bảo", "gear": "Thương Nhân Giáp"}.get(mode, "Thợ Rèn Cương")
+	timer_lb = null
+	free_btn = null
+	title.text = {"shop": "Thương Nhân Bảo", "gear": "Thương Nhân Giáp", "egg": "Bà Ấp Trứng"}.get(mode, "Thợ Rèn Cương")
+	if mode == "egg":
+		for k in [["hatch", "Ấp trứng"], ["pets", "Chuồng pet"]]:
+			var be = UI.button(k[1], UI.GOLD if tab == k[0] else UI.SKY, 18)
+			var ke: String = k[0]
+			be.pressed.connect(func(): tab = ke; msg = ""; free_arm = ""; render())
+			tabs.add_child(be)
 	if mode == "gear":
 		for c in Data.CLS_KEYS:
 			var b2 = UI.button(str(Data.D.cls[c].n), UI.GOLD if gear_cls == c else UI.SKY, 16)
@@ -96,6 +111,8 @@ func render() -> void:
 		"pots": _pots(d)
 		"forge": _forge(d)
 		"gear": _gear(d)
+		"hatch": _hatch(d)
+		"pets": _pets(d)
 
 func _row(no: String, h: String, p: String, small: String, btn: Button) -> void:
 	var r = PanelContainer.new()
@@ -258,3 +275,196 @@ func _shop_item(c: String, slot: String, r: int, lvl: int) -> Dictionary:
 	if slot in Data.FREE:
 		return {"id": "", "slot": slot, "cls": "", "tier": r, "r": r, "lvl": lvl, "b": Data.band(lvl), "name": Data.gen_name(slot, c, r, lvl), "st": st, "shop": 1}
 	return {"id": "", "slot": slot, "cls": c, "tier": r, "r": r, "lvl": lvl, "b": Data.band(lvl), "name": Data.gen_name(slot, c, r, lvl), "st": st, "shop": 1}
+
+## ---------- Bà Ấp Trứng: ấp 24 giờ, trả vàng rút ngắn một nửa (1 lần), nở thành pet ----------
+const STAGE_N := ["Non", "Trưởng thành", "Thần thú"]
+const PST := [["hp", "Máu"], ["atk", "Sức đánh"], ["def", "Giáp"], ["aspd", "Tốc đánh"], ["crit", "Chí mạng"]]
+const SP_N := {"fire": "Rồng Lửa", "ice": "Cáo Băng", "wolf": "Sói Sấm", "turtle": "Rùa Ngọc"}
+const SP_SK := {"fire": ["Phóng Cầu Lửa", "Phun Lửa", "Hỏa Long Giáng Thế"], "ice": ["Băng Tiễn", "Gió Tuyết", "Bão Băng Chín Đuôi"],
+	"wolf": ["Tia Chớp", "Lôi Độn", "Thiên Lôi Giáng"], "turtle": ["Khiên Ngọc", "Suối Hồi Phục", "Thành Đồng Vách Sắt"]}
+const SK_LV := [10, 40, 80]
+
+func _process(_dt: float) -> void:
+	if not visible:
+		return
+	if timer_lb and game.me_data.get("hatch") is Dictionary:
+		timer_lb.text = _left_text(game.me_data.hatch)
+	if free_btn:
+		var w = free_at - Time.get_ticks_msec() / 1000.0
+		free_btn.disabled = w > 0
+		free_btn.text = "Thả vĩnh viễn (%d)" % ceili(w) if w > 0 else "Thả vĩnh viễn"
+
+func _left_text(h: Dictionary) -> String:
+	var left = (float(h.end) - Data.now_ms()) / 1000.0
+	if left <= 0:
+		return "Trứng đã sẵn sàng nở!"
+	return "Còn %02d:%02d:%02d" % [int(left / 3600), int(left / 60) % 60, int(left) % 60]
+
+func _egg_tex(sp: String) -> Texture2D:
+	return Data.tex(Data.A.get("egg", {}).get(sp, {}).get("icon", ""))
+
+func _pet_tex(sp: String, stage: int) -> Texture2D:
+	var L: Array = Data.A.get("pet", {}).get(sp, [])
+	if L.is_empty():
+		return null
+	var a: Dictionary = L[clampi(stage, 0, L.size() - 1)].a
+	var fr: Array = a.get("idle", [])
+	return Data.tex(fr[0]) if not fr.is_empty() else null
+
+func _pic(tx: Texture2D, sz: float) -> TextureRect:
+	var t = TextureRect.new()
+	t.texture = tx
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.custom_minimum_size = Vector2(sz, sz)
+	return t
+
+func _hatch(d: Dictionary) -> void:
+	var pets: Array = d.get("pets", [])
+	body.add_child(UI.label("Mang Trứng Thần Thú (rơi khi kết liễu Ma Long Hắc Vực) tới đây để ấp. Mỗi lần ấp 1 quả, nở sau 24 giờ. Chuồng chứa tối đa 3 pet.", 15, Color("5a6b8c"), "body"))
+	var h = d.get("hatch")
+	if h is Dictionary:
+		var hb = UI.hbox(16)
+		body.add_child(hb)
+		hb.add_child(_pic(_egg_tex(str(h.sp)), 120))
+		var v = UI.vbox(8)
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(v)
+		v.add_child(UI.label("Đang ấp: Trứng " + str(SP_N.get(str(h.sp), "")), 22, UI.INK, "bold"))
+		timer_lb = UI.label(_left_text(h), 26, Color("b85c00"), "title")
+		v.add_child(timer_lb)
+		var ready = float(h.end) <= Data.now_ms()
+		if ready:
+			var bo = UI.button("Nở", UI.GREEN, 22)
+			bo.custom_minimum_size = Vector2(200, 56)
+			bo.disabled = pets.size() >= 3
+			bo.pressed.connect(func(): Net.send({"t": "hatch_open"}))
+			v.add_child(bo)
+			if pets.size() >= 3:
+				v.add_child(UI.label("Chuồng đã đủ 3 pet, hãy thả bớt một pet.", 15, Color("d9345a"), "semi"))
+		else:
+			var cut = int(h.get("cut", 0)) == 1
+			var bc = UI.button("Đã rút ngắn" if cut else "Rút ngắn một nửa · 2.000.000 vàng", UI.GREY if cut else UI.GOLD, 18)
+			bc.custom_minimum_size = Vector2(340, 52)
+			bc.disabled = cut or int(d.gold) < 2000000
+			bc.pressed.connect(func(): Net.send({"t": "hatch_cut"}))
+			v.add_child(bc)
+			v.add_child(UI.label("Mỗi quả trứng chỉ được rút ngắn 1 lần, không nở ngay được.", 14, Color("5a6b8c"), "semi"))
+		return
+	var eggs: Array = []
+	for it in d.inv:
+		if str(it.get("slot", "")) == "egg":
+			eggs.append(it)
+	if eggs.is_empty():
+		body.add_child(UI.label("Bạn chưa có trứng nào. Hạ Ma Long Hắc Vực (xuất hiện khoảng 30 phút một lần ở các bản đồ săn quái) bằng đòn cuối để nhận trứng, hoặc giao dịch với người chơi khác.", 17, UI.INK, "body"))
+		return
+	for it in eggs:
+		var b = UI.button("Ấp trứng này", UI.GREEN, 18)
+		b.disabled = pets.size() >= 3
+		var eid = it.id
+		b.pressed.connect(func(): Net.send({"t": "hatch_start", "id": eid}))
+		var r = PanelContainer.new()
+		r.add_theme_stylebox_override("panel", UI.box(Color.WHITE, Color("b8c4dc"), 12, 2, false))
+		var hb2 = UI.hbox(12)
+		r.add_child(hb2)
+		hb2.add_child(_pic(_egg_tex(str(it.sp)), 72))
+		var mid = UI.vbox(2)
+		mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mid.add_child(UI.label(str(it.name), 20, UI.INK, "bold"))
+		mid.add_child(UI.label("Nở thành " + str(SP_N.get(str(it.sp), "")) + " · sao (tư chất) ngẫu nhiên 1–5", 14, Color("5a6b8c"), "semi"))
+		hb2.add_child(mid)
+		b.custom_minimum_size = Vector2(170, 50)
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hb2.add_child(b)
+		body.add_child(r)
+
+func _pets(d: Dictionary) -> void:
+	var pets: Array = d.get("pets", [])
+	body.add_child(UI.label("Pet ra trận đi theo bạn, tự đánh quái và nhận kinh nghiệm (bạn được thêm 10%%). Mỗi cấp pet được 3 điểm chỉ số ngẫu nhiên. Chuồng %d / 3." % pets.size(), 15, Color("5a6b8c"), "body"))
+	if pets.is_empty():
+		body.add_child(UI.label("Chưa có pet. Ấp Trứng Thần Thú ở Bà Ấp Trứng trong Làng.", 17, UI.INK, "body"))
+		return
+	var on = str(d.get("petOn", ""))
+	var rt: Dictionary = d.get("pet", {}) if d.get("pet") is Dictionary else {}
+	for p in pets:
+		var pid = str(p.id)
+		var sp = str(p.sp)
+		var stg = int(p.get("stage", 0))
+		var r = PanelContainer.new()
+		r.add_theme_stylebox_override("panel", UI.box(Color("fffbe9") if pid == on else Color.WHITE, Color("e0a400") if pid == on else Color("b8c4dc"), 12, 3 if pid == on else 2, false))
+		body.add_child(r)
+		var hb = UI.hbox(14)
+		r.add_child(hb)
+		hb.add_child(_pic(_pet_tex(sp, stg), 110))
+		var v = UI.vbox(3)
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(v)
+		v.add_child(UI.label("%s  %s" % [str(p.name), "★".repeat(int(p.star)) + "☆".repeat(5 - int(p.star))], 22, UI.INK, "bold"))
+		var st_line = "%s · Lv.%d · %s · Kinh nghiệm %s / %s" % [SP_N.get(sp, ""), int(p.lv), STAGE_N[clampi(stg, 0, 2)], UI.fmt(int(p.exp)), UI.fmt(int(p.get("need", 0)))]
+		v.add_child(UI.label(st_line, 14, Color("5a6b8c"), "semi"))
+		if pid == on and not rt.is_empty():
+			if int(rt.get("faint", 0)) > 0:
+				v.add_child(UI.label("Đang ngất · tự hồi sinh sau khoảng %d giây" % int(rt.faint), 14, Color("d9345a"), "semi"))
+			else:
+				v.add_child(UI.label("Máu %d / %d" % [int(rt.hp), int(rt.maxHp)], 14, Color("2fa84f"), "semi"))
+		var S: Dictionary = p.get("st", {})
+		var pt: Dictionary = p.get("pt", {})
+		var vals = {"hp": str(int(S.get("maxHp", 0))), "atk": str(snapped(float(S.get("atk", 0)), 0.1)), "def": str(snapped(float(S.get("def", 0)), 0.1)),
+			"aspd": "x%s" % str(snapped(float(S.get("aspd", 1)), 0.01)), "crit": "%d%%" % int(round(float(S.get("crit", 0)) * 100))}
+		var g = GridContainer.new()
+		g.columns = 5
+		g.add_theme_constant_override("h_separation", 18)
+		v.add_child(g)
+		for k in PST:
+			g.add_child(UI.label("%s %s (%d điểm)" % [k[1], vals[k[0]], int(pt.get(k[0], 0))], 13, UI.INK, "semi"))
+		var sks: Array = SP_SK.get(sp, [])
+		var sk_t = []
+		for i in 3:
+			sk_t.append(("✔ " + str(sks[i])) if int(p.lv) >= SK_LV[i] else (str(sks[i]) + " (mở ở cấp %d)" % SK_LV[i]))
+		v.add_child(UI.label("Kỹ năng: " + "  ·  ".join(sk_t), 13, Color("3d4a66"), "semi"))
+		var row = UI.hbox(8)
+		v.add_child(row)
+		var bo = UI.button("Cất về chuồng" if pid == on else "Ra trận", UI.SKY if pid == on else UI.GREEN, 16)
+		bo.pressed.connect(func(): Net.send({"t": "pet_on", "id": pid}))
+		row.add_child(bo)
+		if int(p.get("rn", 0)) == 0:
+			var bn = UI.button("Đổi tên (miễn phí 1 lần)", UI.GOLD, 16)
+			bn.pressed.connect(func(): name_edit = "" if name_edit == pid else pid; free_arm = ""; render())
+			row.add_child(bn)
+		var bf = UI.button("Thả pet", UI.RED, 16)
+		bf.pressed.connect(func(): free_arm = "" if free_arm == pid else pid; free_at = Time.get_ticks_msec() / 1000.0 + 3.0; name_edit = ""; render())
+		row.add_child(bf)
+		if name_edit == pid:
+			var nr = UI.hbox(8)
+			v.add_child(nr)
+			var le = LineEdit.new()
+			le.placeholder_text = "Tên mới (2–12 ký tự)"
+			le.max_length = 12
+			le.custom_minimum_size = Vector2(260, 44)
+			nr.add_child(le)
+			var ok = UI.button("Lưu tên", UI.GREEN, 16)
+			ok.pressed.connect(func(): Net.send({"t": "pet_name", "id": pid, "name": le.text.strip_edges()}); name_edit = "")
+			nr.add_child(ok)
+			nr.add_child(UI.label("Chỉ đổi được 1 lần.", 13, Color("b85c00"), "semi"))
+		if free_arm == pid:
+			var fr = UI.vbox(6)
+			v.add_child(fr)
+			fr.add_child(UI.label("Thả pet là XÓA VĨNH VIỄN, không lấy lại được. Đồ pet đang đeo trả về túi.", 15, Color("d9345a"), "bold"))
+			var fr2 = UI.hbox(8)
+			fr.add_child(fr2)
+			var le2 = LineEdit.new()
+			le2.placeholder_text = "Nhập đúng tên: " + str(p.name)
+			le2.custom_minimum_size = Vector2(300, 44)
+			fr2.add_child(le2)
+			var bx = UI.button("Thả vĩnh viễn (3)", UI.RED, 16)
+			bx.disabled = true
+			free_btn = bx
+			var pname = str(p.name)
+			bx.pressed.connect(func():
+				if le2.text.strip_edges() != pname:
+					msg = "Tên chưa đúng, nhập đúng \"%s\" để thả." % pname; msg_ok = false; render(); return
+				Net.send({"t": "pet_free", "id": pid, "confirm": le2.text.strip_edges()}); free_arm = "")
+			fr2.add_child(bx)
+			var bc = UI.button("Hủy", UI.GREY, 16)
+			bc.pressed.connect(func(): free_arm = ""; render())
+			fr2.add_child(bc)

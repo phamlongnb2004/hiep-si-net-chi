@@ -218,6 +218,10 @@ func setup(g: Game) -> void:
 	fr_badge = UI.outlined("", 14, Color("ff5d7d"), "bold", 5)
 	fr_badge.position = Vector2(38, -4)
 	fr_b.add_child(fr_badge)
+	var pet_b = UI.icon_button(Data.tex(Data.A.get("egg", {}).get("fire", {}).get("icon", "")), 58)
+	pet_b.tooltip_text = "Pet"
+	pet_b.pressed.connect(func(): g.open_npc.emit("pets"))
+	tbtn.add_child(pet_b)
 	var menu_b = UI.icon_button(Data.tex(H.ui.get("menu", "")), 58)
 	menu_b.pressed.connect(func(): g.get_parent().open_menu())
 	tbtn.add_child(menu_b)

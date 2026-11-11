@@ -267,7 +267,23 @@
   }
  ],
  "forge": {
-  "rate": [95, 85, 75, 65, 55, 45, 36, 28, 21, 15, 10, 7, 5, 3, 2],
+  "rate": [
+   95,
+   85,
+   75,
+   65,
+   55,
+   45,
+   36,
+   28,
+   21,
+   15,
+   10,
+   7,
+   5,
+   3,
+   2
+  ],
   "max": 15
  },
  "sets": {
@@ -1196,6 +1212,128 @@
    "art": "wolf3",
    "sc": 2.0,
    "tint": "cfe8ff"
+  },
+  "malong": {
+   "n": "Ma Long Hắc Vực",
+   "kind": "malong",
+   "art": "malong",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 9000,
+   "gold": [
+    1500,
+    2500
+   ],
+   "aggro": 700,
+   "cd": 1.6,
+   "drop": 1,
+   "boss": true,
+   "world": true,
+   "hpm": 400,
+   "atkm": 3,
+   "defm": 2.5,
+   "r": 110,
+   "h": 293.8,
+   "range": 150,
+   "spd": 70,
+   "skcd": [
+    3.2,
+    4.8
+   ],
+   "afx": "ml_claw",
+   "sk": [
+    {
+     "k": "slam",
+     "n": "Cào Xé",
+     "a": "claw",
+     "wind": 0.7,
+     "len": 260,
+     "m": 1.4,
+     "kb": 160,
+     "fx": "ml_claw"
+    },
+    {
+     "k": "sweep",
+     "n": "Giậm Đất",
+     "a": "slam",
+     "wind": 0.9,
+     "r": 420,
+     "m": 1.8,
+     "fx": "ml_slam"
+    },
+    {
+     "k": "cone",
+     "n": "Hơi Thở Lửa",
+     "a": "breath",
+     "wind": 0.8,
+     "len": 520,
+     "m": 1.5,
+     "pois": [
+      4,
+      0.25
+     ],
+     "zone": 3,
+     "fx": "ml_breath",
+     "zfx": "st_burn"
+    },
+    {
+     "k": "rain",
+     "n": "Mưa Thiên Thạch",
+     "a": "roar",
+     "wind": 1.0,
+     "cnt": 8,
+     "r": 90,
+     "m": 1.6,
+     "fx": "ml_meteor",
+     "ph": 2
+    },
+    {
+     "k": "summon",
+     "n": "Triệu Hồi",
+     "a": "roar",
+     "wind": 0.8,
+     "mon": "dragonling",
+     "fx": "ml_portal",
+     "cnt": 4,
+     "ph": 2
+    },
+    {
+     "k": "pull",
+     "n": "Long Nộ Diệt Thế",
+     "a": "ult",
+     "wind": 1.2,
+     "r": 520,
+     "t": 2.4,
+     "every": 0.4,
+     "pull": 90,
+     "m": 0.9,
+     "fx": "ml_ult",
+     "ph": 3
+    }
+   ]
+  },
+  "dragonling": {
+   "n": "Rồng Con",
+   "kind": "malong",
+   "art": "dragonling",
+   "hp": 0,
+   "atk": 0,
+   "def": 0,
+   "exp": 0,
+   "gold": [
+    0,
+    0
+   ],
+   "aggro": 420,
+   "cd": 1.3,
+   "drop": 0,
+   "boss": false,
+   "r": 30,
+   "h": 75.0,
+   "range": 60,
+   "spd": 120,
+   "afx": "ml_claw"
   }
  },
  "maps": [
@@ -1239,6 +1377,13 @@
      "y": 600,
      "name": "Thương Nhân Giáp",
      "role": "Bán trang bị mọi phái"
+    },
+    {
+     "id": "egg",
+     "x": 1070,
+     "y": 600,
+     "name": "Bà Ấp Trứng",
+     "role": "Ấp trứng · Chuồng pet"
     }
    ],
    "portals": [

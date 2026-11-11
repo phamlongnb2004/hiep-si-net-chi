@@ -14,7 +14,7 @@ const NOUN := {
 	"fighter": {"hat": "Khăn Đầu", "armor": "Võ Phục", "cape": "Khăn Choàng", "weapon": "Găng Vuốt"}}
 const NOUN2 := {"sword": ["Giày Sắt", "Găng Sắt"], "archer": ["Giày Lá", "Bao Tay Cung"], "mage": ["Hài Phép", "Găng Phép"], "fighter": ["Giày Võ", "Bao Tay Võ"]}
 const SLOTS := ["hat", "armor", "cape", "weapon", "boots", "gloves", "neck", "wing", "ring", "earring", "belt", "charm"]
-const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh", "ring": "Nhẫn", "earring": "Khuyên tai", "belt": "Đai lưng", "charm": "Bùa hộ mệnh"}
+const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh", "ring": "Nhẫn", "earring": "Khuyên tai", "belt": "Đai lưng", "charm": "Bùa hộ mệnh", "egg": "Trứng"}
 const FREE := ["neck", "wing", "ring", "earring", "belt", "charm"]   # trang sức, cánh: mọi phái đều dùng được
 const ACC_NAME := {"neck": ["Dây Chuyền Đồng", "Dây Chuyền Lam Ngọc", "Dây Chuyền Tử Tinh", "Dây Chuyền Thái Dương"], "wing": ["Cánh Thiên Thần", "Cánh Băng Tinh", "Cánh Ma Tinh", "Cánh Phượng Hoàng"]}
 ## đồ theo bậc cấp (giống shared/rules.js): 10 bậc, tên bộ theo phái + hậu tố độ hiếm
@@ -200,13 +200,15 @@ func rar_color(r: int) -> Color:
 	return Color.html(str(D.rar[clampi(r, 0, 3)].c))
 
 func item_name(it: Dictionary) -> String:
-	return ("+%d " % int(it.up) if int(it.get("up", 0)) > 0 else "") + str(it.name)
+	return ("+%d " % int(it.up) if int(it.get("up", 0)) > 0 else "") + str(it.get("name", ""))
 
 ## ảnh biểu tượng của một món đồ (theo phái, bộ, ô)
 func item_icon(it: Dictionary) -> Texture2D:
 	var g: Dictionary = A.get("gear", {})
 	var c = str(it.get("cls", ""))
 	var sl = str(it.get("slot", ""))
+	if sl == "egg":
+		return tex(A.get("egg", {}).get(str(it.get("sp", "fire")), {}).get("icon", ""))
 	# đồ theo bậc cấp (có trường b): ảnh riêng theo bậc
 	if it.has("b") and sl != "wing":
 		var b = clampi(int(it.b), 0, 9)

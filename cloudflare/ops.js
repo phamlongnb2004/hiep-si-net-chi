@@ -11,7 +11,8 @@ const ORD = { weapon: 0, armor: 1, hat: 2, cape: 3, gloves: 4, boots: 5, neck: 6
 export const OPS = {
   equip(c, m) {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
-    const it = ch.inv[i]; if (!own(ch, it)) return { ok: false, msg: 'Không cùng phái.' };
+    const it = ch.inv[i]; if (it.slot === 'egg') return { ok: false, msg: 'Mang trứng tới Bà Ấp Trứng trong Làng để ấp.' };
+    if (!own(ch, it)) return { ok: false, msg: 'Không cùng phái.' };
     if (ch.lv < R.reqLv(it)) return { ok: false, msg: 'Cần đạt cấp ' + R.reqLv(it) + ' để mặc món này.' };
     const old = ch.eq[it.slot]; ch.eq[it.slot] = it; ch.inv.splice(i, 1); if (old) ch.inv.push(old);
     refreshStats(c.f, ch, true); return { ok: true };
@@ -23,6 +24,7 @@ export const OPS = {
   },
   sell(c, m) {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
+    if (ch.inv[i].slot === 'egg') return { ok: false, msg: 'Không bán được trứng cho cửa hàng.' };
     const g = R.sellPrice(ch.inv[i]); ch.gold += g; ch.inv.splice(i, 1); return { ok: true, gold: g };
   },
   sort(c) {
@@ -80,7 +82,7 @@ export const OPS = {
     let it = null, eq = false;
     if (m.slot && R.SLOTS.includes(m.slot) && ch.eq[m.slot] && (m.id == null || String(ch.eq[m.slot].id) === String(m.id))) { it = ch.eq[m.slot]; eq = true; }
     else { const i = findInv(ch, m.id); if (i >= 0) it = ch.inv[i]; }
-    if (!it) return { ok: false, msg: 'Không có món này.' };
+    if (!it || it.slot === 'egg') return { ok: false, msg: 'Không có món này.' };
     const f = R.forgeInfo(it);
     if ((it.up || 0) >= D.forge.max) return { ok: false, msg: 'Đã rèn tối đa.' };
     if (ch.gold < f.gold || ch.stones < f.stones) return { ok: false, msg: 'Thiếu vàng hoặc đá cường hóa.' };
@@ -90,5 +92,53 @@ export const OPS = {
     else { const d = Math.min(f.drop, it.up || 0); it.up = (it.up || 0) - d; res = { ok: true, win: 0, up: it.up, msg: 'Thất bại! Mất ' + f.stones + ' đá' + (d ? ' và tụt ' + d + ' cấp (còn +' + it.up + ')' : '') + '.' }; }
     if (eq) refreshStats(c.f, ch, true);
     return res;
+  },
+  /* ---------- Bà Ấp Trứng & pet (2.9.0) ---------- */
+  hatch_start(c, m) {
+    const ch = c.ch; if (!nearNpc(c, 'egg')) return { ok: false, msg: 'Hãy tới gần Bà Ấp Trứng trong Làng.' };
+    if (ch.hatch) return { ok: false, msg: 'Tổ ấp đang có trứng, mỗi lần chỉ ấp 1 quả.' };
+    if (ch.pets.length >= R.PET_MAX) return { ok: false, msg: 'Chuồng đã đủ ' + R.PET_MAX + ' pet. Thả bớt pet để ấp thêm.' };
+    const i = findInv(ch, m.id); if (i < 0 || ch.inv[i].slot !== 'egg') return { ok: false, msg: 'Không có quả trứng này.' };
+    const egg = ch.inv[i], now = Date.now(); ch.inv.splice(i, 1);
+    ch.hatch = { sp: egg.sp, start: now, end: now + R.HATCH_MS, cut: 0 };
+    return { ok: true, msg: 'Bắt đầu ấp ' + egg.name + '. Trứng nở sau 24 giờ.' };
+  },
+  hatch_cut(c) {
+    const ch = c.ch, h = ch.hatch; if (!nearNpc(c, 'egg')) return { ok: false, msg: 'Hãy tới gần Bà Ấp Trứng trong Làng.' };
+    if (!h) return { ok: false, msg: 'Chưa ấp trứng nào.' };
+    if (h.cut) return { ok: false, msg: 'Mỗi quả trứng chỉ được rút ngắn 1 lần.' };
+    const now = Date.now(), left = h.end - now; if (left <= 0) return { ok: false, msg: 'Trứng đã sẵn sàng nở.' };
+    if (ch.gold < R.HATCH_GOLD) return { ok: false, msg: 'Cần ' + R.HATCH_GOLD.toLocaleString('vi-VN') + ' vàng.' };
+    ch.gold -= R.HATCH_GOLD; h.end = now + Math.ceil(left * (1 - R.HATCH_CUT)); h.cut = 1;
+    return { ok: true, msg: 'Bà Ấp Trứng đã chúc phúc, thời gian ấp còn một nửa.' };
+  },
+  hatch_open(c) {
+    const ch = c.ch, h = ch.hatch; if (!nearNpc(c, 'egg')) return { ok: false, msg: 'Hãy tới gần Bà Ấp Trứng trong Làng.' };
+    if (!h) return { ok: false, msg: 'Chưa ấp trứng nào.' };
+    if (Date.now() < h.end) return { ok: false, msg: 'Trứng chưa nở.' };
+    if (ch.pets.length >= R.PET_MAX) return { ok: false, msg: 'Chuồng đã đủ ' + R.PET_MAX + ' pet.' };
+    const p = R.newPet(Math.random, h.sp, 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36));
+    ch.pets.push(p); ch.hatch = null; if (!ch.petOn) { ch.petOn = p.id; if (c.inst) c.inst.syncPet(c); }
+    return { ok: true, sp: p.sp, star: p.star, pid: p.id, msg: 'Trứng đã nở! Bạn nhận được ' + p.name + ' ' + p.star + ' sao.' };
+  },
+  pet_on(c, m) {
+    const ch = c.ch, id = String(m.id || '');
+    if (id && !ch.pets.some(p => p.id === id)) return { ok: false, msg: 'Không có pet này.' };
+    ch.petOn = id === ch.petOn ? '' : id; if (c.inst) c.inst.syncPet(c);
+    return { ok: true, msg: ch.petOn ? 'Pet đã ra trận.' : 'Đã cất pet.' };
+  },
+  pet_name(c, m) {
+    const ch = c.ch, p = ch.pets.find(q => q.id === String(m.id || '')); if (!p) return { ok: false, msg: 'Không có pet này.' };
+    if (p.rn) return { ok: false, msg: 'Mỗi pet chỉ được đổi tên miễn phí 1 lần.' };
+    if (!R.okPetName(m.name)) return { ok: false, msg: 'Tên dài 2–12 ký tự, chỉ gồm chữ, số, khoảng trắng.' };
+    p.name = m.name.trim(); p.rn = 1; if (c.inst) c.inst.syncPet(c, true);
+    return { ok: true, msg: 'Đã đổi tên thành ' + p.name + '.' };
+  },
+  pet_free(c, m) {
+    const ch = c.ch, i = ch.pets.findIndex(q => q.id === String(m.id || '')); if (i < 0) return { ok: false, msg: 'Không có pet này.' };
+    const p = ch.pets[i]; if (String(m.confirm || '').trim() !== p.name) return { ok: false, msg: 'Nhập đúng tên pet để xác nhận.' };
+    for (const k in p.eq) if (p.eq[k] && typeof p.eq[k] === 'object') ch.inv.push(p.eq[k]); // đồ pet trả về túi
+    ch.pets.splice(i, 1); if (ch.petOn === p.id) ch.petOn = ''; if (c.inst) c.inst.syncPet(c);
+    return { ok: true, msg: 'Đã thả ' + p.name + ' về tự nhiên.' };
   }
 };

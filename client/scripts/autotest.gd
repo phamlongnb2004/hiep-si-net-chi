@@ -44,6 +44,10 @@ func run() -> void:
 		await preview_jump()
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "pets":
+		await preview_pets()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_PREVIEW") == "climb":
 		await preview_climb()
 		get_tree().quit()
@@ -574,3 +578,102 @@ func preview_big() -> void:
 	for k in 4:
 		await wait(0.14)
 		await shot("big-%d" % k)
+
+
+## xem thử pet (4 loài x 3 giai đoạn, các động tác), Ma Long, bảng Bà Ấp Trứng (không cần máy chủ)
+func preview_pets() -> void:
+	var cv = CanvasLayer.new()
+	cv.layer = 100
+	get_tree().root.add_child(cv)
+	var bg = ColorRect.new()
+	bg.color = Color("2a3d5c")
+	bg.size = Vector2(1400, 900)
+	cv.add_child(bg)
+	var root = Node2D.new()
+	cv.add_child(root)
+	var sps = ["fire", "ice", "wolf", "turtle"]
+	var acts = [[0, ""], [0, "run"], [0, "atk"], [0, "cast"], [3, ""], [1, ""], [1, "cast"], [2, ""], [2, "cast"]]
+	var pets = []
+	for r in 4:
+		for c in acts.size():
+			var p = Pet.new()
+			var a = acts[c]
+			var st = a[0] if a[0] < 3 else 0
+			p.setup([r, sps[r], st, 70 + c * 120, 120 + r * 110, 1, 3 if a[0] == 3 else 0, 0.6, "Pet " + sps[r], [5, 45, 85][st], 0])
+			p.mine = r == 0
+			root.add_child(p)
+			pets.append([p, a[1]])
+	var ms = []
+	var x = 100
+	for an in ["idle", "claw", "breath", "ult", "die"]:
+		var m = Mon.new()
+		m.setup({"id": 900 + ms.size(), "type": "malong", "lv": 45, "hpMax": 1000, "hp": 500 if an != "idle" else 1000, "x": x, "y": 760})
+		m.scale = Vector2(0.5, 0.5)
+		root.add_child(m)
+		ms.append([m, an])
+		x += 230
+	var dl = Mon.new()
+	dl.setup({"id": 950, "type": "dragonling", "lv": 40, "hpMax": 100, "x": 1220, "y": 760})
+	root.add_child(dl)
+	for k in 3:
+		for q in pets:
+			if q[1] == "run":
+				q[0].target = q[0].position + Vector2(5, 0)
+			elif q[1] != "":
+				q[0].play(q[1], 0.9)
+				q[0].anim_t = 0.25 + k * 0.25
+		for q in ms:
+			if q[1] == "die":
+				q[0].flags = 1
+				q[0].die_t = 0.3 + k * 0.4
+			elif q[1] != "idle":
+				q[0].play(q[1], 1.2)
+				q[0].anim_t = 0.3 + k * 0.3
+		await wait(0.05)
+		await shot("pets-%d" % k)
+	# làng: Bà Ấp Trứng + tổ đang ấp (trứng đã sẵn sàng nở)
+	root.queue_free()
+	var vw = SubViewport.new()
+	vw.size = Vector2i(1400, 900)
+	var vc = SubViewportContainer.new()
+	vc.size = Vector2(1400, 900)
+	cv.add_child(vc)
+	vc.add_child(vw)
+	var cam = Camera2D.new()
+	cam.position = Vector2(1070, 420)
+	vw.add_child(cam)
+	cam.make_current()
+	var wd = World.new()
+	vw.add_child(wd)
+	wd.setup(0)
+	wd.hatch = {"sp": "fire", "end": Data.now_ms() - 1000}
+	wd.near_npc = "egg"
+	await wait(0.4)
+	await shot("pets-village")
+	vc.queue_free()
+	# bảng NPC (hiển thị bằng dữ liệu giả)
+	var g = Game.new()
+	var now = Data.now_ms()
+	g.me_data = {"lv": 50, "gold": 3000000, "stones": 3, "cls": "sword", "inv": [{"id": "e1", "slot": "egg", "sp": "ice", "name": "Trứng Cáo Băng", "r": 3, "lvl": 1, "st": {}}],
+		"eq": {}, "hatch": {"sp": "wolf", "start": now - 3600e3, "end": now + 5 * 3600e3, "cut": 0}, "petOn": "p1", "pet": {"hp": 300, "maxHp": 420, "faint": 0, "lv": 42},
+		"pets": [{"id": "p1", "sp": "fire", "name": "Lửa Nhỏ", "lv": 42, "exp": 1200, "need": 9000, "star": 4, "rn": 1, "stage": 1, "pt": {"hp": 20, "atk": 70, "def": 15, "aspd": 10, "crit": 11},
+			"st": {"maxHp": 1400, "atk": 160.2, "def": 40.1, "aspd": 1.14, "crit": 0.07}},
+			{"id": "p2", "sp": "turtle", "name": "Rùa Ngọc", "lv": 8, "exp": 50, "need": 400, "star": 1, "rn": 0, "stage": 0, "pt": {"hp": 14, "atk": 3, "def": 4, "aspd": 2, "crit": 1},
+			"st": {"maxHp": 300, "atk": 20.0, "def": 9.0, "aspd": 1.02, "crit": 0.03}}]}
+	var n = Npc.new()
+	cv.add_child(n)
+	n.setup(g)
+	n.open("pets")
+	n.free_arm = "p2"
+	n.free_at = Time.get_ticks_msec() / 1000.0 + 3.0
+	n.render()
+	await wait(0.3)
+	await shot("pets-npc1")
+	n.free_arm = ""
+	n.open("egg")
+	await wait(0.3)
+	await shot("pets-npc2")
+	g.me_data.hatch = null
+	n.render()
+	await wait(0.2)
+	await shot("pets-npc3")

@@ -21,7 +21,7 @@ static func make(it: Dictionary, selected := false, own := true, better := false
 		var g = GlowFrame.new()
 		g.up = up
 		p.add_child(g)
-	var lv = UI.label("Lv.%d" % int(it.get("lvl", 1)), 12, UI.INK, "bold")
+	var lv = UI.label("Trứng" if str(it.get("slot", "")) == "egg" else "Lv.%d" % int(it.get("lvl", 1)), 12, UI.INK, "bold")
 	lv.size_flags_vertical = Control.SIZE_SHRINK_END
 	lv.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	p.add_child(lv)

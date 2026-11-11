@@ -31,6 +31,7 @@ var cam_rect = Rect2(0, 0, 1280, 720)
 var near_npc = ""
 var rope_hint = Vector2.INF   # đứng cạnh dây/thang: hiện gợi ý bấm nhảy để leo
 var t = 0.0
+var hatch = null          # trứng đang ấp của mình (vẽ trên tổ cạnh Bà Ấp Trứng)
 
 ## lớp phủ phía trước: dưới nước (tia sáng, bong bóng), sương đầm lầy, hang tối
 class Overlay extends Node2D:
@@ -513,6 +514,9 @@ func _sign(d: Dictionary) -> void:
 	draw_string(f, Vector2(mx - t2 / 2, my + 12), n2, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("7a3b10"))
 
 func _npc(n: Dictionary) -> void:
+	if str(n.id) == "egg":
+		_npc_egg(n)
+		return
 	_spr("shop" if str(n.id) == "gear" else str(n.id), n.x, n.y + 5, DSC.npc, 0.95, Color(0.75, 0.88, 1.0) if str(n.id) == "gear" else Color.WHITE)
 	var f: Font = Data.fonts.get("bold")
 	var a = _ai("shop" if str(n.id) == "gear" else str(n.id))
@@ -526,6 +530,61 @@ func _npc(n: Dictionary) -> void:
 		draw_string(f, Vector2(n.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color("ffd23f") if i == 0 else Color.WHITE)
 	if near_npc == str(n.id):
 		var b = -top + n.y
+		draw_string_outline(f, Vector2(n.x - 40, top - 40 + sin(t * 4) * 3), "Bấm để nói chuyện", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, UI.INK)
+		draw_string(f, Vector2(n.x - 40, top - 40 + sin(t * 4) * 3), "Bấm để nói chuyện", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("9be05a"))
+
+## khung động tác từ assets.json (npc_egg, nest): trả ảnh theo thời gian
+func _anim_tex(a: Dictionary, act: String, fps: float, ofs: float) -> Texture2D:
+	var L: Array = a.get("a", {}).get(act, a.get("a", {}).get("idle", []))
+	if L.is_empty():
+		return null
+	return Data.tex(L[int(t * fps + ofs) % L.size()])
+
+## Bà Ấp Trứng: đứng cạnh tổ ấp; tổ sáng khi đang ấp trứng của mình, trứng lấp lánh khi đã sẵn sàng nở
+func _npc_egg(n: Dictionary) -> void:
+	var A: Dictionary = Data.A
+	var na: Dictionary = A.get("npc_egg", {})
+	var ne: Dictionary = A.get("nest", {})
+	var H := 140.0
+	if not ne.is_empty():
+		var nh := 62.0
+		var nw: float = nh * float(ne.w) / float(ne.h)
+		var on = hatch is Dictionary
+		var ntx = _anim_tex(ne, "on" if on else "idle", 6.0, 0.0)
+		var nx: float = n.x + 92
+		if ntx:
+			draw_texture_rect(ntx, Rect2(nx - nw / 2, n.y + 4 - nh, nw, nh), false)
+		if on:
+			var eg: Dictionary = A.get("egg", {}).get(str(hatch.get("sp", "fire")), {})
+			if not eg.is_empty():
+				var ready = float(hatch.get("end", 0)) <= Data.now_ms()
+				var ef: Array = eg.f
+				var etx = Data.tex(ef[int(t * (9.0 if ready else 4.0)) % ef.size()])
+				if etx:
+					var eh := 46.0
+					draw_texture_rect(etx, Rect2(nx - eh * 0.46, n.y - nh * 0.55 - eh + sin(t * 2.0) * 1.5, eh * 0.92, eh), false)
+				if ready:
+					var sh: Dictionary = A.get("vfx", {}).get("egg_shine", {})
+					if not sh.is_empty():
+						var stx = Data.tex(sh.f[int(t * 10) % sh.f.size()])
+						if stx:
+							draw_texture_rect(stx, Rect2(nx - 50, n.y - nh * 0.55 - 75, 100, 86), false, Color(1, 1, 1, 0.85))
+	if not na.is_empty():
+		var W: float = H * float(na.w) / float(na.h)
+		var act = "talk" if near_npc == "egg" else ("tend" if int(t / 4.0) % 3 == 2 else "idle")
+		var tx = _anim_tex(na, act, 6.0, 0.0)
+		if tx:
+			draw_texture_rect(tx, Rect2(n.x - W * float(na.cx), n.y + 5 - H * 0.97, W, H), false)
+	var f: Font = Data.fonts.get("bold")
+	var top: float = n.y - H * 0.97 - 6
+	for i in 2:
+		var s: String = n.name if i == 0 else n.role
+		var sz = 16 if i == 0 else 12
+		var w = f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
+		var y = top - (18 if i == 0 else 2)
+		draw_string_outline(f, Vector2(n.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 5, UI.INK)
+		draw_string(f, Vector2(n.x - w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color("ffd23f") if i == 0 else Color.WHITE)
+	if near_npc == "egg":
 		draw_string_outline(f, Vector2(n.x - 40, top - 40 + sin(t * 4) * 3), "Bấm để nói chuyện", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, UI.INK)
 		draw_string(f, Vector2(n.x - 40, top - 40 + sin(t * 4) * 3), "Bấm để nói chuyện", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("9be05a"))
 

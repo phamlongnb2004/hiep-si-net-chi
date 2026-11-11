@@ -178,6 +178,9 @@ func render() -> void:
 	var ka = UI.button("Dọn quái bản đồ", UI.RED, 16)
 	ka.pressed.connect(func(): _send({"cmd": "killall"}))
 	r4.add_child(ka)
+	var wbb = UI.button("Gọi Ma Long", UI.RED, 16)
+	wbb.pressed.connect(func(): _send({"cmd": "worldboss"}))
+	r4.add_child(wbb)
 	# thông báo
 	var r5 = _row("Thông báo toàn máy chủ")
 	var an = _edit("Nội dung thông báo", 560, 200)
