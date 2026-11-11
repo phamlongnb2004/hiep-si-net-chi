@@ -1,41 +1,44 @@
 {
  "app": {
-  "version": "2.9.2",
+  "version": "2.9.3",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "d81247d1cb0b6d2e0a8024d5b65c35967e0dcc1625ccf9aaf27a85cdab4385d1",
-   "size": 71222884
+   "sha256": "08aba38844910b85009b05988087d021fd45f27a197f25daa21f9945819c6d37",
+   "size": 71239754
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "54d6dd2563fd080a5003f54d7ca769bc912fcf621e69a33b444fecee5a632362",
-   "size": 100587482
+   "sha256": "670c3bc797312f1c0166a44510cdb87de71ad0023b6c487e165e4f789e4cd8bd",
+   "size": 100603866
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "38193d1ff8a48d7b6e830b0890df22d0d57d6e3e2110831b7805494b0b7a402b",
-   "size": 73492558
+   "sha256": "9b70b568b5ac1c649c3776ac6a53b3c94a413e15ad46c3afcbd445fb46d41b08",
+   "size": 73511609
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
    "note": "unsigned",
-   "sha256": "afa89a46b5b3c53139f5760537f32256fd132b50b638eacf106fd1a76bd89e21",
-   "size": 73328537
+   "sha256": "8adbdf1165a701113f0a8bccaef51eaeb759ee3887143d7921207dcd25ec867e",
+   "size": 73347525
   }
  },
  "assets": {
-  "version": 22,
+  "version": 23,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-22.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-23.pck",
   "sha256": "6195d1eb8b11a94f47bd3abc18f7ece928b540ea5fa2f80dea4722b760bb4caa",
   "size": 48327352
  },
  "changelog": [
-  "Điện thoại: phím di chuyển kiểu Ngọc Rồng (◀ ▶ đi, ▲ nhảy/leo lên, ▼ leo xuống, ↖ ↗ nhảy chéo), giữ phím đi vẫn bấm đánh được.",
-  "Điện thoại: nhân vật và cảnh to hơn, dễ nhìn hơn.",
-  "Nhảy cao hơn, dễ lên các thanh ngang và bậc nổi.",
-  "Có bản iOS thử nghiệm (.ipa chưa ký) ở trang /tai-game, cài bằng Sideloadly với Apple ID miễn phí."
+  "Tự động đánh quái (nút AUTO): chọn loại quái của bản đồ, nhân vật tự chạy bộ tới đánh, tự nhặt đồ, tự dùng kỹ năng, tự uống bình máu và bình KI.",
+  "Thêm bình KI (mua ở Thương Nhân Bảo) và nút lướt ngang thật sự (không còn bị nhảy lên).",
+  "Tùy chọn kiểu điều khiển: phím Ngọc Rồng hoặc nút tròn (kéo chéo lên để nhảy chéo, ô kỹ năng vuông).",
+  "Chiêu chưa học chỉ hiện ô trống; nền trời ở Làng không còn bị phóng to khi nhảy; túi đồ không còn nhảy khi chọn đồ.",
+  "Chat trong bản đồ hiện bong bóng trên đầu; chat thế giới hiện ở trên màn hình 5 giây, bấm vào để xem tin gần đây.",
+  "Mỗi bản đồ có sẵn 10 khu, quái (kể cả tinh anh) giữ nguyên khi đổi khu.",
+  "Đồ hiếm và pet nhiều sao khó ra hơn; Thương Nhân Giáp chỉ bán đồ thường."
  ],
- "updated": "2026-11-11T12:06:28.590Z"
+ "updated": "2026-11-11T12:44:19.032Z"
 }
