@@ -6,6 +6,7 @@ class_name Bag
 var game: Game
 var tab = "bag"
 var sel = {}            # {"from":"inv"|"eq"|"pot", "id", "slot"}
+var arm_toss = ""
 var arm_sell = ""
 var body: HBoxContainer
 var grid: GridContainer
@@ -20,7 +21,7 @@ func setup(g: Game) -> void:
 	var dim = ColorRect.new()
 	dim.color = Color(0.03, 0.05, 0.13, 0.55)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.gui_input.connect(func(ev): if ev is InputEventMouseButton and ev.pressed: close())
+	dim.gui_input.connect(func(ev): if UI.tapped(ev): close())
 	add_child(dim)
 	var card = UI.card(Vector2(980, 560))
 	var cs: StyleBoxFlat = card.get_theme_stylebox("panel").duplicate()
@@ -79,7 +80,7 @@ func _item_cell(it: Dictionary, selected: bool, equipped := false) -> PanelConta
 func _click(c: Control, f: Callable) -> void:
 	c.mouse_filter = Control.MOUSE_FILTER_STOP
 	c.gui_input.connect(func(ev):
-		if (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed):
+		if UI.tapped(ev):
 			f.call())
 
 func render() -> void:
@@ -136,7 +137,7 @@ func _render_bag(d: Dictionary) -> void:
 			var it: Dictionary = inv[i]
 			var c = _item_cell(it, sel.get("id") == it.id)
 			var iid = it.id
-			_click(c, func(): sel = {"from": "inv", "id": iid}; arm_sell = ""; render())
+			_click(c, func(): sel = {"from": "inv", "id": iid}; arm_sell = ""; arm_toss = ""; render())
 			grid.add_child(c)
 		else:
 			grid.add_child(_cell())
@@ -245,19 +246,28 @@ func _render_detail(d: Dictionary) -> void:
 	var iid = it.id
 	be.pressed.connect(func(): Net.send({"t": "equip", "id": iid}); sel = {})
 	row.add_child(be)
-	var price = Data.sell_price(it)
-	var near = game.near_shop("gear")
-	var bs = UI.button(("Chắc chắn bán?" if arm_sell == str(iid) else "Bán %s vàng" % UI.fmt(price)), UI.GOLD, 18)
-	bs.disabled = not near
-	if not near:
-		detail.add_child(UI.label("Chỉ bán được khi đứng cạnh Thương Nhân Giáp trong Làng.", 13, Color("b0552f"), "semi"))
-	bs.pressed.connect(func():
-		if r2 >= 2 and arm_sell != str(iid):
-			arm_sell = str(iid)
+	# vứt bỏ hẳn (bấm 2 lần để chắc chắn)
+	var bt = UI.button("Chắc chắn vứt?" if arm_toss == str(iid) else "Vứt", Color("e0565b"), 18)
+	bt.pressed.connect(func():
+		if arm_toss != str(iid):
+			arm_toss = str(iid)
 			render()
 			return
-		Net.send({"t": "sell", "id": iid}); sel = {}; arm_sell = "")
-	row.add_child(bs)
+		Net.send({"t": "toss", "id": iid}); sel = {}; arm_toss = "")
+	row.add_child(bt)
+	# bán: chỉ khi đứng cạnh Thương Nhân Giáp
+	var price = Data.sell_price(it)
+	if game.near_shop("gear"):
+		var bs = UI.button(("Chắc chắn bán?" if arm_sell == str(iid) else "Bán %s vàng" % UI.fmt(price)), UI.GOLD, 18)
+		bs.pressed.connect(func():
+			if r2 >= 2 and arm_sell != str(iid):
+				arm_sell = str(iid)
+				render()
+				return
+			Net.send({"t": "sell", "id": iid}); sel = {}; arm_sell = "")
+		detail.add_child(bs)
+	else:
+		detail.add_child(UI.label("Bán ở Thương Nhân Giáp trong Làng: %s vàng." % UI.fmt(price), 13, Color("5a6b8c"), "semi"))
 
 func _render_char(d: Dictionary) -> void:
 	var left = UI.vbox(10)

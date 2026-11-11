@@ -369,7 +369,7 @@ func show_create() -> void:
 		var cc: String = c
 		pc.mouse_filter = Control.MOUSE_FILTER_STOP
 		pc.gui_input.connect(func(ev):
-			if (ev is InputEventMouseButton and ev.pressed) or (ev is InputEventScreenTouch and ev.pressed):
+			if UI.tapped(ev):
 				pick[0] = cc
 				for k in cards:
 					cards[k].add_theme_stylebox_override("panel", UI.box(Color("fff3c4") if k == cc else Color.WHITE, UI.GOLD.darkened(0.3) if k == cc else Color("b8c4dc"), 16, 4 if k == cc else 3, false)))

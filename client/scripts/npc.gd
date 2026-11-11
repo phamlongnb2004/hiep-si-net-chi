@@ -26,7 +26,7 @@ func setup(g: Game) -> void:
 	var dim = ColorRect.new()
 	dim.color = Color(0.03, 0.05, 0.13, 0.55)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.gui_input.connect(func(ev): if ev is InputEventMouseButton and ev.pressed: close())
+	dim.gui_input.connect(func(ev): if UI.tapped(ev): close())
 	add_child(dim)
 	var card = UI.card(Vector2(860, 540))
 	add_child(UI.center(card))
@@ -266,7 +266,7 @@ func _forge(d: Dictionary) -> void:
 		var osl: String = o.slot
 		p.mouse_filter = Control.MOUSE_FILTER_STOP
 		p.gui_input.connect(func(ev):
-			if (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed):
+			if UI.tapped(ev):
 				fit = {"id": oid, "slot": osl}; msg = ""; render())
 		g.add_child(p)
 	if list.is_empty():

@@ -58,7 +58,7 @@ class SkillBtn extends Control:
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 	func _gui_input(ev: InputEvent) -> void:
-		if (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed):
+		if UI.tapped(ev):
 			pressed.emit()
 			accept_event()
 	func _process(_dt: float) -> void:

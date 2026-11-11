@@ -49,5 +49,5 @@ static func make(it: Dictionary, selected := false, own := true, better := false
 static func clickable(c: Control, f: Callable) -> void:
 	c.mouse_filter = Control.MOUSE_FILTER_STOP
 	c.gui_input.connect(func(ev):
-		if (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed):
+		if UI.tapped(ev):
 			f.call())

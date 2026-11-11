@@ -148,3 +148,9 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Máy chủ lướt theo mặt dốc như ứng dụng (`MapInst.slide`, dùng cho chiêu lướt và nút lướt); ứng dụng chia bước dài thành đoạn ≤ 12px để chân bám dốc → hết bị kéo giật lại khi lướt lên dốc.
 - Auto tìm đường (`client/scripts/nav.gd`): mặt đứng = thanh ngang + các đoạn mặt đất (tách ở vách dựng > 30px); cạnh nhảy lên (≤ 140), nhảy qua khe (≤ 110), rơi xuyên thanh, đi ra mép, leo dây/thang. Không có đường → đổi quái ngay.
 - Auto chỉ dùng chiêu khi đã tới gần (cận chiến: tầm đánh + 70; đánh xa: 400) và cùng tầng.
+
+## Rơi đồ ít hơn, vứt đồ, chạm một lần, người khác đi mượt (2.9.8)
+- `monDrops`: quái thường rơi đồ = `t.drop × ITEM_DROP (0,25)` (~5–10%), tinh anh tối đa 30%, trùm giữ nguyên; bình rơi 7% (tinh anh 25%).
+- `toss {id}`: vứt bỏ một món trong túi (không vứt trứng). Túi: chọn đồ → Mặc / Vứt (bấm 2 lần); Bán chỉ hiện khi đứng cạnh Thương Nhân Giáp.
+- `UI.tapped(ev)`: bỏ sự kiện chuột giả lập từ cảm ứng — trước đây một chạm bị tính 2 lần, bảng vẽ lại rồi lần 2 trúng ô khác → chọn đồ nhảy lung tung.
+- Người chơi khác: vẽ trễ 0,2 giây, nội suy giữa các ảnh chụp, bỏ ảnh chụp lặp vị trí khi đang chạy (`_hbuf_add/_hbuf_pos`).

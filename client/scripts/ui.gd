@@ -176,3 +176,12 @@ static func wrap_all(n: Node, minw := 160.0) -> void:
 			c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			c.custom_minimum_size.x = max(c.custom_minimum_size.x, minw)
 		wrap_all(c, minw)
+
+## một lần chạm/nhấp (bỏ sự kiện chuột giả lập từ cảm ứng, kẻo một chạm bị tính hai lần:
+## bảng vẽ lại rồi lần thứ hai trúng ô khác → chọn nhảy lung tung / đóng bảng)
+static func tapped(ev: InputEvent) -> bool:
+	if ev is InputEventScreenTouch:
+		return ev.pressed
+	if ev is InputEventMouseButton:
+		return ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and ev.device != InputEvent.DEVICE_ID_EMULATION
+	return false

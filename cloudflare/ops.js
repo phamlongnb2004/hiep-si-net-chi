@@ -28,6 +28,12 @@ export const OPS = {
     if (ch.inv[i].slot === 'egg') return { ok: false, msg: 'Không bán được trứng cho cửa hàng.' };
     const g = R.sellPrice(ch.inv[i]); ch.gold += g; ch.inv.splice(i, 1); return { ok: true, gold: g };
   },
+  // vứt bỏ một món trong túi (mất hẳn); trứng pet không vứt được ở đây
+  toss(c, m) {
+    const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
+    if (ch.inv[i].slot === 'egg') return { ok: false, msg: 'Không vứt trứng được, hãy mang tới Bà Ấp Trứng.' };
+    const it = ch.inv.splice(i, 1)[0]; return { ok: true, msg: 'Đã vứt ' + (it.name || 'món đồ') + '.' };
+  },
   sort(c) {
     const ch = c.ch; ch.inv.sort((a, b) => (own(ch, b) - own(ch, a)) || (b.r - a.r) || (ORD[a.slot] - ORD[b.slot]) || (b.lvl - a.lvl)); return { ok: true };
   },

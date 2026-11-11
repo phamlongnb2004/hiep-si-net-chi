@@ -778,6 +778,20 @@ func perf_test() -> void:
 			for q in Data.late_loads:
 				print("LATE %s %.1fms" % [q[0], q[1]])
 			Data.late_loads.clear()
+		if OS.get_environment("HSNC_WATCH") != "" and not g.heroes.is_empty():
+			var h = g.heroes.values()[0]
+			var xs = []
+			for k in 30:
+				xs.append(h.position.x)
+				await get_tree().process_frame
+			var stalls = 0
+			var mx = 0.0
+			for k in range(1, xs.size()):
+				var d = absf(xs[k] - xs[k - 1])
+				mx = maxf(mx, d)
+				if d < 0.5 and h.moving:
+					stalls += 1
+			print("RH moving=%s stalls=%d maxstep=%.1f span=%.0f" % [h.moving, stalls, mx, absf(xs[-1] - xs[0])])
 		if Net.prof:
 			print("NET bytes=%d msgs=%d tx=%s" % [Net.prof_b, Net.prof_n, str(Net.prof_tx)])
 			Net.prof_b = 0; Net.prof_n = 0; Net.prof_t = {}; Net.prof_tx = {}

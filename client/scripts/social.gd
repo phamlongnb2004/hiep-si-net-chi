@@ -31,7 +31,7 @@ func _dim(parent: Control, close: Callable) -> void:
 	var dim = ColorRect.new()
 	dim.color = Color(0.03, 0.05, 0.13, 0.5)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.gui_input.connect(func(ev): if ev is InputEventMouseButton and ev.pressed: close.call())
+	dim.gui_input.connect(func(ev): if UI.tapped(ev): close.call())
 	parent.add_child(dim)
 
 func _overlay() -> Control:

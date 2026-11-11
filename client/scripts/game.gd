@@ -277,6 +277,39 @@ func _add_drop(d: Dictionary) -> void:
 	ents.add_child(o)
 	drops[o.id] = o
 
+## người chơi khác: vẽ trễ HB_DELAY giây, nội suy giữa các ảnh chụp (đi đều, không giật kiểu chạy-dừng)
+const HB_DELAY := 0.2
+func _hbuf_add(h: Hero, p: Vector2) -> void:
+	var now_s = Time.get_ticks_msec() / 1000.0
+	var b: Array = h.get_meta("hb", [])
+	if not b.is_empty():
+		var last: Vector2 = b[-1][1]
+		# ảnh chụp lặp lại vị trí cũ khi đang chạy (máy chủ chụp lệch nhịp gửi của người đó): bỏ, nội suy thẳng qua
+		if last.is_equal_approx(p) and h.moving and now_s - float(b[-1][0]) < 0.25:
+			return
+		if last.distance_to(p) > 300:
+			b.clear()
+	b.append([now_s, p])
+	while b.size() > 8:
+		b.pop_front()
+	h.set_meta("hb", b)
+
+func _hbuf_pos(h: Hero, now_s: float) -> void:
+	var b: Array = h.get_meta("hb", [])
+	if b.is_empty():
+		return
+	var rt = now_s - HB_DELAY
+	if b.size() == 1 or rt <= float(b[0][0]):
+		h.position = b[0][1] if b.size() == 1 or h.position.distance_to(b[0][1]) > 300 else h.position.lerp(b[0][1], 0.3)
+		return
+	for i in range(b.size() - 1, 0, -1):
+		var t0 = float(b[i - 1][0])
+		var t1 = float(b[i][0])
+		if rt >= t0:
+			var k = clampf((rt - t0) / maxf(0.001, t1 - t0), 0.0, 1.0)
+			h.position = (b[i - 1][1] as Vector2).lerp(b[i][1], k)
+			return
+
 func _snap(m: Dictionary) -> void:
 	var seen = {}
 	for q in m.p:
@@ -290,9 +323,9 @@ func _snap(m: Dictionary) -> void:
 			h.position = Vector2(q[1], q[2])
 			ents.add_child(h)
 			heroes[id] = h
-		h.set_meta("tp", Vector2(q[1], q[2]))
 		h.face = int(q[3])
 		h.moving = int(q[4]) == 1
+		_hbuf_add(h, Vector2(q[1], q[2]))
 		h.cls = str(q[6])
 		h.lv = int(q[7])
 		h.nm = str(q[8])
@@ -958,9 +991,9 @@ func _process(dt: float) -> void:
 		cds[i] = max(0.0, cds[i] - dt)
 	for mo in mons.values():
 		mo.focused = mo == focus
+	var now_s = Time.get_ticks_msec() / 1000.0
 	for h in heroes.values():
-		var tp: Vector2 = h.get_meta("tp", h.position)
-		h.position = h.position.lerp(tp, min(1.0, dt * 12)) if h.position.distance_to(tp) < 300 else tp
+		_hbuf_pos(h, now_s)
 	_control(dt)
 	cam.position = me.position + Vector2(0, -60)
 	cam.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * (fx.shake * 40.0) if fx.shake > 0 else Vector2.ZERO

@@ -236,12 +236,14 @@ export const monGold = (rng, type, lv, elite) => { const g = D.mons[type].gold; 
 export const respawnTime = (rng, type) => D.mons[type].boss ? 90 : 9 + rng() * 5;
 export const rollElite = (rng, type) => !D.mons[type].boss && rng() < TUNE.eliteChance;
 // vật phẩm rơi khi hạ quái (tinh anh: tỉ lệ rơi đồ cao hơn và đồ hiếm dễ ra hơn, nhưng không phải lần nào cũng rơi)
+export const ITEM_DROP = .25;
 export function monDrops(rng, type, lv, cls, nextId, elite) {
-  const t = D.mons[type], ds = [], dm = TUNE.drop * mt(type, 'drop') * (evOn() ? TUNE.ev.drop : 1), dc = Math.min(.95, (elite ? Math.min(ELITE.dropMax, t.drop * ELITE.drop) : t.drop) * dm);
+  // 2.9.8: đồ rơi ít hơn nhiều (quái thường ~1/4 trước: 5–10%, tinh anh tối đa 30%); trùm giữ nguyên
+  const t = D.mons[type], ds = [], dm = TUNE.drop * mt(type, 'drop') * (evOn() ? TUNE.ev.drop : 1), dc = Math.min(.95, (t.boss ? t.drop : elite ? Math.min(.3, t.drop * 1.2) : t.drop * ITEM_DROP) * dm);
   if (rng() < dc) ds.push({ k: 'item', item: genItem(rng, lv, t.boss ? 'boss' : elite ? 'elite' : 'mob', cls, nextId()) });
   if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, 'boss', cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
   if (t.boss && rng() < TUNE.wingChance * (evOn() ? TUNE.ev.drop : 1)) ds.push({ k: 'item', item: genItem(rng, lv, 'wing', cls, nextId()) });
-  if (rng() < (elite ? .35 : .14)) ds.push({ k: 'pot' });
+  if (rng() < (elite ? .25 : .07)) ds.push({ k: 'pot' });
   // đá cường hóa khó có hơn (2.9.5); bùa kỹ năng cực hiếm, chỉ tinh anh và trùm
   const sn = t.boss ? ri(rng, 2, 4) : elite ? (rng() < .5 ? ri(rng, 1, 2) : 0) : (rng() < .05 + Math.min(.03, lv * .001) ? 1 : 0);
   if (t.boss ? rng() < (t.world ? .3 : .05) : elite && rng() < .012) ds.push({ k: 'charm', n: 1 });
