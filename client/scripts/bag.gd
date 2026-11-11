@@ -135,7 +135,7 @@ func _render_bag(d: Dictionary) -> void:
 	for i in 30:
 		if i < inv.size():
 			var it: Dictionary = inv[i]
-			var c = _item_cell(it, sel.get("id") == it.id)
+			var c = _item_cell(it, Data.same_id(sel.get("id"), it.id))
 			var iid = it.id
 			_click(c, func(): sel = {"from": "inv", "id": iid}; arm_sell = ""; arm_toss = ""; render())
 			grid.add_child(c)
@@ -156,7 +156,7 @@ func _render_bag(d: Dictionary) -> void:
 
 func _find(d: Dictionary, id) -> Dictionary:
 	for it in d.get("inv", []):
-		if it.id == id:
+		if Data.same_id(it.id, id):
 			return it
 	return {}
 

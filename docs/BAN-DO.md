@@ -164,3 +164,6 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Thương Nhân Giáp: chọn cấp đồ 1, 5, 10 … 100 (« ‹ › », "Cấp của tôi"); `shopbuy {lvl}` (bản cũ không gửi thì theo cấp mình).
 - Máy chủ chặn "bay cao" tính từ chỗ đứng gần nhất (`f.standY`), không còn kéo người xuống khi nhảy từ thanh/mái cao ra khỏi mép.
 - Trời: phía trên ảnh núi xa tô đúng màu mép trên ảnh (`FAR_TOP`), không lộ khoảng trời khác màu khi máy quay lên cao.
+
+## Sửa túi đồ đảo lộn (2.10.1)
+- Nguyên nhân: đồ rơi có mã số, đồ cửa hàng có mã chữ ("s…"); so `sel.id == it.id` giữa số và chữ là lỗi GDScript → hàm vẽ ô bỏ dở → các ô đồ cửa hàng biến mất sau khi chạm một món có mã số, túi trông như bị đảo lộn. Dùng `Data.same_id(a, b)` (so bằng chuỗi) ở túi và lò rèn.

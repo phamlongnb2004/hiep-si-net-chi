@@ -255,9 +255,9 @@ func _forge(d: Dictionary) -> void:
 	var cur = null
 	var pk = null
 	for o in list:
-		if fit.get("id") == o.it.id:
+		if Data.same_id(fit.get("id"), o.it.id):
 			cur = o
-		if fpick.get("id") == o.it.id:
+		if Data.same_id(fpick.get("id"), o.it.id):
 			pk = o
 	# ---- hàng trên: ô trang bị + ô đá + thông tin rèn ----
 	var top = UI.hbox(14)
@@ -345,7 +345,7 @@ func _forge(d: Dictionary) -> void:
 	low.add_child(g)
 	for o in list:
 		var it: Dictionary = o.it
-		var p = ItemCell.make(it, fpick.get("id") == it.id or fit.get("id") == it.id, true, false, 70)
+		var p = ItemCell.make(it, Data.same_id(fpick.get("id"), it.id) or Data.same_id(fit.get("id"), it.id), true, false, 70)
 		if o.slot != "":
 			var e = UI.label("Mặc", 11, Color("2fa84f"), "bold")
 			e.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -378,9 +378,9 @@ func _forge(d: Dictionary) -> void:
 	var fi = Data.forge_info(it3)
 	if int(it3.get("up", 0)) < int(Data.D.forge.max):
 		det.add_child(UI.label("Rèn lên +%d: %d%% · %d đá · %s vàng" % [int(fi.L), int(fi.rate), int(fi.stones), UI.fmt(fi.gold)], 14, Color("5a6b8c"), "semi"))
-	var ch = UI.button("Đang ở ô rèn" if fit.get("id") == it3.id else "Chọn món này", UI.GREEN, 18)
+	var ch = UI.button("Đang ở ô rèn" if Data.same_id(fit.get("id"), it3.id) else "Chọn món này", UI.GREEN, 18)
 	ch.custom_minimum_size = Vector2(0, 50)
-	ch.disabled = fit.get("id") == it3.id
+	ch.disabled = Data.same_id(fit.get("id"), it3.id)
 	var pid = it3.id
 	var psl: String = pk.slot
 	ch.pressed.connect(func(): fit = {"id": pid, "slot": psl}; msg = ""; render())

@@ -222,6 +222,13 @@ func sell_price(it: Dictionary) -> int:
 	var rm = [1.0, 1.3, 1.7, 2.2][clampi(int(it.r), 0, 3)]
 	return int(round(shop * 0.75 * rm * (1.0 + 0.15 * float(it.get("up", 0)))))
 
+## so mã đồ an toàn: đồ rơi mang mã số, đồ cửa hàng mang mã chữ ("s…"); so int với String trong GDScript là lỗi
+## (lỗi làm hàm vẽ ô bỏ dở → ô đồ cửa hàng biến mất, túi trông như bị đảo lộn sau khi chạm một món)
+static func same_id(a, b) -> bool:
+	if a == null or b == null:
+		return false
+	return str(a) == str(b)
+
 func score(it) -> float:
 	if it == null or not (it is Dictionary):
 		return 0.0

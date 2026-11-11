@@ -749,6 +749,35 @@ func perf_test() -> void:
 		main.npc.render()
 		await wait(0.5)
 		await shot("ui-pots")
+		main.npc.close()
+		main.open_bag()
+		main.bag.tab = "bag"
+		main.bag.sel = {}
+		main.bag.render()
+		await wait(0.5)
+		await shot("ui-bag0")
+		var inv0 = g.me_data.get("inv", [])
+		if inv0.size() > 3:
+			main.bag.sel = {"from": "inv", "id": inv0[2].id}
+			main.bag.render()
+			await wait(0.5)
+			await shot("ui-bag1")
+			# chạm thật bằng chuột vào ô thứ 6 của lưới
+			var cellp = main.bag.grid.get_child(27).get_global_rect().get_center()
+			var ev = InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_LEFT
+			ev.pressed = true
+			ev.position = cellp
+			ev.global_position = cellp
+			Input.parse_input_event(ev)
+			var ev2 = ev.duplicate()
+			ev2.pressed = false
+			Input.parse_input_event(ev2)
+			await wait(0.3)
+			print("BAGCELLS %d inv=%d" % [main.bag.grid.get_child_count(), g.me_data.inv.size()])
+			await wait(0.5)
+			await shot("ui-bag1")
+		main.bag.close()
 		g.open_npc.emit("gear")
 		await wait(0.6)
 		await shot("ui-gear")
