@@ -1,0 +1,54 @@
+# Codemagic (máy Mac miễn phí ~500 phút/tháng): dựng bản iOS .ipa CHƯA KÝ để cài thử bằng Sideloadly / AltStore (Apple ID miễn phí).
+# Chạy tay: Codemagic → ứng dụng hiep-si-net-chi → Start new build → chọn "iOS IPA chưa ký".
+workflows:
+  ios-unsigned:
+    name: iOS IPA chưa ký
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      xcode: latest
+    scripts:
+      - name: Tải Godot 4.5.1 và mẫu xuất iOS
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          curl -fsSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
+          unzip -q godot.zip
+          curl -fsSL -o tpl.tpz https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_export_templates.tpz
+          T="$HOME/Library/Application Support/Godot/export_templates/4.5.1.stable"
+          mkdir -p "$T"
+          unzip -q -j tpl.tpz 'templates/ios.zip' 'templates/version.txt' -d "$T"
+          rm tpl.tpz
+          ls -la "$T"
+          echo "GODOT=$CM_BUILD_DIR/Godot.app/Contents/MacOS/Godot" >> "$CM_ENV"
+      - name: Xuất dự án Xcode từ Godot
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          VER=$(sed -n 's/^config\/version="\(.*\)"/\1/p' client/project.godot)
+          sed -i '' "s/^application\/short_version=.*/application\/short_version=\"$VER\"/; s/^application\/version=.*/application\/version=\"$VER\"/" client/export_presets.cfg
+          cp shared/data.json client/data/data.json
+          mkdir -p build/ios
+          "$GODOT" --headless --path client --import > import.log 2>&1 || true
+          tail -5 import.log
+          "$GODOT" --headless --path client --export-release "iOS" "$CM_BUILD_DIR/build/ios/HiepSiNetChi.ipa" 2>&1 | tail -40
+          ls -la build/ios
+      - name: Dựng .app không ký và đóng gói .ipa
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/build/ios"
+          P=$(ls -d *.xcodeproj | head -1)
+          S=$(xcodebuild -list -json -project "$P" | python3 -c "import json,sys;print(json.load(sys.stdin)['project']['schemes'][0])")
+          echo "Dự án $P · scheme $S"
+          xcodebuild -project "$P" -scheme "$S" -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath dd CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" build > xb.log 2>&1 || { tail -80 xb.log; exit 1; }
+          tail -3 xb.log
+          APP=$(find dd/Build/Products -maxdepth 2 -name '*.app' | head -1)
+          echo "App: $APP"
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          zip -qry HiepSiNetChi.ipa Payload
+          ls -la HiepSiNetChi.ipa
+          shasum -a 256 HiepSiNetChi.ipa
+    artifacts:
+      - build/ios/HiepSiNetChi.ipa
+      - build/ios/xb.log
