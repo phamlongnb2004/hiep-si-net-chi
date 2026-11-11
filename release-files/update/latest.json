@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.9.7",
+  "version": "2.9.8",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "746dd13857d74054b13b8b7eb6437e7d521378afbcc07885a7fb28e8d033c39c",
-   "size": 71804233
+   "sha256": "a52c4bc8bf932fdc7d1a583d05e42bdfdf3ef0b0ae6fe87d153aa4592f2c8911",
+   "size": 71810879
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "b71bc771890f460f2b3176e39ad0f160859c4c44a7aab84b19bb9d80cf8921d2",
+   "sha256": "b2cd5556f2edf3e1643069b0213c9b8325446ad8fdb7c362b30567b70d40186a",
    "size": 101184500
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "644d95f1255e0e194594fb85f1aedf6433afbdf9e246dbb60a81ad243ad5a543",
-   "size": 74080019
+   "sha256": "ba0a04fe5efffdb553e0a824c2339dcdd67c70cfcfad2fffcb99b8a2261e79cd",
+   "size": 74082476
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,17 +25,17 @@
   }
  },
  "assets": {
-  "version": 27,
+  "version": 28,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-27.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-28.pck",
   "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
   "size": 48879164
  },
  "changelog": [
-  "Chiêu lướt (Xung Phong của Kiếm, chiêu lướt của Cung và Võ) lướt mượt ngay, không còn giật về chỗ cũ, ping không nhảy vọt khi dùng chiêu.",
-  "Nút lướt và chiêu lướt đi theo mặt dốc, hết bị kéo lại khi lướt lên dốc.",
-  "Auto tự tìm đường: nhảy lên thanh ngang, leo thang/dây, đi ra mép thanh để xuống; không tới được thì đổi quái ngay, hết đứng kẹt dưới thanh.",
-  "Auto chỉ dùng chiêu khi đã tới gần quái và cùng tầng."
+  "Đồ rơi ít hơn nhiều: quái thường khoảng 5–10%, tinh anh tối đa 30%, bình rơi ít hơn.",
+  "Túi đồ: chọn món đồ để Mặc hoặc Vứt (bấm 2 lần để chắc chắn); Bán chỉ hiện khi đứng cạnh Thương Nhân Giáp.",
+  "Sửa lỗi chạm một món trong túi bị chọn nhảy sang món khác (một chạm bị tính hai lần trên điện thoại).",
+  "Người chơi khác di chuyển mượt hơn, hết giật kiểu chạy-dừng."
  ],
- "updated": "2026-11-11T16:35:57.632Z"
+ "updated": "2026-11-11T18:05:08.704Z"
 }
