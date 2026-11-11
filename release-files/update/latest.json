@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.10.0",
+  "version": "2.10.1",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "c703cf2f6f6f6b9d27d4455325d1226c0aeb95f139bf73189b4933bac0e1e3e6",
-   "size": 71815438
+   "sha256": "9c4f1b33af5dce7ec99d733467174afc60bbdb86f5d4c0035d85264d51bce870",
+   "size": 71819976
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "bb49ce20cc2acac566ceb6b2bdac59f43e5cbce032c1319fc4bb15079779e3d1",
+   "sha256": "914d1f10899f661f76f4316d5b204b13e39ffb0d135a17eec419024455ec40b2",
    "size": 101196788
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "657f1d308ab8f26541752191db64fcf464c8c5aa13b90f1e7cf88db0b3a2c642",
-   "size": 74091598
+   "sha256": "0e36577695e9e7ddb150ae13c14ea62c25a3c45a9110676e7ed70ff152bbc6e5",
+   "size": 74092689
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,16 +25,14 @@
   }
  },
  "assets": {
-  "version": 30,
+  "version": 31,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-30.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-31.pck",
   "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
   "size": 48879164
  },
  "changelog": [
-  "Thương Nhân Giáp bán đồ thường mọi cấp (1, 5, 10 … 100): bấm « ‹ › » để đổi cấp, \"Cấp của tôi\" để quay về.",
-  "Sửa lỗi nhảy từ mái nhà / thanh cao ra ngoài mép bị khựng một nhịp rồi rơi xuống.",
-  "Bầu trời không còn bị hở một khúc khác màu ở phía trên khi nhảy lên cao."
+  "Sửa lỗi túi đồ: chạm vào một món thì các món mua ở cửa hàng biến mất, trông như bị đảo lộn vị trí."
  ],
- "updated": "2026-11-11T18:33:46.691Z"
+ "updated": "2026-11-11T19:02:07.028Z"
 }
