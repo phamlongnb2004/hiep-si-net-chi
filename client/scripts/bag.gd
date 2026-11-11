@@ -51,7 +51,9 @@ func setup(g: Game) -> void:
 	body = UI.hbox(16)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(body)
-	g.me_changed.connect(func(): if visible: render())
+	# chỉ vẽ lại khi túi đồ/trang bị đổi (không vẽ lại mỗi lần mất máu → hết nhảy chớp)
+	g.bag_changed.connect(func(): if visible: render())
+	g.me_changed.connect(func(): if visible and gold_l: gold_l.text = "Vàng %s · Đá %d" % [UI.fmt(game.me_data.get("gold", 0)), int(game.me_data.get("stones", 0))])
 	visible = false
 
 func open() -> void:
@@ -82,6 +84,7 @@ func _click(c: Control, f: Callable) -> void:
 
 func render() -> void:
 	for c in body.get_children():
+		body.remove_child(c)
 		c.queue_free()
 	var d = game.me_data
 	if d.is_empty():
@@ -142,9 +145,11 @@ func _render_bag(d: Dictionary) -> void:
 	row.add_child(so)
 	row.add_child(UI.label("%d / 30 ô" % inv.size(), 16, Color("5a6b8c"), "semi"))
 	detail = UI.vbox(8)
-	detail.custom_minimum_size = Vector2(300, 0)
+	detail.custom_minimum_size = Vector2(320, 0)
+	detail.size_flags_horizontal = 0
 	body.add_child(detail)
 	_render_detail(d)
+	_fix_width(detail, 320)
 
 func _find(d: Dictionary, id) -> Dictionary:
 	for it in d.get("inv", []):
@@ -376,3 +381,13 @@ func _render_stat(d: Dictionary) -> void:
 			var nn = step
 			b.pressed.connect(func(): arm_reset = false; Net.send({"t": "stat", "k": kk, "n": nn}))
 			h.add_child(b)
+
+
+## chữ dài tự xuống dòng trong khung cố định (khung không bị kéo rộng)
+func _fix_width(box: Control, w: float) -> void:
+	for c in box.get_children():
+		if c is Label:
+			c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			c.custom_minimum_size.x = w
+		elif c is HBoxContainer:
+			c.custom_minimum_size.x = 0

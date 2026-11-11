@@ -5,6 +5,7 @@ import D from './data.json';
 export { D };
 
 export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 820, MAXSTEP = 105;
+export const KPOT_GAIN = .45, KPOT_CD = 3, KPOT_MAX = 20; // bình KI (2.9.3)
 export const POT_HEAL = .45, POT_CD = 3, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
 export const WORLD_CHAT_COST = 5000;          // nhắn cả máy chủ tốn vàng (cao) để tránh spam
 export const FRIEND_MAX = 100;
@@ -53,7 +54,8 @@ export const FREE_SLOTS = ['neck', 'wing', 'ring', 'earring', 'belt', 'charm'];
 export const isFree = slot => FREE_SLOTS.includes(slot);
 // cánh: chỉ rơi khi hạ trùm, tỉ lệ rất thấp; độ hiếm của cánh rơi ra
 export const W_WING = [60, 28, 10, 2];
-export const W_MOB = [80, 16.5, 3.1, .4], W_BOSS = [30, 48, 18.5, 3.5], W_ELITE = [52, 34, 11.5, 2.5];
+// 2.9.3: đồ tốt khó rơi hơn (thường / hiếm / sử thi / huyền thoại)
+export const W_MOB = [90, 9, .9, .1], W_BOSS = [52, 38, 8.5, 1.5], W_ELITE = [72, 23, 4.4, .6];
 export const SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'wing', 'ring', 'earring', 'belt', 'charm'];
 // ô đồ rơi từ quái thường / bán ở cửa hàng (cánh thì không)
 export const DROP_SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'ring', 'earring', 'belt', 'charm'], DROP_SLOT_W = [1, 1, 1, 1, 1, 1, .6, .5, .5, .5, .5];
@@ -305,7 +307,7 @@ export const inLava = (map, x, y) => (map.lava || []).some(w => x > w[0] + 6 && 
 
 /* ---------- nhân vật mới ---------- */
 export function newChar(cls, name) {
-  return { cls, name, lv: 1, exp: 0, gold: 0, pots: 5, kills: 0, stones: 0, sk: [1, 0, 0, 0, 0, 0], books: [1, 0, 0, 0, 0, 0], inv: [], eq: { hat: null, armor: null, cape: null, weapon: null }, map: 0, mv: 2, pt: {}, ptReset: 0 };
+  return { cls, name, lv: 1, exp: 0, gold: 0, pots: 5, kpots: 3, kills: 0, stones: 0, sk: [1, 0, 0, 0, 0, 0], books: [1, 0, 0, 0, 0, 0], inv: [], eq: { hat: null, armor: null, cape: null, weapon: null }, map: 0, mv: 2, pt: {}, ptReset: 0 };
 }
 // chuẩn hóa bản lưu cũ để máy chủ dùng: giữ nguyên mọi giá trị, chỉ thêm trường còn thiếu
 export function normalizeChar(d) {
@@ -317,7 +319,8 @@ export function normalizeChar(d) {
   for (const k of SLOTS) { c.eq[k] = validItem(eq[k]) && eq[k].slot === k ? eq[k] : null; if (eq[k] && !c.eq[k]) bad.push(eq[k]); }
   if (bad.length) c.bad = bad; else delete c.bad;
   for (const k of ['sk', 'books']) { const a = Array.isArray(c[k]) ? c[k] : []; c[k] = [0, 1, 2, 3, 4, 5].map(i => a[i] ? 1 : 0); c[k][0] = 1; }
-  for (const k of ['lv', 'exp', 'gold', 'pots', 'kills', 'stones']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
+  if (c.kpots == null) c.kpots = 3;
+  for (const k of ['lv', 'exp', 'gold', 'pots', 'kpots', 'kills', 'stones']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
   c.lv = Math.max(1, c.lv); c.map = clamp(c.map | 0, 0, D.maps.length - 1);
   // điểm tiềm năng: nhân vật cũ chưa có -> để trống (được cộng bù theo cấp hiện tại); điểm vượt quá số được nhận -> trả lại hết để cộng lại
   const pt = c.pt && typeof c.pt === 'object' ? c.pt : {}; c.pt = {};
@@ -376,7 +379,7 @@ export function fixPet(p) {
   return q;
 }
 export function newPet(rng, sp, id) {
-  const r = rng() * 100, star = r < 35 ? 1 : r < 65 ? 2 : r < 85 ? 3 : r < 95 ? 4 : 5;
+  const r = rng() * 100, star = r < 50 ? 1 : r < 78 ? 2 : r < 92 ? 3 : r < 98 ? 4 : 5; // pet ngon hiếm: 50/28/14/6/2 %
   const p = fixPet({ id, sp, lv: 1, star });
   for (let i = 0; i < PET_PT * 2; i++) petPoint(rng, p); // điểm khởi đầu ngẫu nhiên
   return p;

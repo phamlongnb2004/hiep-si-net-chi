@@ -12,9 +12,8 @@ var map_l: Label
 var net_l: Label
 var logbox: VBoxContainer
 var skills: Array = []
-var pot_l: Label
 var talk_btn: Button
-var joy: DPad
+var joy   # DPad hoặc Joystick
 var mini: Control
 var chat_edit: LineEdit
 var banner: Label
@@ -29,6 +28,14 @@ var ann_b: AnnBanner
 var ev_l: Label
 var fr_badge: Label
 var potb
+var kpotb
+var kpot_l: Label
+var ctl: Control           # lớp chứa các nút điều khiển (dựng lại khi đổi kiểu)
+var auto_b: Button
+var world_log: Array = []   # [tên, nội dung] chat thế giới gần đây
+var wt: Control
+var rollb
+var auto_pop: Control
 var pt_badge: Label
 var khu_b: Button
 var khu_pop: Control
@@ -41,6 +48,9 @@ class SkillBtn extends Control:
 	var noki = false
 	var key = ""
 	var big = false
+	var square = false        # ô vuông (kiểu nút tròn: ô kỹ năng xếp như Ngọc Rồng)
+	var tint := Color.WHITE
+	var count = -1            # số lượng (bình) hiện ở góc dưới
 	signal pressed
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -53,27 +63,42 @@ class SkillBtn extends Control:
 	func _draw() -> void:
 		var r = size.x / 2
 		var c = size / 2
-		draw_circle(c, r, Color(0.09, 0.13, 0.29, 0.55))
-		if tex:
-			draw_texture_rect(tex, Rect2(c - Vector2(r, r) * 0.92, Vector2(r, r) * 1.84), false, Color(1, 1, 1, 0.45) if locked else (Color(0.55, 0.7, 1.0, 0.6) if noki else Color.WHITE))
-		if cd > 0.05 and mx > 0:
-			var pts = PackedVector2Array([c])
-			var a0 = -PI / 2
-			var n = 24
-			for i in n + 1:
-				var a = a0 + TAU * (cd / mx) * i / n
-				pts.append(c + Vector2(cos(a), sin(a)) * r)
-			draw_colored_polygon(pts, Color(0.05, 0.07, 0.15, 0.62))
+		var rr = Rect2(Vector2(3, 3), size - Vector2(6, 6))
+		if square:
+			draw_style_box(UI.box(Color(0.09, 0.13, 0.29, 0.6), Color(0, 0, 0, 0), 12, 0, false), rr)
+		else:
+			draw_circle(c, r, Color(0.09, 0.13, 0.29, 0.55))
+		# chiêu chưa học: chỉ hiện ô trống
+		if tex and not locked:
+			var ir = Rect2(c - Vector2(r, r) * 0.8, Vector2(r, r) * 1.6) if square else Rect2(c - Vector2(r, r) * 0.92, Vector2(r, r) * 1.84)
+			draw_texture_rect(tex, ir, false, (Color(0.55, 0.7, 1.0, 0.6) if noki else Color.WHITE) * tint)
+		if cd > 0.05 and mx > 0 and not locked:
+			if square:
+				draw_rect(Rect2(rr.position + Vector2(0, rr.size.y * (1.0 - cd / mx)), Vector2(rr.size.x, rr.size.y * cd / mx)), Color(0.05, 0.07, 0.15, 0.62))
+			else:
+				var pts = PackedVector2Array([c])
+				var a0 = -PI / 2
+				var n = 24
+				for i in n + 1:
+					var a = a0 + TAU * (cd / mx) * i / n
+					pts.append(c + Vector2(cos(a), sin(a)) * r)
+				draw_colored_polygon(pts, Color(0.05, 0.07, 0.15, 0.62))
 			var f: Font = Data.fonts.get("bold")
 			var s = str(int(ceil(cd)))
 			var w = f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
 			draw_string_outline(f, c + Vector2(-w / 2, 8), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 5, UI.INK)
 			draw_string(f, c + Vector2(-w / 2, 8), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
-		draw_arc(c, r - 1.5, 0, TAU, 40, Color("ffd23f") if big else Color.WHITE, 3)
-		if locked:
-			var lk = Data.tex(Data.A.hud.ui.get("lock", ""))
-			if lk:
-				draw_texture_rect(lk, Rect2(c - Vector2(14, 14), Vector2(28, 28)), false)
+		var edge = Color("ffd23f") if big else (Color(1, 1, 1, 0.45) if locked else Color.WHITE)
+		if square:
+			draw_style_box(UI.box(Color(0, 0, 0, 0), edge, 12, 3, false), rr)
+		else:
+			draw_arc(c, r - 1.5, 0, TAU, 40, edge, 3)
+		if count >= 0:
+			var f3: Font = Data.fonts.get("bold")
+			var cs = str(count)
+			var cw = f3.get_string_size(cs, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+			draw_string_outline(f3, Vector2(size.x - cw - 4, size.y - 4), cs, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 4, UI.INK)
+			draw_string(f3, Vector2(size.x - cw - 4, size.y - 4), cs, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
 		if key != "":
 			var f2: Font = Data.fonts.get("bold")
 			draw_string_outline(f2, Vector2(4, 16), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, UI.INK)
@@ -218,6 +243,11 @@ func setup(g: Game) -> void:
 	fr_badge = UI.outlined("", 14, Color("ff5d7d"), "bold", 5)
 	fr_badge.position = Vector2(38, -4)
 	fr_b.add_child(fr_badge)
+	auto_b = UI.button("AUTO", UI.SKY, 16)
+	auto_b.custom_minimum_size = Vector2(76, 58)
+	auto_b.tooltip_text = "Tự động đánh quái"
+	auto_b.pressed.connect(open_auto)
+	tbtn.add_child(auto_b)
 	var pet_b = UI.icon_button(Data.tex(Data.A.get("egg", {}).get("fire", {}).get("icon", "")), 58)
 	pet_b.tooltip_text = "Pet"
 	pet_b.pressed.connect(func(): g.open_npc.emit("pets"))
@@ -247,66 +277,8 @@ func setup(g: Game) -> void:
 	root.add_child(ann_b)
 	g.announce.connect(show_ann)
 	g.cfg_changed.connect(_cfg)
-	# cụm nút phải dưới: nút đánh lớn ở góc, 6 kỹ năng xếp hình cung quanh nút đánh
-	var br = Control.new()
-	br.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	br.position = Vector2(-460, -350)
-	br.size = Vector2(460, 350)
-	br.size = Vector2(450, 320)
-	br.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(br)
-	var ac = Vector2(380, 270)
-	var atk = SkillBtn.new()
-	atk.tex = Data.tex(H.ui.get("atk", ""))
-	atk.big = true
-	atk.size = Vector2(136, 136)
-	atk.position = ac - atk.size / 2
-	atk.key = "" if touch else "J"
-	atk.gui_input.connect(func(ev):
-		if ev is InputEventScreenTouch or (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT):
-			g.atk_held = ev.pressed)
-	br.add_child(atk)
-	for i in 6:
-		var b = SkillBtn.new()
-		b.size = Vector2(80, 80)
-		var ang = deg_to_rad([182, 226, 270, 197, 233, 268][i])
-		b.position = ac + Vector2(cos(ang), sin(ang)) * (150.0 if i < 3 else 246.0) - b.size / 2
-		b.key = "" if touch else str(i + 1)
-		var ii = i
-		b.pressed.connect(func(): g.do_skill(ii))
-		br.add_child(b)
-		skills.append(b)
-	potb = SkillBtn.new()
-	potb.mx = 3.0
-	potb.tex = Data.tex(H.ui.get("pot", ""))
-	potb.size = Vector2(72, 72)
-	potb.position = Vector2(-10, 250)
-	potb.key = "" if touch else "Q"
-	potb.pressed.connect(g.do_pot)
-	br.add_child(potb)
-	pot_l = UI.outlined("0", 16)
-	pot_l.position = Vector2(44, 304)
-	br.add_child(pot_l)
-	# nút nhảy và cần điều khiển (cảm ứng)
-	if touch:
-		var jb = SkillBtn.new()
-		jb.tex = Data.tex(H.ui.get("roll", ""))
-		jb.size = Vector2(88, 88)
-		jb.position = Vector2(-120, 230)
-		jb.pressed.connect(g.jump)
-		br.add_child(jb)
-		# phím di chuyển kiểu Ngọc Rồng: ◀ ▶ đi, ▲ nhảy/leo, ▼ xuống, ↖ ↗ nhảy chéo
-		joy = DPad.new()
-		joy.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		joy.size = Vector2(DPad.B * 3 + DPad.GAP * 2, DPad.B * 3 + DPad.GAP * 2)
-		joy.position = Vector2(24, -joy.size.y - 20)
-		joy.jump.connect(g.jump)
-		root.add_child(joy)
-	else:
-		var hint = UI.outlined("A/D: đi · W/Space: nhảy, bám dây · S: leo xuống · S+Space: xuống bậc · J: đánh · 1-6: kỹ năng · Q: bình máu · E: nói chuyện · B: túi đồ", 14, Color.WHITE, "semi", 4)
-		hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		hint.position = Vector2(16, -30)
-		root.add_child(hint)
+	# cụm nút điều khiển (đánh, kỹ năng, bình, lướt, di chuyển): dựng lại khi đổi kiểu điều khiển trong Tùy chọn
+	_build_controls()
 	talk_btn = UI.button("Nói chuyện", UI.GREEN, 22)
 	talk_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	talk_btn.position = Vector2(-90, -150)
@@ -375,7 +347,8 @@ func refresh() -> void:
 	b.exn = max(1.0, float(d.get("need", 1)))
 	gold_l.text = UI.fmt(d.get("gold", 0))
 	stone_l.text = str(int(d.get("stones", 0)))
-	pot_l.text = "%d" % int(d.get("pots", 0))
+	potb.count = int(d.get("pots", 0))
+	kpotb.count = int(d.get("kpots", 0))
 	var icons: Array = Data.A.hud.skills.get(c, [])
 	var sk: Array = d.get("sk", [])
 	for i in 6:
@@ -392,6 +365,11 @@ func _process(_dt: float) -> void:
 	for i in 6:
 		skills[i].cd = game.cds[i]
 	potb.cd = game.pot_cd
+	kpotb.cd = game.kpot_cd
+	if rollb:
+		rollb.cd = game.roll_cd
+	if auto_b and auto_b.text != ("AUTO ✓" if game.auto_on else "AUTO"):
+		_auto_style()
 	if game.joy != null and joy:
 		game.joy = joy.value
 	net_l.text = ("Ping %d ms" % Net.ping_ms) if Net.online() else ""
@@ -448,6 +426,18 @@ func chat(m: Dictionary) -> void:
 		pre = "[Riêng → %s] " % m.get("to", "")
 		col = Color("ff9ee0")
 	add_log("%s%s: %s" % [pre, m.get("n", ""), m.get("text", "")], col)
+	if m.get("all"):
+		# chat thế giới: hiện ở góc trên giữa 5 giây, bấm vào xem các tin gần đây
+		world_log.append([str(m.get("n", "")), str(m.get("text", ""))])
+		while world_log.size() > 40:
+			world_log.pop_front()
+		_world_toast(str(m.get("n", "")), str(m.get("text", "")))
+	elif not m.get("pm"):
+		# chat trong bản đồ: bong bóng trên đầu người nói
+		var w = game._who(int(m.get("id", 0)))
+		if w:
+			w.say = str(m.get("text", ""))
+			w.say_t = 5.0
 
 func _net(s: String, inf: String) -> void:
 	overlay.visible = s != "online"
@@ -590,3 +580,288 @@ func open_khu(m: Dictionary) -> void:
 		b.pressed.connect(func(): game.loading.begin("%s · Khu %d" % [str(game.M.name), k]); Net.send({"t": "khu", "k": k}); khu_pop.queue_free())
 		g.add_child(b)
 	v.add_child(UI.label("Đang ở khu %d." % cur, 16, UI.INK, "semi"))
+
+
+## ---------- nút điều khiển: kiểu "Phím Ngọc Rồng" (mặc định) hoặc "Nút tròn" (ô kỹ năng vuông) ----------
+func _build_controls() -> void:
+	var g = game
+	var H: Dictionary = Data.A.get("hud", {})
+	if ctl and is_instance_valid(ctl):
+		ctl.queue_free()
+	skills.clear()
+	joy = null
+	ctl = Control.new()
+	ctl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ctl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(ctl)
+	root.move_child(ctl, 0)
+	var mode = str(Data.setting("ctl", "dpad")) if touch else "keys"
+	var br = Control.new()
+	br.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	br.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ctl.add_child(br)
+	var atk = SkillBtn.new()
+	atk.tex = Data.tex(H.ui.get("atk", ""))
+	atk.big = true
+	atk.key = "" if touch else "J"
+	atk.gui_input.connect(func(ev):
+		if ev is InputEventScreenTouch or (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT):
+			g.atk_held = ev.pressed)
+	potb = SkillBtn.new()
+	potb.mx = 3.0
+	potb.tex = Data.tex(H.ui.get("pot", ""))
+	potb.key = "" if touch else "Q"
+	potb.pressed.connect(g.do_pot)
+	kpotb = SkillBtn.new()
+	kpotb.mx = 3.0
+	kpotb.tex = Data.tex(H.ui.get("pot", ""))
+	kpotb.tint = Color(0.45, 0.75, 1.6)
+	kpotb.key = "" if touch else "R"
+	kpotb.pressed.connect(g.do_kpot)
+	var rb = SkillBtn.new()
+	rb.tex = Data.tex(H.ui.get("roll", ""))
+	rb.mx = 1.2
+	rb.key = "" if touch else "L"
+	rb.pressed.connect(g.do_roll)
+	rollb = rb
+	if mode == "joy":
+		# kiểu nút tròn: ô kỹ năng vuông một hàng ở dưới (như Ngọc Rồng), nút đánh tròn lớn ở góc
+		_place(br, Vector2(-760, -190), Vector2(760, 190))
+		atk.size = Vector2(150, 150)
+		atk.position = Vector2(760 - 170, 190 - 168)
+		br.add_child(atk)
+		for i in 6:
+			var b = SkillBtn.new()
+			b.square = true
+			b.size = Vector2(84, 84)
+			b.position = Vector2(760 - 190 - (6 - i) * 92, 190 - 100)
+			var ii = i
+			b.pressed.connect(func(): g.do_skill(ii))
+			br.add_child(b)
+			skills.append(b)
+		for q in [[potb, 0], [kpotb, 1], [rb, 2]]:
+			var b2: SkillBtn = q[0]
+			b2.square = true
+			b2.size = Vector2(74, 74)
+			b2.position = Vector2(760 - 190 - (3 - int(q[1])) * 82, 190 - 190)
+			br.add_child(b2)
+		var js = Joystick.new()
+		js.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		_place(js, Vector2(20, -280), Vector2(280, 260))
+		js.jump.connect(g.jump)
+		ctl.add_child(js)
+		joy = js
+	else:
+		# mặc định: nút đánh lớn ở góc, 6 kỹ năng xếp hình cung quanh
+		_place(br, Vector2(-460, -350), Vector2(450, 320))
+		var ac = Vector2(380, 270)
+		atk.size = Vector2(136, 136)
+		atk.position = ac - atk.size / 2
+		br.add_child(atk)
+		for i in 6:
+			var b = SkillBtn.new()
+			b.size = Vector2(80, 80)
+			var ang = deg_to_rad([182, 226, 270, 197, 233, 268][i])
+			b.position = ac + Vector2(cos(ang), sin(ang)) * (150.0 if i < 3 else 246.0) - b.size / 2
+			b.key = "" if touch else str(i + 1)
+			var ii = i
+			b.pressed.connect(func(): g.do_skill(ii))
+			br.add_child(b)
+			skills.append(b)
+		potb.size = Vector2(72, 72)
+		potb.position = Vector2(-10, 250)
+		br.add_child(potb)
+		kpotb.size = Vector2(64, 64)
+		kpotb.position = Vector2(-6, 170)
+		br.add_child(kpotb)
+		if touch:
+			rb.size = Vector2(88, 88)
+			rb.position = Vector2(-120, 230)
+			br.add_child(rb)
+			# phím di chuyển kiểu Ngọc Rồng: ◀ ▶ đi, ▲ nhảy/leo, ▼ xuống, ↖ ↗ nhảy chéo
+			var dp = DPad.new()
+			dp.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+			var ds = Vector2(DPad.B * 3 + DPad.GAP * 2, DPad.B * 3 + DPad.GAP * 2)
+			_place(dp, Vector2(24, -ds.y - 20), ds)
+			dp.jump.connect(g.jump)
+			ctl.add_child(dp)
+			joy = dp
+		else:
+			var hint = UI.outlined("A/D: đi · W/Space: nhảy, bám dây · S: leo xuống · S+Space: xuống bậc · J: đánh · 1-6: kỹ năng · L: lướt · Q: bình máu · R: bình KI · E: nói chuyện · B: túi đồ", 14, Color.WHITE, "semi", 4)
+			hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+			_place(hint, Vector2(16, -30), Vector2(1200, 24))
+			ctl.add_child(hint)
+	if game.me_data.size() > 0:
+		refresh()
+
+
+## ---------- bảng tự động đánh quái ----------
+func _auto_style() -> void:
+	if auto_b:
+		auto_b.text = "AUTO ✓" if game.auto_on else "AUTO"
+		auto_b.add_theme_stylebox_override("normal", UI.box(UI.GREEN if game.auto_on else UI.SKY, UI.INK, 12, 3))
+
+func open_auto() -> void:
+	if auto_pop and is_instance_valid(auto_pop):
+		auto_pop.queue_free()
+		auto_pop = null
+		return
+	var a: Dictionary = game.auto_cfg().duplicate(true)
+	var save = func(): Data.set_setting("auto", a)
+	auto_pop = Control.new()
+	auto_pop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	auto_pop.theme = UI.theme()
+	var dim = ColorRect.new()
+	dim.color = Color(0.03, 0.05, 0.13, 0.5)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(ev): if (ev is InputEventMouseButton or ev is InputEventScreenTouch) and ev.pressed: open_auto())
+	auto_pop.add_child(dim)
+	var card = UI.card(Vector2(640, 0))
+	auto_pop.add_child(UI.center(card))
+	var v = UI.vbox(10)
+	card.add_child(v)
+	var head = UI.hbox(10)
+	v.add_child(head)
+	var tl = UI.label("Tự động đánh quái", 28, UI.INK, "title")
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(tl)
+	var x = UI.button("✕", UI.RED, 20)
+	x.custom_minimum_size = Vector2(48, 44)
+	x.pressed.connect(open_auto)
+	head.add_child(x)
+	v.add_child(UI.label("Nhân vật tự chạy bộ tới quái và đánh (không dịch chuyển). Bấm nút đi để điều khiển tay bất cứ lúc nào.", 15, Color("5a6b8c"), "body"))
+	v.add_child(_sep())
+	v.add_child(UI.label("Quái ở " + str(game.M.get("name", "")) + " (không chọn = đánh tất cả):", 17, UI.INK, "bold"))
+	var mons_sel: Dictionary = a.get("mons", {}) if a.get("mons") is Dictionary else {}
+	var cur: Array = (mons_sel.get(str(game.mi), []) as Array).duplicate() if mons_sel.get(str(game.mi)) is Array else []
+	var types := {}
+	for sp in game.M.get("spots", []):
+		var t = str(sp.mon)
+		var lv: Array = sp.lv
+		if not types.has(t):
+			types[t] = [int(lv[0]), int(lv[1])]
+		else:
+			types[t] = [mini(types[t][0], int(lv[0])), maxi(types[t][1], int(lv[1]))]
+	var grid = GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 24)
+	v.add_child(grid)
+	if types.is_empty():
+		v.add_child(UI.label("Bản đồ này không có quái.", 15, UI.INK, "body"))
+	for t in types:
+		var cb = CheckBox.new()
+		cb.text = "%s (cấp %d–%d)" % [str(Data.D.mons.get(t, {}).get("n", t)), types[t][0], types[t][1]]
+		cb.button_pressed = cur.has(t)
+		cb.add_theme_font_size_override("font_size", 17)
+		var tt: String = t
+		cb.toggled.connect(func(on):
+			if on and not cur.has(tt): cur.append(tt)
+			if not on: cur.erase(tt)
+			mons_sel[str(game.mi)] = cur
+			a["mons"] = mons_sel
+			save.call())
+		grid.add_child(cb)
+	v.add_child(_sep())
+	var opt = func(label: String, key: String, def: bool) -> CheckBox:
+		var c = CheckBox.new()
+		c.text = label
+		c.button_pressed = bool(a.get(key, def))
+		c.add_theme_font_size_override("font_size", 17)
+		c.toggled.connect(func(on): a[key] = on; save.call())
+		return c
+	v.add_child(opt.call("Tự nhặt đồ rơi", "pick", true))
+	v.add_child(opt.call("Tự dùng kỹ năng đã học", "skill", true))
+	for q in [["hp", "hpPct", "Tự dùng bình máu khi máu dưới", [30, 40, 50, 60, 70], 40], ["ki", "kiPct", "Tự dùng bình KI khi KI dưới", [20, 30, 40, 50], 30]]:
+		var row = UI.hbox(10)
+		row.add_child(opt.call(q[2], q[0], true))
+		var ob = OptionButton.new()
+		var vals: Array = q[3]
+		for vv in vals:
+			ob.add_item("%d%%" % vv)
+		ob.selected = maxi(0, vals.find(int(a.get(q[1], q[4]))))
+		var kk: String = q[1]
+		ob.item_selected.connect(func(i): a[kk] = vals[i]; save.call())
+		row.add_child(ob)
+		v.add_child(row)
+	v.add_child(_sep())
+	var go = UI.button("TẮT AUTO" if game.auto_on else "BẬT AUTO", UI.RED if game.auto_on else UI.GREEN, 22)
+	go.custom_minimum_size = Vector2(0, 56)
+	go.pressed.connect(func(): game.set_auto(not game.auto_on); _auto_style(); open_auto())
+	v.add_child(go)
+	root.add_child(auto_pop)
+
+func _sep() -> Control:
+	var s = ColorRect.new()
+	s.color = Color("c9d3e6")
+	s.custom_minimum_size = Vector2(0, 2)
+	return s
+
+
+func _world_toast(n: String, text: String) -> void:
+	if wt and is_instance_valid(wt):
+		wt.queue_free()
+	wt = PanelContainer.new()
+	wt.add_theme_stylebox_override("panel", UI.box(Color(0.09, 0.12, 0.25, 0.82), Color("ffd23f"), 12, 2, false))
+	wt.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	wt.position = Vector2(-280, 12)
+	wt.custom_minimum_size = Vector2(560, 0)
+	wt.mouse_filter = Control.MOUSE_FILTER_STOP
+	var l = UI.label("[Thế giới] %s: %s" % [n, text], 16, Color("ffe08a"), "semi")
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(536, 0)
+	wt.add_child(l)
+	wt.gui_input.connect(func(ev): if (ev is InputEventMouseButton or ev is InputEventScreenTouch) and ev.pressed: open_world_chat())
+	root.add_child(wt)
+	var tw = wt.create_tween()
+	tw.tween_interval(4.5)
+	tw.tween_property(wt, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(wt.queue_free)
+
+func open_world_chat() -> void:
+	var pop = Control.new()
+	pop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pop.theme = UI.theme()
+	var dim = ColorRect.new()
+	dim.color = Color(0.03, 0.05, 0.13, 0.5)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(ev): if (ev is InputEventMouseButton or ev is InputEventScreenTouch) and ev.pressed: pop.queue_free())
+	pop.add_child(dim)
+	var card = UI.card(Vector2(640, 0))
+	pop.add_child(UI.center(card))
+	var v = UI.vbox(8)
+	card.add_child(v)
+	var head = UI.hbox(10)
+	v.add_child(head)
+	var tl = UI.label("Chat thế giới gần đây", 26, UI.INK, "title")
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(tl)
+	var x = UI.button("✕", UI.RED, 20)
+	x.custom_minimum_size = Vector2(48, 44)
+	x.pressed.connect(pop.queue_free)
+	head.add_child(x)
+	v.add_child(UI.hsep())
+	var sc = ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(600, 380)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(sc)
+	var list = UI.vbox(6)
+	sc.add_child(list)
+	if world_log.is_empty():
+		list.add_child(UI.label("Chưa có tin nhắn nào.", 16, Color("5a6b8c"), "body"))
+	for i in range(world_log.size() - 1, -1, -1):
+		var q: Array = world_log[i]
+		var l = UI.label("%s: %s" % [q[0], q[1]], 16, UI.INK, "body")
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(580, 0)
+		list.add_child(l)
+		list.add_child(UI.hsep())
+	v.add_child(UI.label("Nhắn cả máy chủ: mở khung chat, gõ /all trước nội dung (5.000 vàng).", 13, Color("5a6b8c"), "body"))
+	root.add_child(pop)
+
+
+## đặt nút theo mép màn hình (dùng offset nên đúng cả khi dựng lại lúc đang chơi)
+func _place(c: Control, off: Vector2, sz: Vector2) -> void:
+	c.offset_left = off.x
+	c.offset_top = off.y
+	c.offset_right = off.x + sz.x
+	c.offset_bottom = off.y + sz.y

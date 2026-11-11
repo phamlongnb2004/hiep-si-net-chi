@@ -303,6 +303,21 @@ func open_menu() -> void:
 	var b1 = UI.button("Tiếp tục chơi", UI.GREEN, 20)
 	b1.pressed.connect(open_menu)
 	v.add_child(b1)
+	# kiểu điều khiển trên điện thoại
+	v.add_child(UI.label("Kiểu điều khiển (điện thoại)", 18, UI.INK, "bold"))
+	var crow = UI.hbox(8)
+	v.add_child(crow)
+	for q in [["dpad", "Phím Ngọc Rồng"], ["joy", "Nút tròn"]]:
+		var cb = UI.button(q[1], UI.GOLD if str(Data.setting("ctl", "dpad")) == q[0] else UI.SKY, 17)
+		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var mk: String = q[0]
+		cb.pressed.connect(func():
+			Data.set_setting("ctl", mk)
+			if hud and is_instance_valid(hud):
+				hud._build_controls()
+			open_menu(); open_menu())
+		crow.add_child(cb)
+	v.add_child(UI.label("Phím Ngọc Rồng: ◀ ▶ đi, ▲ nhảy, ↖ ↗ nhảy chéo. Nút tròn: kéo để đi, kéo lên/chéo lên để nhảy; ô kỹ năng vuông.", 13, Color("5a6b8c"), "body"))
 	var b2 = UI.button("Đổi máy chủ", UI.SKY, 20)
 	b2.pressed.connect(func(): Net.leave(); _end_game(); show_servers())
 	v.add_child(b2)

@@ -18,6 +18,8 @@ var hp = 1.0
 var show_name = true
 var is_me = false
 var wing = -1           # độ hiếm cánh đang đeo (0..3), -1 = không có
+var say = ""            # câu chat gần nhất (bong bóng trên đầu)
+var say_t = 0.0
 var title = ""          # danh hiệu (vd Kẻ Kết Liễu, 24 giờ sau khi hạ trùm)
 var deb = 0             # trạng thái xấu: 1 choáng, 2 chậm, 4 độc
 var climb = false       # đang leo dây/thang: vẽ dáng nhìn từ sau lưng
@@ -33,6 +35,7 @@ const BOB := [0.0, 2.2, 0.0, 2.2]
 
 func _process(dt: float) -> void:
 	t += dt
+	say_t = max(0.0, say_t - dt)
 	flash = max(0.0, flash - dt)
 	# vận tốc dọc ước lượng từ vị trí (dùng chọn khung nhảy cho cả người khác)
 	if dt > 0:
@@ -329,6 +332,8 @@ func _labels() -> void:
 		var y = -84.0
 		draw_string_outline(f, Vector2(-w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 5, UI.INK)
 		draw_string(f, Vector2(-w / 2, y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("ffd23f") if is_me else Color.WHITE)
+		if say_t > 0 and say != "":
+			_bubble(f, y - (36 if title != "" else 20))
 		if title != "":
 			var tt = "« " + title + " »"
 			var tw = f.get_string_size(tt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
@@ -397,3 +402,17 @@ func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 		var a = TAU * i / 20.0
 		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
 	draw_colored_polygon(pts, col)
+
+
+## bong bóng chat trên đầu (chat trong bản đồ), mờ dần ở 0,5 giây cuối
+func _bubble(f: Font, bottom: float) -> void:
+	var W := 230.0
+	var fs := 14
+	var sz = f.get_multiline_string_size(say, HORIZONTAL_ALIGNMENT_CENTER, W, fs, 3)
+	var bw = minf(W, sz.x) + 20
+	var bh = sz.y + 12
+	var al = clampf(say_t / 0.5, 0, 1)
+	var r = Rect2(-bw / 2, bottom - bh - 10, bw, bh)
+	draw_style_box(UI.box(Color(1, 1, 1, 0.94 * al), Color(0.09, 0.12, 0.25, al), 10, 2, false), r)
+	draw_colored_polygon(PackedVector2Array([Vector2(-7, r.end.y - 1), Vector2(7, r.end.y - 1), Vector2(0, r.end.y + 8)]), Color(1, 1, 1, 0.94 * al))
+	draw_multiline_string(f, Vector2(r.position.x + 10, r.position.y + 6 + fs), say, HORIZONTAL_ALIGNMENT_CENTER, bw - 20, fs, 3, Color(UI.INK, al))

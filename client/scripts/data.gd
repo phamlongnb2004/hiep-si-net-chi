@@ -234,6 +234,26 @@ func item_icon(it: Dictionary) -> Texture2D:
 ## ---------- khu trùm: giờ mở (giống máy chủ, theo giờ Việt Nam) ----------
 var clock_off := 0.0   # mili giây: giờ máy chủ - giờ máy này
 
+## tùy chọn trên máy (kiểu điều khiển, auto...): lưu ở user://settings.cfg
+var _cfgs := {}
+var _cfg_loaded := false
+func setting(k: String, def = null):
+	if not _cfg_loaded:
+		_cfg_loaded = true
+		var f = FileAccess.open("user://settings.json", FileAccess.READ)
+		if f:
+			var v = JSON.parse_string(f.get_as_text())
+			if v is Dictionary:
+				_cfgs = v
+	return _cfgs.get(k, def)
+
+func set_setting(k: String, v) -> void:
+	setting(k)
+	_cfgs[k] = v
+	var f = FileAccess.open("user://settings.json", FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(_cfgs))
+
 ## máy cảm ứng (điện thoại, máy tính bảng): phím ảo, phóng to nhân vật
 func is_touch() -> bool:
 	return DisplayServer.is_touchscreen_available() or OS.get_name() in ["Android", "iOS"] or OS.get_environment("HSNC_TOUCH") == "1"

@@ -90,7 +90,12 @@ func _draw() -> void:
 		# mũi tên tam giác theo hướng phím
 		var d: Vector2 = DIR[k].normalized()
 		var n = Vector2(-d.y, d.x)
-		var L = B * 0.24
-		var pts = PackedVector2Array([c + d * L, c - d * L * 0.55 + n * L * 0.7, c - d * L * 0.55 - n * L * 0.7])
+		# mũi tên có thân (nhìn rõ hướng chéo)
+		var L = B * 0.3
+		var hw = L * 0.62
+		var sw = L * 0.22
+		var pts = PackedVector2Array([c + d * L, c + n * hw, c + n * sw, c - d * L * 0.9 + n * sw, c - d * L * 0.9 - n * sw, c - n * sw, c - n * hw])
 		draw_colored_polygon(pts, Color.WHITE)
-		draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[0]]), UI.INK, 3)
+		var outl = pts.duplicate()
+		outl.append(pts[0])
+		draw_polyline(outl, UI.INK, 3)

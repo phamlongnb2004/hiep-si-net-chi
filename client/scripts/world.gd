@@ -169,16 +169,20 @@ func _draw() -> void:
 	var sk: Array = SKY.get(theme, SKY.grass)
 	var c0 = Color.html(sk[0])
 	var c1 = Color.html(sk[1])
-	draw_polygon(PackedVector2Array([Vector2(cx - 2, cy - 2), Vector2(cx + vw + 2, cy - 2), Vector2(cx + vw + 2, GY), Vector2(cx - 2, GY)]), PackedColorArray([c0, c0, c1, c1]))
+	# trời gắn theo toạ độ bản đồ (không co giãn theo máy quay khi nhảy)
+	var top = GY - 900.0
+	if cy < top:
+		draw_rect(Rect2(cx - 2, cy - 2, vw + 4, top - cy + 4), c0)
+	draw_polygon(PackedVector2Array([Vector2(cx - 2, top), Vector2(cx + vw + 2, top), Vector2(cx + vw + 2, GY), Vector2(cx - 2, GY)]), PackedColorArray([c0, c0, c1, c1]))
 	draw_rect(Rect2(cx - 2, GY, vw + 4, max(0.0, cy + vh - GY + 2)), c1)
-	# núi xa và lớp giữa cuộn chậm
+	# núi xa và lớp giữa cuộn chậm: cao cố định theo bản đồ, không phóng to khi máy quay lên cao
 	var far = _side("far_" + theme)
 	if not far.is_empty():
-		var h: float = max(GY - cy + 40, vh * 0.85)
+		var h: float = 620.0
 		_tile_par(far, cx, GY + 30 - h, h, vw, 0.82)
 	var mid = _side("mid_" + theme)
 	if not mid.is_empty():
-		var h2: float = vh * (0.36 if KIT.has(theme) else 0.42)
+		var h2: float = 720.0 * (0.36 if KIT.has(theme) else 0.42)
 		_tile_par(mid, cx, GY - h2 * 0.94, h2, vw, 0.5)
 	# sương phủ cảnh nền
 	var hz: Color = HAZE.get(theme, HAZE.grass)

@@ -49,7 +49,15 @@ export const OPS = {
     ch.pots--; f.potCd = R.POT_CD; const h = Math.round(f.maxHp * R.POT_HEAL); f.hp = Math.min(f.maxHp, f.hp + h);
     if (c.inst) c.inst.ev.push(['ph', c.id, h]); return { ok: true, heal: h };
   },
+  kpot(c) {
+    const ch = c.ch, f = c.f; if (f.dead > 0 || (ch.kpots | 0) <= 0 || f.ki >= f.maxKi || f.kpCd > 0) return { ok: false };
+    ch.kpots--; f.kpCd = R.KPOT_CD; const k = Math.round(f.maxKi * R.KPOT_GAIN); f.ki = Math.min(f.maxKi, f.ki + k);
+    return { ok: true, ki: k };
+  },
   buypot(c, m) {
+    if (m.k === 'ki') { const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, price = R.TUNE.potPrice * n;
+      if (ch.gold < price || (ch.kpots | 0) + n > R.KPOT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mang tối đa ' + R.KPOT_MAX + ' bình KI.' };
+      ch.gold -= price; ch.kpots = (ch.kpots | 0) + n; return { ok: true }; }
     const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, price = R.TUNE.potPrice * n;
     if (ch.gold < price || ch.pots + n > R.POT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mang tối đa ' + R.POT_MAX + ' bình.' };
     ch.gold -= price; ch.pots += n; return { ok: true };
@@ -57,7 +65,7 @@ export const OPS = {
   // NPC Thương Nhân Giáp: bán mọi loại đồ của mọi phái, chỉ số mặc định, cấp đồ theo cấp người chơi (bậc 5)
   shopbuy(c, m) {
     const ch = c.ch, cls = String(m.cls), slot = String(m.slot), r = m.r | 0;
-    if (!R.CLS_KEYS.includes(cls) || !R.DROP_SLOTS.includes(slot) || r < 0 || r > 3) return { ok: false };
+    if (!R.CLS_KEYS.includes(cls) || !R.DROP_SLOTS.includes(slot) || r !== 0) return { ok: false, msg: 'Cửa hàng chỉ bán đồ thường.' };
     if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Hãy tới gần Thương Nhân Giáp trong Làng.' };
     if (ch.inv.length >= R.INV_MAX) return { ok: false, msg: 'Túi đầy.' };
     const lvl = R.shopLevel(ch.lv), price = R.shopPrice(lvl, r);

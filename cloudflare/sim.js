@@ -14,7 +14,7 @@ const OWN_T = 30, DROP_LIFE = 75, PICK_R = 40; // đồ rơi: 30 giây đầu ch
 // trạng thái chiến đấu của một người chơi (không lưu xuống cơ sở dữ liệu)
 export function makeFighter(ch) {
   const s = R.stats(ch);
-  return Object.assign(s, { hp: s.maxHp, ki: s.maxKi, lsAcc: 0, kiWarn: 0, buffs: [], cds: [0, 0, 0, 0, 0, 0], gcd: 0, atkCd: 0, potCd: 0, dead: 0, combo: 0, comboT: 0,
+  return Object.assign(s, { hp: s.maxHp, ki: s.maxKi, lsAcc: 0, kiWarn: 0, buffs: [], cds: [0, 0, 0, 0, 0, 0], gcd: 0, atkCd: 0, potCd: 0, kpCd: 0, dead: 0, combo: 0, comboT: 0,
     x: 0, y: 0, face: 1, air: 0, mv: 0, sw: 0, moveAt: 0, dashT: 0, dashLen: 0, pois: null, slowT: 0, slowM: 1, stunT: 0 });
 }
 export const lookN = ch => { const t = it => it && it.cls === ch.cls ? clamp(it.tier | 0, 0, 3) : -1; return (t(ch.eq.armor) + 1) + 5 * (t(ch.eq.hat) + 1) + 25 * (t(ch.eq.cape) + 1); };
@@ -202,6 +202,14 @@ export class MapInst {
     if (o.kb) this.push(c, o.kb);
     this.damage(c, d);
   }
+  // lướt ngang (nút lướt): đi nhanh ~160 về một phía, dừng ở vách; ứng dụng tự vẽ chuyển động
+  roll(c, m) {
+    const f = c.f; if (f.dead > 0 || f.stunT > 0 || (f.rollCd || 0) > 0) return;
+    const dir = (+m.d || f.face) < 0 ? -1 : 1; let x = f.x;
+    for (let s = 0; s < 160; s += 8) { const nx = clamp(x + dir * 8, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
+    f.rollCd = 1.2; f.face = dir; f.dashT = .45; f.dashLen = Math.abs(x - f.x) + 20; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y));
+    this.ev.push(['rl', c.id, dir]);
+  }
   // báo vị trí do máy chủ đặt; đếm số lần để bỏ qua gói vị trí cũ còn trên đường truyền
   sendPos(c, o) { c.posN = (c.posN | 0) + 1; c.posAt = Date.now(); this.h.send(c, { t: 'pos', x: Math.round(c.f.x), y: Math.round(c.f.y), pn: c.posN, ...(o || {}) }); }
   // đẩy người chơi theo trục x (dừng ở vách), báo vị trí mới cho ứng dụng
@@ -312,7 +320,7 @@ export class MapInst {
     const f = c.f;
     if (c.pet) this.tickPet(c, dt);
     if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.sendPos(c, { respawn: 1 }); c.meDirty = true; } return; }
-    f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.dashT = Math.max(0, f.dashT - dt);
+    f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.kpCd = Math.max(0, (f.kpCd || 0) - dt); f.rollCd = Math.max(0, (f.rollCd || 0) - dt); f.dashT = Math.max(0, f.dashT - dt);
     for (let i = 0; i < 6; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
     const nb = f.buffs.length; f.buffs = f.buffs.filter(b => (b.t -= dt) > 0); if (f.buffs.length !== nb) c.meDirty = true;
     f.comboT -= dt; if (f.comboT <= 0) f.combo = 0;

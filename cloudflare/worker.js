@@ -11,7 +11,7 @@ import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaf
 const TICK_MS = 100;
 const APP_MIN = '2.9.0'; // 2.9.0: Boss Hoang Dã, trứng, pet, Bà Ấp Trứng (bản cũ không vẽ được pet, không có ô trứng)
 const ARENA_SLOTS = ['12:00', '19:00', '21:00'], ARENA_DUR = 30, ARENA_LEAVE = 40000; // khu trùm: khung giờ mặc định, số phút mở, giây ở lại nhặt đồ sau khi hạ trùm
-const KHU_MAX = 15, KHU_SHOW = 5, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
+const KHU_MAX = 15, KHU_SHOW = 10, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
 const MAX_SAVE = 300 * 1024;
 const TOKEN_IDLE = 30 * 86400e3; // phiên đăng nhập hết hạn sau 30 ngày không dùng
 const SAVE_EVERY = 15000;
@@ -412,7 +412,8 @@ export class World extends DurableObject {
   }
   // mỗi bản đồ chia nhiều khu (như Ngọc Rồng Online), mỗi khu tối đa KHU_MAX người; khu là một bản sao bản đồ riêng (quái, đồ rơi riêng)
   instOf(srv, mi, k) { const key = srv * 10000 + mi * 100 + k; let i = this.insts.get(key); if (!i) { i = new MapInst(srv, mi, this.hooks()); i.khu = k; this.insts.set(key, i); } return i; }
-  gcInst(inst) { if (!inst.players.size && !inst.keep) this.insts.delete(inst.srv * 10000 + inst.mi * 100 + inst.khu); }
+  // bản đồ săn quái: giữ nguyên 10 khu đầu kể cả khi không ai ở (quái, tinh anh không bị làm mới khi đổi khu)
+  gcInst(inst) { if (!inst.players.size && !inst.keep && !(inst.khu <= KHU_SHOW && inst.M.spots && inst.M.spots.length && !inst.M.arena)) this.insts.delete(inst.srv * 10000 + inst.mi * 100 + inst.khu); }
   khuN(srv, mi, k) { const i = this.insts.get(srv * 10000 + mi * 100 + k); return i ? i.players.size : 0; }
   khuMax() { return Math.max(1, Math.min(100, (this.cfg && this.cfg.khuMax) | 0 || KHU_MAX)); }
   // chọn khu: giữ số khu mong muốn nếu còn chỗ, không thì khu nhỏ nhất còn chỗ
@@ -525,10 +526,10 @@ export class World extends DurableObject {
   }
   meOf(c, full) {
     const ch = c.ch, f = c.f;
-    const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
+    const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, kpots: ch.kpots | 0, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
       hp: Math.round(f.hp), maxHp: f.maxHp, atk: f.atk, def: f.def, spd: f.spd, crit: f.crit, dead: f.dead > 0 ? 1 : 0,
       ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5].map(i => R.kiCost(ch.lv, i)),
-      cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })),
+      cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), kpCd: +(f.kpCd || 0).toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })),
       stun: f.stunT > 0 ? +f.stunT.toFixed(1) : 0, slow: f.slowT > 0 ? f.slowM : 1, pois: f.pois ? 1 : 0, title: ch.title && ch.title.until > Date.now() ? ch.title.n : '' };
     if (full) Object.assign(o, { name: ch.name, cls: ch.cls, inv: ch.inv, eq: ch.eq, pets: ch.pets.map(p => ({ ...p, st: R.petStats(p), stage: R.petStage(p.lv), need: R.expNeed(p.lv) })), petOn: ch.petOn || '', hatch: ch.hatch || null, now: Date.now() });
     if (c.pet) { o.pet = { hp: Math.round(c.pet.hp), maxHp: c.pet.maxHp, faint: +c.pet.faint.toFixed(0), lv: c.pet.lv }; }
@@ -561,6 +562,7 @@ export class World extends DurableObject {
     const I = c.inst;
     switch (m.t) {
       case 'in': return I.move(c, m);
+      case 'roll': return I.roll(c, m);
       case 'atk': return I.attack(c, m);
       case 'sk': return I.skill(c, m);
       case 'khu': {

@@ -151,3 +151,28 @@ static func fmt(n) -> String:
 		if k % 3 == 0 and i > 0 and s[i - 1] != "-":
 			o = "." + o
 	return o
+
+
+## đường kẻ ngang / dọc phân vùng trong bảng
+static func hsep() -> ColorRect:
+	var s = ColorRect.new()
+	s.color = Color("c9d3e6")
+	s.custom_minimum_size = Vector2(0, 2)
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return s
+
+static func vsep() -> ColorRect:
+	var s = ColorRect.new()
+	s.color = Color("c9d3e6")
+	s.custom_minimum_size = Vector2(2, 0)
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return s
+
+## mọi chữ dài trong bảng tự xuống dòng để khung không bị kéo rộng
+static func wrap_all(n: Node, minw := 160.0) -> void:
+	for c in n.get_children():
+		if c is Label and c.text.length() > 36:
+			c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			c.custom_minimum_size.x = max(c.custom_minimum_size.x, minw)
+		wrap_all(c, minw)

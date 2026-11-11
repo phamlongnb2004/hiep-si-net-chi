@@ -7,11 +7,13 @@ var k = "item"
 var n = 0
 var item: Dictionary = {}
 var t = 0.0
+var own = 0     # người được nhặt trước (30 giây đầu)
 
 func setup(d: Dictionary) -> void:
 	id = int(d.id)
 	k = str(d.k)
 	n = int(d.get("n", 0))
+	own = int(d.get("own", 0)) if d.get("own") != null else 0
 	item = d.item if d.get("item") is Dictionary else {}
 	position = Vector2(d.x, d.y)
 	t = randf() * 6

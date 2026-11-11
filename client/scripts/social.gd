@@ -256,6 +256,7 @@ func _side(title: String, s: Dictionary, mine: bool) -> VBoxContainer:
 	var v = UI.vbox(8)
 	v.custom_minimum_size = Vector2(300, 0)
 	v.add_child(UI.label(title, 22, UI.INK, "bold"))
+	v.add_child(UI.hsep())
 	var g = GridContainer.new()
 	g.columns = 4
 	g.add_theme_constant_override("h_separation", 6)
@@ -267,6 +268,7 @@ func _side(title: String, s: Dictionary, mine: bool) -> VBoxContainer:
 			ItemCell.clickable(c, func(): tr_items.erase(iid); _push())
 		g.add_child(c)
 	v.add_child(g)
+	v.add_child(UI.hsep())
 	v.add_child(UI.label("Vàng: " + UI.fmt(s.get("gold", 0)), 18, UI.INK, "semi"))
 	var st = "Đã đồng ý" if int(s.get("ok", 0)) == 1 else ("Đã khóa" if int(s.get("lock", 0)) == 1 else "Đang chọn…")
 	v.add_child(UI.label(st, 17, Color("2fa84f") if int(s.get("lock", 0)) == 1 else Color("5a6b8c"), "bold"))
@@ -280,6 +282,7 @@ func _render_trade() -> void:
 	if not tr_body or not is_instance_valid(tr_body) or tr.is_empty():
 		return
 	for c in tr_body.get_children():
+		tr_body.remove_child(c)
 		c.queue_free()
 	var me: Dictionary = tr.get("me", {})
 	var th: Dictionary = tr.get("them", {})
@@ -290,6 +293,7 @@ func _render_trade() -> void:
 	var left = UI.vbox(8)
 	left.custom_minimum_size = Vector2(330, 0)
 	left.add_child(UI.label("Túi đồ (chạm để đưa vào)", 18, UI.INK, "bold"))
+	left.add_child(UI.hsep())
 	var g = GridContainer.new()
 	g.columns = 5
 	g.add_theme_constant_override("h_separation", 5)
@@ -313,6 +317,7 @@ func _render_trade() -> void:
 	left.add_child(sc)
 	left.add_child(UI.label("Đồ khóa (mờ) không giao dịch được.", 13, Color("5a6b8c"), "body"))
 	tr_body.add_child(left)
+	tr_body.add_child(UI.vsep())
 	var mid = _side("Bạn đưa", me, true)
 	var gr = UI.hbox(6)
 	tr_gold = UI.edit("Vàng")
@@ -327,6 +332,7 @@ func _render_trade() -> void:
 	gr.add_child(sg)
 	mid.add_child(gr)
 	tr_body.add_child(mid)
+	tr_body.add_child(UI.vsep())
 	var right = _side("%s đưa" % th.get("n", ""), th, false)
 	var btns = UI.vbox(8)
 	var lk = UI.button("Hủy khóa" if int(me.get("lock", 0)) == 1 else "Khóa", UI.GOLD, 20)
@@ -341,5 +347,7 @@ func _render_trade() -> void:
 	cb.pressed.connect(func(): Net.send({"t": "tr_cancel"}))
 	btns.add_child(cb)
 	btns.add_child(UI.label("Cả hai cùng Khóa rồi cùng Đồng ý thì mới đổi. Đổi đồ/vàng sẽ mở khóa lại.", 13, Color("5a6b8c"), "body"))
+	right.add_child(UI.hsep())
 	right.add_child(btns)
 	tr_body.add_child(right)
+	UI.wrap_all(tr_body, 280)

@@ -706,6 +706,11 @@ func perf_test() -> void:
 	Net.send({"t": "devlv", "lv": int(OS.get_environment("HSNC_LV")) if OS.get_environment("HSNC_LV") != "" else 22})
 	Net.send({"t": "devtp", "map": int(OS.get_environment("HSNC_MAP")) if OS.get_environment("HSNC_MAP") != "" else 6, "x": int(OS.get_environment("HSNC_X")) if OS.get_environment("HSNC_X") != "" else 1650, "y": int(OS.get_environment("HSNC_Y")) if OS.get_environment("HSNC_Y") != "" else 0})
 	await wait(3.0)
+	if OS.get_environment("HSNC_CTL") != "":
+		Data.set_setting("ctl", OS.get_environment("HSNC_CTL"))
+		main.hud._build_controls()
+	if OS.get_environment("HSNC_AUTO") != "":
+		g.set_auto(true)
 	await shot("perf-0")
 	var secs = int(OS.get_environment("HSNC_SECS")) if OS.get_environment("HSNC_SECS") != "" else 20
 	for i in secs:
@@ -725,5 +730,8 @@ func perf_test() -> void:
 		await wait(1.0)
 		print("PERF t=%d fps=%d maxframe=%dms proc=%.1fms ping=%d pos=%d hp=%s x=%d y=%d draws=%d tex=%dMB" % [i, _fn, int(_fmax), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Net.ping_ms, _pos_n, str(g.me_data.get("hp")), int(g.me.position.x), int(g.me.position.y),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), int(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576)])
+		if i == 4:
+			Net.send({"t": "chat", "text": "Xin chào cả nhà, ai đi săn cua không?"})
+			main.hud.chat({"all": true, "n": "Long", "text": "Ma Long sắp xuất hiện, ai đi cùng không?"})
 		if i == 6:
 			await shot("perf-1")

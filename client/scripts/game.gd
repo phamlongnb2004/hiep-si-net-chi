@@ -4,6 +4,7 @@ class_name Game
 ## người chơi khác và quái theo ảnh chụp 10 lần/giây từ máy chủ, hiệu ứng theo sự kiện.
 
 signal me_changed
+signal bag_changed   # tin 'me' đầy đủ (túi đồ, trang bị, vàng, pet thay đổi)
 signal log_line(text: String, col: Color)
 signal npc_near(id: String)
 signal open_npc(id: String)
@@ -52,6 +53,16 @@ var atk_t = 0.0
 var cds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var gcd = 0.0
 var pot_cd = 0.0
+var kpot_cd = 0.0
+var roll_cd = 0.0
+var roll_t = 0.0
+var roll_dir = 1
+# tự động đánh: bật/tắt, loại quái được chọn (theo bản đồ), nhặt đồ, dùng bình
+var auto_on = false
+var auto_skip = {}               # id quái bỏ qua tạm (đánh mãi không tới) -> hết hạn (giây)
+var auto_fT = 0.0
+var auto_fid = 0
+var auto_sk = 0
 const POT_CD = 3.0
 var warping = false
 var near_npc = ""
@@ -171,12 +182,15 @@ func _set_me(d: Dictionary, full: bool) -> void:
 		cds[i] = float(sc[i])
 	gcd = float(me_data.get("gcd", 0))
 	pot_cd = max(pot_cd, float(me_data.get("potCd", 0)))
+	kpot_cd = max(kpot_cd, float(me_data.get("kpCd", 0)))
 	me.look = _look(me_data)
 	var wg = me_data.get("eq", {}).get("wing") if me_data.get("eq") is Dictionary else null
 	me.wing = int(wg.get("r", 0)) if wg is Dictionary else -1
 	me.title = str(me_data.get("title", ""))
 	me.deb = (1 if float(me_data.get("stun", 0)) > 0 else 0) | (2 if float(me_data.get("slow", 1)) < 1 else 0) | (4 if int(me_data.get("pois", 0)) else 0)
 	me_changed.emit()
+	if full:
+		bag_changed.emit()
 
 func _look(d: Dictionary) -> int:
 	var eq: Dictionary = d.get("eq", {}) if d.get("eq") is Dictionary else {}
@@ -538,6 +552,123 @@ func do_pot() -> void:
 		pot_cd = POT_CD
 		Net.send({"t": "pot"})
 
+func do_kpot() -> void:
+	if can_act() and kpot_cd <= 0.05:
+		kpot_cd = POT_CD
+		Net.send({"t": "kpot"})
+
+## lướt ngang ~160 về hướng đang nhìn (hoặc hướng đang bấm), hồi 1,2 giây
+func do_roll() -> void:
+	if not can_act() or roll_cd > 0.05 or not climb.is_empty():
+		return
+	roll_cd = 1.2
+	roll_t = 0.18
+	roll_dir = (1 if joy.x > 0.3 else (-1 if joy.x < -0.3 else me.face))
+	me.face = roll_dir
+	Net.send({"t": "roll", "d": roll_dir})
+	fx.burst(me.position + Vector2(-roll_dir * 20, -12), Color(1, 1, 1, 0.75), 8, 160.0, 0.8)
+
+## ---------- tự động đánh quái (chạy bộ tới quái, không dịch chuyển) ----------
+func auto_cfg() -> Dictionary:
+	var a = Data.setting("auto", {})
+	return a if a is Dictionary else {}
+
+func _auto_types() -> Array:
+	var sel: Dictionary = auto_cfg().get("mons", {})
+	var L = sel.get(str(mi), [])
+	return L if L is Array else []
+
+func _auto_pick() -> Mon:
+	var want = _auto_types()
+	var best: Mon = null
+	var bs = 1e9
+	var now = Time.get_ticks_msec() / 1000.0
+	for mo in mons.values():
+		if mo.dead() or (want.size() > 0 and not want.has(mo.type)):
+			continue
+		if auto_skip.get(mo.id, 0.0) > now:
+			continue
+		var s = absf(mo.position.x - me.position.x) + absf(mo.position.y - me.position.y) * 2.5
+		if s < bs:
+			bs = s
+			best = mo
+	return best
+
+func _auto_drop():
+	var best = null
+	var bd = 650.0
+	for d in drops.values():
+		if d.own != 0 and d.own != my_id:
+			continue
+		if absf(d.position.y - me.position.y) > 150:
+			continue
+		var dd = absf(d.position.x - me.position.x)
+		if dd < bd:
+			bd = dd
+			best = d
+	return best
+
+func _auto_tick(dt: float) -> void:
+	var a = auto_cfg()
+	var now = Time.get_ticks_msec() / 1000.0
+	# bình máu / bình KI
+	var hp = float(me_data.get("hp", 1))
+	var hpm = max(1.0, float(me_data.get("maxHp", 1)))
+	if a.get("hp", true) and hp < hpm * float(a.get("hpPct", 40)) / 100.0 and int(me_data.get("pots", 0)) > 0:
+		do_pot()
+	var ki = float(me_data.get("ki", 0))
+	var kim = max(1.0, float(me_data.get("maxKi", 1)))
+	if a.get("ki", true) and ki < kim * float(a.get("kiPct", 30)) / 100.0 and int(me_data.get("kpots", 0)) > 0:
+		do_kpot()
+	# nhặt đồ trước khi đánh tiếp
+	if a.get("pick", true):
+		var d = _auto_drop()
+		if d and (focus == null or absf(d.position.x - me.position.x) < 300):
+			focus = null
+			move_to = d.position.x
+			return
+	if focus == null or focus.dead():
+		focus = _auto_pick()
+		auto_fT = 0.0
+	if focus == null:
+		return
+	# đánh mãi không tới (quái ở chỗ không lên được): bỏ qua 20 giây
+	if focus.id != auto_fid:
+		auto_fid = focus.id
+		auto_fT = 0.0
+	auto_fT += dt
+	var dx = focus.position.x - me.position.x
+	var dy = focus.position.y - me.position.y
+	if auto_fT > 12.0 and focus.hp >= focus.hp_max * 0.98:
+		auto_skip[focus.id] = now + 20.0
+		focus = null
+		return
+	if not air:
+		if dy < -60 and absf(dx) < 110:
+			jump_q = 0.15       # quái ở bậc trên: nhảy lên (xuyên bậc từ dưới)
+		elif dy > 60 and absf(dx) < 70 and world.gy(me.position.x) > me.position.y + 10:
+			drop_t = 0.3         # quái ở dưới: rơi xuyên bậc đang đứng
+			air = true
+			vy = 60
+	# kỹ năng: dùng lần lượt các chiêu đã học, đủ KI, khi quái đã ở gần
+	if a.get("skill", true) and absf(dx) < 300 and absf(dy) < 140:
+		var sk: Array = me_data.get("sk", [])
+		var kc: Array = me_data.get("kc", [])
+		for k in 6:
+			var i = (auto_sk + k) % 6
+			if i < sk.size() and int(sk[i]) == 1 and cds[i] <= 0.05 and gcd <= 0.05 and (i >= kc.size() or ki >= float(kc[i])):
+				do_skill(i)
+				auto_sk = i + 1
+				break
+
+func set_auto(on: bool) -> void:
+	auto_on = on
+	auto_skip.clear()
+	if not on:
+		focus = null
+		move_to = -1
+	log_line.emit("Tự động đánh: " + ("BẬT" if on else "TẮT"), Color("9be05a") if on else Color("ffb347"))
+
 func jump() -> void:
 	# đứng ở chân dây/thang (hoặc trên đỉnh, đang giữ xuống) thì bám leo thay vì nhảy
 	if climb.is_empty() and can_act():
@@ -629,6 +760,8 @@ func _process(dt: float) -> void:
 	atk_t = max(0.0, atk_t - dt)
 	gcd = max(0.0, gcd - dt)
 	pot_cd = max(0.0, pot_cd - dt)
+	kpot_cd = max(0.0, kpot_cd - dt)
+	roll_cd = max(0.0, roll_cd - dt)
 	for i in 6:
 		cds[i] = max(0.0, cds[i] - dt)
 	for mo in mons.values():
@@ -672,6 +805,8 @@ func _control(dt: float) -> void:
 		focus = null
 		move_to = -1
 		npc_go = ""
+	elif auto_on and not warping:
+		_auto_tick(dt)
 	if focus and focus.dead():
 		focus = null
 	var dx = 0.0
@@ -730,6 +865,11 @@ func _control(dt: float) -> void:
 	for b in me_data.get("buffs", []):
 		if b.get("id") in ["roll", "rage"]:
 			spd *= 1.35 if b.id == "roll" else 1.25
+	if roll_t > 0:
+		roll_t -= dt
+		_move_x(me.position.x + roll_dir * 890.0 * dt)
+		dx = 0
+		me.face = roll_dir
 	me.moving = dx != 0
 	if me.moving:
 		var s = spd * (0.85 if me.swing > 0 else 1.0) * (0.92 if air else 1.0) * (0.6 if Data.in_zone(M.get("water", []), me.position.x, me.position.y) else 1.0)
@@ -805,6 +945,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_W, KEY_UP, KEY_SPACE, KEY_K: jump()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6: do_skill(ev.keycode - KEY_1)
 			KEY_Q: do_pot()
+			KEY_R: do_kpot()
+			KEY_L: do_roll()
 			KEY_B: get_parent().open_bag()
 			KEY_E:
 				if near_npc != "":

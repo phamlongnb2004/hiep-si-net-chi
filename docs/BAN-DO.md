@@ -111,3 +111,12 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Ảnh: `mon2/malong`, `mon2/dragonling`, `vfx/ml_*`, `vfx/pf_*`, `vfx/hit_*`, `pet/<loài>/<giai đoạn>/`, `egg/<loài>/`, `npc/egg`, `npc/nest`. Thân và chiêu vẽ tách riêng. Xem thử: `HSNC_PREVIEW=pets`.
 - Chưa có: đồ pet (vòng cổ, giáp lưng, móng vuốt, bùa linh) — để đợt sau.
 - APP_MIN 2.9.0.
+
+## Auto, điều khiển, bình KI, khu cố định (2.9.3)
+- Auto đánh quái (nút AUTO): chọn loại quái của bản đồ hiện tại (lưu theo bản đồ trong `user://settings.json`), tự chạy bộ tới quái (nhảy lên bậc / rơi xuyên bậc khi cần), bỏ qua quái đánh mãi không tới (12 giây → bỏ 20 giây), tự nhặt đồ của mình, tự dùng kỹ năng đã học, tự dùng bình máu/KI dưới ngưỡng.
+- Bình KI (`kpots`, tối đa 20, hồi 45% KI, mua ở Thương Nhân Bảo; thao tác `kpot`, `buypot {k:'ki'}`).
+- Lướt ngang (nút lướt / phím L): thao tác `roll {d}`, máy chủ dời 160 (dừng ở vách), hồi 1,2 giây.
+- Kiểu điều khiển (Tùy chọn): "Phím Ngọc Rồng" (◀ ▶ ▲ ▼ ↖ ↗) hoặc "Nút tròn" (kéo 8 hướng, chéo lên = nhảy chéo; ô kỹ năng vuông một hàng).
+- Khu: hiện sẵn 10 khu; khu 1–10 của bản đồ săn quái không bị xoá khi trống (quái, tinh anh giữ nguyên).
+- Rơi đồ: thường/hiếm/sử thi/huyền thoại quái thường 90/9/0,9/0,1; tinh anh 72/23/4,4/0,6; trùm 52/38/8,5/1,5. Cấp đồ = cấp quái. Sao pet 50/28/14/6/2 %. Thương Nhân Giáp chỉ bán đồ thường.
+- Chat bản đồ: bong bóng trên đầu 5 giây; chat thế giới: dải chữ trên giữa 5 giây, bấm để xem 40 tin gần đây.

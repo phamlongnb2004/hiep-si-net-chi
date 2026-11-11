@@ -1,6 +1,6 @@
 extends Control
 class_name Joystick
-## Cần điều khiển cảm ứng: kéo trái/phải để đi, kéo lên để nhảy.
+## Cần điều khiển cảm ứng (nút tròn): kéo trái/phải để đi, kéo lên để nhảy thẳng, kéo chéo lên để nhảy chéo, kéo xuống để leo xuống.
 
 signal jump
 var value = Vector2.ZERO
@@ -31,11 +31,16 @@ func _gui_input(ev: InputEvent) -> void:
 		if d.length() > R:
 			d = d.normalized() * R
 		_k = _c + d
-		value = d / R
-		if value.y < -0.62 and not _jumped:
+		# 8 hướng: kéo chéo lên là nhảy chéo (đi hết tốc), kéo thẳng lên là nhảy thẳng
+		value = Vector2.ZERO
+		if d.length() > R * 0.3:
+			var a = rad_to_deg(d.angle())   # 0 = phải, -90 = lên
+			var sec = int(round(a / 45.0)) % 8
+			value = [Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Vector2(-1, 1), Vector2(-1, 0), Vector2(-1, -1), Vector2(0, -1), Vector2(1, -1)][(sec + 8) % 8]
+		if value.y < 0 and not _jumped:
 			_jumped = true
 			jump.emit()
-		elif value.y > -0.3:
+		elif value.y >= 0:
 			_jumped = false
 		accept_event()
 		queue_redraw()

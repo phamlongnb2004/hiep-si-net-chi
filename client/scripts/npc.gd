@@ -52,7 +52,7 @@ func setup(g: Game) -> void:
 	body = UI.vbox(8)
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(body)
-	g.me_changed.connect(func(): if visible and name_edit == "" and free_arm == "": render())
+	g.bag_changed.connect(func(): if visible and name_edit == "" and free_arm == "": render())
 	Net.message.connect(func(m):
 		if visible and m.get("t") == "res" and m.get("op") in ["forge", "book", "learn", "buypot", "shopbuy", "hatch_start", "hatch_cut", "hatch_open", "pet_on", "pet_name", "pet_free"] and m.get("msg"):
 			msg = str(m.msg); msg_ok = bool(m.get("ok", false)) and int(m.get("win", 1)) == 1; render())
@@ -72,8 +72,12 @@ func close() -> void:
 	visible = false
 
 func render() -> void:
-	for c in tabs.get_children(): c.queue_free()
-	for c in body.get_children(): c.queue_free()
+	for c in tabs.get_children():
+		tabs.remove_child(c)
+		c.queue_free()
+	for c in body.get_children():
+		body.remove_child(c)
+		c.queue_free()
 	var d = game.me_data
 	if d.is_empty():
 		return
@@ -113,6 +117,7 @@ func render() -> void:
 		"gear": _gear(d)
 		"hatch": _hatch(d)
 		"pets": _pets(d)
+	UI.wrap_all(body, 200)
 
 func _row(no: String, h: String, p: String, small: String, btn: Button) -> void:
 	var r = PanelContainer.new()
@@ -159,7 +164,13 @@ func _skills(d: Dictionary) -> void:
 		_row(str(i + 1), str(s.n), str(s.d), "Cấp yêu cầu %d · Hồi chiêu %s giây%s" % [int(s.req), str(s.cd), (" · Sách %s vàng" % UI.fmt(s.price)) if int(s.price) > 0 else ""], b)
 
 func _pots(d: Dictionary) -> void:
-	body.add_child(UI.label("Bình máu hồi 45% máu tối đa. Mang tối đa 20 bình.", 15, Color("5a6b8c"), "body"))
+	body.add_child(UI.label("Bình máu hồi 45% máu tối đa, bình KI hồi 45% KI tối đa. Mỗi loại mang tối đa 20 bình.", 15, Color("5a6b8c"), "body"))
+	for o in [[1, Data.pot_price()], [5, Data.pot_price() * 5]]:
+		var kb = UI.button("Mua %dv" % o[1], UI.GOLD, 18)
+		kb.disabled = int(d.gold) < o[1] or int(d.get("kpots", 0)) + o[0] > 20
+		var kn: int = o[0]
+		kb.pressed.connect(func(): Net.send({"t": "buypot", "n": kn, "k": "ki"}))
+		_row("✦", "Bình KI x%d" % o[0], "", "Giá %d vàng · Đang có %d / 20" % [o[1], int(d.get("kpots", 0))], kb)
 	for o in [[1, Data.pot_price()], [5, Data.pot_price() * 5]]:
 		var b = UI.button("Mua %dv" % o[1], UI.GOLD, 18)
 		b.disabled = int(d.gold) < o[1] or int(d.pots) + o[0] > 20
@@ -226,8 +237,8 @@ func _gear(d: Dictionary) -> void:
 	if gear_cls == "":
 		gear_cls = game.cls()
 	var lvl = max(1, int(floor(int(d.lv) / 5.0)) * 5)
-	body.add_child(UI.label("Đồ cấp %d (theo cấp của bạn), chỉ số mặc định. Đồ rơi từ quái có thể thấp hơn hoặc cao hơn, và có thể bị khóa." % lvl, 15, Color("5a6b8c"), "body"))
-	for r in 4:
+	body.add_child(UI.label("Đồ thường cấp %d (theo cấp của bạn), chỉ số mặc định. Đồ hiếm, sử thi, huyền thoại chỉ có từ quái và trùm." % lvl, 15, Color("5a6b8c"), "body"))
+	for r in 1:   # chỉ bán đồ thường (đồ hiếm phải săn từ quái, trùm)
 		var row = UI.hbox(10)
 		var nm = UI.label(str(Data.D.rar[r].n), 18, Data.rar_color(r) if r > 0 else UI.INK, "bold")
 		nm.custom_minimum_size = Vector2(120, 0)
@@ -322,6 +333,7 @@ func _pic(tx: Texture2D, sz: float) -> TextureRect:
 func _hatch(d: Dictionary) -> void:
 	var pets: Array = d.get("pets", [])
 	body.add_child(UI.label("Mang Trứng Thần Thú (rơi khi kết liễu Ma Long Hắc Vực) tới đây để ấp. Mỗi lần ấp 1 quả, nở sau 24 giờ. Chuồng chứa tối đa 3 pet.", 15, Color("5a6b8c"), "body"))
+	body.add_child(UI.hsep())
 	var h = d.get("hatch")
 	if h is Dictionary:
 		var hb = UI.hbox(16)
@@ -381,6 +393,7 @@ func _hatch(d: Dictionary) -> void:
 func _pets(d: Dictionary) -> void:
 	var pets: Array = d.get("pets", [])
 	body.add_child(UI.label("Pet ra trận đi theo bạn, tự đánh quái và nhận kinh nghiệm (bạn được thêm 10%%). Mỗi cấp pet được 3 điểm chỉ số ngẫu nhiên. Chuồng %d / 3." % pets.size(), 15, Color("5a6b8c"), "body"))
+	body.add_child(UI.hsep())
 	if pets.is_empty():
 		body.add_child(UI.label("Chưa có pet. Ấp Trứng Thần Thú ở Bà Ấp Trứng trong Làng.", 17, UI.INK, "body"))
 		return
@@ -411,8 +424,9 @@ func _pets(d: Dictionary) -> void:
 		var pt: Dictionary = p.get("pt", {})
 		var vals = {"hp": str(int(S.get("maxHp", 0))), "atk": str(snapped(float(S.get("atk", 0)), 0.1)), "def": str(snapped(float(S.get("def", 0)), 0.1)),
 			"aspd": "x%s" % str(snapped(float(S.get("aspd", 1)), 0.01)), "crit": "%d%%" % int(round(float(S.get("crit", 0)) * 100))}
+		v.add_child(UI.hsep())
 		var g = GridContainer.new()
-		g.columns = 5
+		g.columns = 3
 		g.add_theme_constant_override("h_separation", 18)
 		v.add_child(g)
 		for k in PST:
@@ -421,6 +435,7 @@ func _pets(d: Dictionary) -> void:
 		var sk_t = []
 		for i in 3:
 			sk_t.append(("✔ " + str(sks[i])) if int(p.lv) >= SK_LV[i] else (str(sks[i]) + " (mở ở cấp %d)" % SK_LV[i]))
+		v.add_child(UI.hsep())
 		v.add_child(UI.label("Kỹ năng: " + "  ·  ".join(sk_t), 13, Color("3d4a66"), "semi"))
 		var row = UI.hbox(8)
 		v.add_child(row)
