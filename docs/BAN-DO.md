@@ -159,3 +159,8 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Băng thông báo: chữ dài chạy ngang trong khung (`AnnBanner.clip` + Label, 80px/giây), thời gian hiện đủ chạy 2 vòng.
 - Rèn thành công từ +7: máy chủ gửi `cele {n, up, item, r}` cho cả máy chủ; ứng dụng hiện băng chúc mừng tím hồng có ngôi sao xoay, ngay dưới băng thông báo.
 - Thợ Rèn: trên cùng ô trang bị + ô đá cường hóa (ảnh, số đá đang có, số đá cần) + thông tin/nút Rèn/Bỏ ra; dưới là túi đồ (cả đồ đang mặc), chạm để xem chi tiết rồi "Chọn món này".
+
+## Cửa hàng mọi cấp, nhảy từ chỗ cao, trời không hở (2.10.0)
+- Thương Nhân Giáp: chọn cấp đồ 1, 5, 10 … 100 (« ‹ › », "Cấp của tôi"); `shopbuy {lvl}` (bản cũ không gửi thì theo cấp mình).
+- Máy chủ chặn "bay cao" tính từ chỗ đứng gần nhất (`f.standY`), không còn kéo người xuống khi nhảy từ thanh/mái cao ra khỏi mép.
+- Trời: phía trên ảnh núi xa tô đúng màu mép trên ảnh (`FAR_TOP`), không lộ khoảng trời khác màu khi máy quay lên cao.

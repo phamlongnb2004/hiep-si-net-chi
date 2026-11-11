@@ -90,6 +90,9 @@ func setup(map_index: int) -> void:
 func gy(x: float) -> float:
 	return Data.ground_y(M, x)
 
+## màu mép trên của ảnh núi xa từng vùng (đo từ ảnh side/far_*/u.webp)
+const FAR_TOP := {"grass": "#43aafd", "snow": "#449ff6", "lava": "#421a2b", "beach": "#137ef2", "reef": "#66e4f8", "swamp": "#4934a1", "cave": "#284b6f"}
+
 func _side(k: String) -> Dictionary:
 	return Data.A.get("side", {}).get(k, {})
 
@@ -179,7 +182,11 @@ func _draw() -> void:
 	var far = _side("far_" + theme)
 	if not far.is_empty():
 		var h: float = 620.0
-		_tile_par(far, cx, GY + 30 - h, h, vw, 0.82)
+		# phía trên ảnh núi xa (máy quay lên cao): tô đúng màu mép trên của ảnh để không lộ khoảng trời khác màu
+		var ft = GY + 30 - h
+		if cy < ft + 2:
+			draw_rect(Rect2(cx - 2, cy - 2, vw + 4, ft - cy + 6), Color.html(FAR_TOP.get(theme, sk[0])))
+		_tile_par(far, cx, ft, h, vw, 0.82)
 	var mid = _side("mid_" + theme)
 	if not mid.is_empty():
 		var h2: float = 720.0 * (0.36 if KIT.has(theme) else 0.42)

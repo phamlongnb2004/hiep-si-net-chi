@@ -97,7 +97,8 @@ export const OPS = {
     if (!R.CLS_KEYS.includes(cls) || !R.DROP_SLOTS.includes(slot) || r !== 0) return { ok: false, msg: 'Cửa hàng chỉ bán đồ thường.' };
     if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Hãy tới gần Thương Nhân Giáp trong Làng.' };
     if (ch.inv.length >= R.INV_MAX) return { ok: false, msg: 'Túi đầy.' };
-    const lvl = R.shopLevel(ch.lv), price = R.shopPrice(lvl, r);
+    // chọn cấp đồ 1, 5, 10 … 100 (bản cũ không gửi lvl: theo cấp mình)
+    const ql = m.lvl | 0, lvl = ql >= 1 ? (ql < 5 ? 1 : Math.min(R.MAX_LV, Math.round(ql / 5) * 5)) : R.shopLevel(ch.lv), price = R.shopPrice(lvl, r);
     if (ch.gold < price) return { ok: false, msg: 'Không đủ vàng.' };
     const it = R.shopItem(cls, slot, r, lvl, 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
     ch.gold -= price; ch.inv.push(it);

@@ -86,7 +86,10 @@ export class MapInst {
     const g = this.fY(x, y), rope = R.onRope(this.M, x, y);
     if (y > g) y = g;
     // bay cao bất thường: chỉ chặn khi đang đi LÊN mà đã ở quá cao so với mặt đứng (rơi từ trên cao xuống là bình thường)
-    if (!rope && y < g - 190 && y < f.y - 4) { y = Math.max(f.y, g - 190); bad = true; }
+    // mốc là chỗ đứng gần nhất (nhảy từ mái/bậc cao rồi ra khỏi mép thì mặt đứng bên dưới thấp hẳn, không được tính là bay cao)
+    const base = Math.min(g, f.standY ?? g);
+    if (!rope && y < base - 190 && y < f.y - 4) { y = Math.max(f.y, base - 190); bad = true; }
+    if (!m.air || rope) f.standY = y; else if (y > (f.standY ?? y)) f.standY = Math.min(y, g);
     f.x = x; f.y = y; f.face = m.f < 0 ? -1 : 1; f.air = m.air == 2 ? 2 : m.air ? 1 : 0; f.mv = m.mv ? 1 : 0;
     if (bad) { c.badMoves = (c.badMoves || 0) + 1; this.sendPos(c); }
   }

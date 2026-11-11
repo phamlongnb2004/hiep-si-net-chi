@@ -9,6 +9,7 @@ var fit = {}            # {"id", "slot"}
 var msg = ""
 var msg_ok = true
 var gear_cls = ""
+var gear_lv = 0       # cấp đồ đang xem ở Thương Nhân Giáp (0 = theo cấp mình)
 var gear_grp = 0      # 0: mũ áo choàng vũ khí; 1: giày, găng, dây chuyền; 2: nhẫn, khuyên, đai, bùa
 var body: VBoxContainer
 var title: Label
@@ -65,6 +66,7 @@ func open(id: String) -> void:
 	name_edit = ""
 	msg = ""
 	fit = {}
+	gear_lv = 0
 	fpick = {}
 	visible = true
 	render()
@@ -390,8 +392,33 @@ const SHOP_MUL = [1, 3.5, 10, 32]
 func _gear(d: Dictionary) -> void:
 	if gear_cls == "":
 		gear_cls = game.cls()
-	var lvl = max(1, int(floor(int(d.lv) / 5.0)) * 5)
-	body.add_child(UI.label("Đồ thường cấp %d (theo cấp của bạn), chỉ số mặc định. Đồ hiếm, sử thi, huyền thoại chỉ có từ quái và trùm." % lvl, 15, Color("5a6b8c"), "body"))
+	if gear_lv <= 0:
+		gear_lv = max(1, int(floor(int(d.lv) / 5.0)) * 5)
+	var lvl = gear_lv
+	# chọn cấp đồ: 1, 5, 10 … 100 (đồ cao hơn cấp mình mua được nhưng chưa mặc được)
+	var lr = UI.hbox(8)
+	body.add_child(lr)
+	lr.add_child(UI.label("Cấp đồ:", 17, UI.INK, "bold"))
+	for st2 in [[-10, "«"], [-5, "‹"]]:
+		var bb = UI.button(str(st2[1]), UI.SKY, 18)
+		bb.custom_minimum_size = Vector2(48, 42)
+		var dd: int = st2[0]
+		bb.pressed.connect(func(): gear_lv = _glv(gear_lv + dd); render())
+		lr.add_child(bb)
+	var lvl_l = UI.label("Cấp %d" % lvl, 20, UI.GOLD.darkened(0.35), "bold")
+	lvl_l.custom_minimum_size = Vector2(90, 0)
+	lvl_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lr.add_child(lvl_l)
+	for st3 in [[5, "›"], [10, "»"]]:
+		var bb2 = UI.button(str(st3[1]), UI.SKY, 18)
+		bb2.custom_minimum_size = Vector2(48, 42)
+		var dd2: int = st3[0]
+		bb2.pressed.connect(func(): gear_lv = _glv(gear_lv + dd2); render())
+		lr.add_child(bb2)
+	var mine = UI.button("Cấp của tôi", UI.GREEN, 15)
+	mine.pressed.connect(func(): gear_lv = max(1, int(floor(int(d.lv) / 5.0)) * 5); render())
+	lr.add_child(mine)
+	body.add_child(UI.label("Đồ thường, chỉ số mặc định%s. Đồ hiếm, sử thi, huyền thoại chỉ có từ quái và trùm." % ("" if lvl <= int(d.lv) else " · cần cấp %d mới mặc được" % lvl), 15, Color("5a6b8c") if lvl <= int(d.lv) else Color("b0552f"), "body"))
 	for r in 1:   # chỉ bán đồ thường (đồ hiếm phải săn từ quái, trùm)
 		var row = UI.hbox(10)
 		var nm = UI.label(str(Data.D.rar[r].n), 18, Data.rar_color(r) if r > 0 else UI.INK, "bold")
@@ -414,10 +441,17 @@ func _gear(d: Dictionary) -> void:
 			var cs: String = gear_cls
 			var ss: String = slot
 			var rr: int = r
-			b.pressed.connect(func(): Net.send({"t": "shopbuy", "cls": cs, "slot": ss, "r": rr}))
+			var lv2: int = lvl
+			b.pressed.connect(func(): Net.send({"t": "shopbuy", "cls": cs, "slot": ss, "r": rr, "lvl": lv2}))
 			v.add_child(b)
 			row.add_child(v)
 		body.add_child(row)
+
+## cấp đồ cửa hàng: 1, 5, 10 … 100
+func _glv(v: int) -> int:
+	if v < 5:
+		return 1
+	return clampi(int(round(v / 5.0)) * 5, 5, 100)
 
 func _shop_item(c: String, slot: String, r: int, lvl: int) -> Dictionary:
 	var m = float(Data.D.rar[r].m)
