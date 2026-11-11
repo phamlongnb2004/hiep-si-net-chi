@@ -16,6 +16,12 @@
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
    "sha256": "8052724630f0bd9b6ba02834816d31b39b463048a65b812e29a37ffaa2ac3f75",
    "size": 73489052
+  },
+  "ios": {
+   "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
+   "note": "unsigned",
+   "sha256": "c97be0765e5a46a0e99d107b91aecf1574c6a4a100b8003d952c04b7158f534d",
+   "size": 73325462
   }
  },
  "assets": {
@@ -29,7 +35,8 @@
   "Giảm độ trễ: máy chủ game chuyển về khu vực châu Á, ping từ Việt Nam giảm mạnh. Dữ liệu tài khoản, nhân vật được chuyển nguyên vẹn.",
   "Sửa giật khi nhảy/rơi từ trên cao xuống (trước đây bị kéo ngược lên).",
   "Sửa giật qua lại khi bị quái đẩy lùi (Cá Kiếm húc, v.v.).",
-  "Nạp trước hiệu ứng quái và dáng nhân vật khi vào bản đồ để không khựng lần đầu."
+  "Nạp trước hiệu ứng quái và dáng nhân vật khi vào bản đồ để không khựng lần đầu.",
+  "Có bản iOS thử nghiệm (.ipa chưa ký): tải ở trang /tai-game và cài bằng Sideloadly với Apple ID miễn phí."
  ],
- "updated": "2026-11-11T10:28:04.212Z"
+ "updated": "2026-11-11T11:01:45.876Z"
 }
