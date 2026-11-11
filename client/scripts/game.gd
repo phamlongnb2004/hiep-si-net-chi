@@ -66,6 +66,9 @@ var kpot_cd = 0.0
 var roll_cd = 0.0
 var roll_t = 0.0
 var roll_dir = 1
+var roll_spd = 890.0
+# chiêu lướt (khớp shared/rules.js SKILL_FX dash): phái -> chỉ số chiêu -> [quãng, thời gian, lùi]
+const SKILL_DASH := {"sword": {3: [290.0, 0.22, false]}, "archer": {3: [250.0, 0.25, true]}, "fighter": {3: [150.0, 0.18, false]}}
 # tự động đánh: bật/tắt, loại quái được chọn (theo bản đồ), nhặt đồ, dùng bình
 var auto_on = false
 var auto_skip = {}               # id quái bỏ qua tạm (đánh mãi không tới) -> hết hạn (giây)
@@ -505,6 +508,18 @@ func floor_at(x: float, y: float) -> float:
 	return Data.floor_y(M, x, y, drop_t > 0)
 
 func _move_x(nx: float) -> bool:
+	# bước dài (lướt nhanh, khung hình chậm): chia nhỏ từng đoạn ≤ 12px để chân bám theo dốc như máy chủ
+	var d = nx - me.position.x
+	if absf(d) > 12.0:
+		var n = int(ceil(absf(d) / 12.0))
+		var st = d / n
+		for k in n:
+			if not _move_x1(me.position.x + st):
+				return k > 0
+		return true
+	return _move_x1(nx)
+
+func _move_x1(nx: float) -> bool:
 	nx = clampf(nx, 40, float(M.w) - 40)
 	if _wall(nx, me.position.y):
 		return false
@@ -565,9 +580,21 @@ func do_skill(i: int) -> void:
 	var tg: Mon = focus if focus and not focus.dead() else nearest_mon(460)
 	var aim = atan2(tg.position.y - me.position.y, tg.position.x - me.position.x) if tg else (0.0 if me.face > 0 else PI)
 	me.face = 1 if cos(aim) >= 0 else -1
-	Net.send({"t": "sk", "i": i, "tg": tg.id if tg else 0})
+	# chiêu lướt: tự lướt mượt ngay trên máy (như nút lướt), không chờ máy chủ đặt lại vị trí → hết giật
+	var msg = {"t": "sk", "i": i, "tg": tg.id if tg else 0}
+	var dsh = SKILL_DASH.get(cls(), {}).get(i)
+	if dsh != null and climb.is_empty() and float(me_data.get("stun", 0)) <= 0 and float(me_data.get("ki", 0)) >= _ki_cost(i):
+		roll_dir = (-1 if dsh[2] else 1) * (1 if cos(aim) >= 0 else -1)
+		roll_t = float(dsh[1])
+		roll_spd = float(dsh[0]) / float(dsh[1])
+		msg["dp"] = 1
+	Net.send(msg)
 	_swing(me)
 	fx.skill(cls(), i, me, aim, tg, me.face)
+
+func _ki_cost(i: int) -> float:
+	var kc: Array = me_data.get("kc", [])
+	return float(kc[i]) if i < kc.size() else 0.0
 
 ## tier: -1 tự chọn cỡ vừa đủ, 0/1/2 nhỏ/vừa/lớn (hết cỡ đó thì máy chủ tự chọn cỡ khác)
 func do_pot(tier := -1) -> void:
@@ -593,6 +620,7 @@ func do_roll() -> void:
 		return
 	roll_cd = 1.2
 	roll_t = 0.18
+	roll_spd = 890.0
 	roll_dir = (1 if joy.x > 0.3 else (-1 if joy.x < -0.3 else me.face))
 	me.face = roll_dir
 	Net.send({"t": "roll", "d": roll_dir})
@@ -990,8 +1018,8 @@ func _control(dt: float) -> void:
 		if b.get("id") in ["roll", "rage"]:
 			spd *= 1.35 if b.id == "roll" else 1.25
 	if roll_t > 0:
+		_move_x(me.position.x + roll_dir * roll_spd * minf(dt, roll_t))
 		roll_t -= dt
-		_move_x(me.position.x + roll_dir * 890.0 * dt)
 		dx = 0
 		me.face = roll_dir
 	me.moving = dx != 0

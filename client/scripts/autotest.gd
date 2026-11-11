@@ -758,6 +758,13 @@ func perf_test() -> void:
 			for k in parts.size():
 				if parts[k]:
 					parts[k].visible = k != int(i / 3)
+		if OS.get_environment("HSNC_DASH") != "" and i % 2 == 1:
+			var x0 = g.me.position.x
+			print("cd=%.2f" % g.cds[3])
+			g.do_skill(3)
+			for k in 8:
+				await get_tree().process_frame
+			print("DASH x0=%d x=%d roll_t=%.2f" % [x0, g.me.position.x, g.roll_t])
 		if OS.get_environment("HSNC_JUMP") != "" and i % 3 == 0:
 			g.jump()
 		if OS.get_environment("HSNC_WALK") != "":

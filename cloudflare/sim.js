@@ -135,15 +135,20 @@ export class MapInst {
   shoot(c, a, p, mult, ox, oy) {
     this.projs.push({ c, x: ox, y: oy, vx: Math.cos(a) * p.sp, vy: Math.sin(a) * p.sp, sp: p.sp, dmg: mult, r: p.r, range: p.range, trav: 0, pierce: !!p.pierce, splash: p.splash || 0, hit: new Set() });
   }
+  // lướt ngang theo mặt đất như ứng dụng: lên dốc thoải được (tăng ≤ 85% quãng mỗi bước), dừng ở vách
+  slide(f, dir, len) {
+    let x = f.x, y = f.y;
+    for (let s = 0; s < len; s += 10) { const nx = clamp(x + dir * 10, 40, this.M.w - 40), g = this.gY(nx); if (g < y - 8.5) break; x = nx; if (g < y && f.air !== 1) y = g; }
+    return { x, y };
+  }
   later(t, fn) { this.timers.push({ t, fn }); }
   aimPoint(f, tgt, aim, d) { return tgt && !tgt.dead ? { x: tgt.x, y: tgt.y } : { x: clamp(f.x + Math.cos(aim) * d, 40, this.M.w - 40), y: f.y }; }
   // lướt ngang: dừng ở vách, đánh quái trên đường đi
   dash(c, aim, o) {
-    const f = c.f, dir = (o.back ? -1 : 1) * (Math.cos(aim) >= 0 ? 1 : -1); let x = f.x;
-    for (let s = 0; s < o.len; s += 10) { const nx = clamp(x + dir * 10, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
-    f.dashT = o.t + .4; f.dashLen = Math.abs(x - f.x);
+    const f = c.f, dir = (o.back ? -1 : 1) * (Math.cos(aim) >= 0 ? 1 : -1), e = this.slide(f, dir, o.len), x = e.x;
+    f.dashT = o.t + .4; f.dashLen = Math.abs(x - f.x) + 20;
     if (o.m) { const a = Math.min(f.x, x) - 60, b = Math.max(f.x, x) + 60; for (const m of this.mons) if (!m.dead && m.x + m.t.r > a && m.x - m.t.r < b && Math.abs(m.y - f.y) < 110) { this.hitMon(c, m, this.patk(f) * o.m, { kb: 180 }); this.status(m, { stun: o.stun }); } }
-    const sx = f.x; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y));
+    const sx = f.x; f.x = x; f.y = Math.min(e.y, this.fY(x, e.y));
     if (o.end) this.later(o.t, () => { if (f.dead > 0) return; this.run(c, [o.end], aim, null, 0); });
     return sx;
   }
@@ -188,7 +193,8 @@ export class MapInst {
     f.face = Math.cos(aim) >= 0 ? 1 : -1;
     const sx = f.x; this.run(c, R.skillFx(ch.cls, i, ch.skl[i]), aim, tgt, 0);
     this.ev.push(['s', c.id, i, +aim.toFixed(2), tgt ? tgt.id : 0, Math.round(sx)]);
-    if (f.x !== sx) this.sendPos(c, { dash: 1 });
+    // chiêu lướt: ứng dụng tự lướt (bản 2.9.7+ gửi dp:1); bản cũ vẫn cần máy chủ báo vị trí
+    if (f.x !== sx && !m.dp) this.sendPos(c, { dash: 1 });
     c.meDirty = true;
   }
   // o: noDodge, flat (sát thương thẳng, không trừ giáp), pois [giây, sát thương/giây], slow [hệ số, giây], stun giây, kb (đẩy theo trục x), air (đang nhảy thì tránh được)
@@ -206,9 +212,8 @@ export class MapInst {
   // lướt ngang (nút lướt): đi nhanh ~160 về một phía, dừng ở vách; ứng dụng tự vẽ chuyển động
   roll(c, m) {
     const f = c.f; if (f.dead > 0 || f.stunT > 0 || (f.rollCd || 0) > 0) return;
-    const dir = (+m.d || f.face) < 0 ? -1 : 1; let x = f.x;
-    for (let s = 0; s < 160; s += 8) { const nx = clamp(x + dir * 8, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
-    f.rollCd = 1.2; f.face = dir; f.dashT = .45; f.dashLen = Math.abs(x - f.x) + 20; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y));
+    const dir = (+m.d || f.face) < 0 ? -1 : 1, e = this.slide(f, dir, 160), x = e.x;
+    f.rollCd = 1.2; f.face = dir; f.dashT = .45; f.dashLen = Math.abs(x - f.x) + 20; f.x = x; f.y = Math.min(e.y, this.fY(x, e.y));
     this.ev.push(['rl', c.id, dir]);
   }
   // nhặt tay (bấm vào đồ rồi bấm Nhặt / nút đánh): tới gần là nhặt; đồ người khác còn khóa thì báo

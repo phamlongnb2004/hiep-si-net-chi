@@ -142,3 +142,7 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Ảnh của người chơi khác và pet người khác nạp ở luồng nền (`Data.tex_async`), người mới xuất hiện không làm khựng.
 - Máy chủ: khu trống (không người, không giữ) không chạy AI quái và không dựng ảnh chụp, chỉ đếm giờ hồi sinh/đồ rơi mỗi giây (`MapInst.idle`).
 - Đo thử: `HSNC_LATE=1` in ảnh nạp muộn, `HSNC_NETPROF=1` in lưu lượng/tin gửi.
+
+## Chiêu lướt mượt (2.9.7)
+- Chiêu lướt (Kiếm 4 "Xung Phong", Cung 4, Võ 4): ứng dụng tự lướt ngay (`SKILL_DASH` trong game.gd, khớp `SKILL_FX` dash) và gửi `sk {dp:1}`; máy chủ không gửi `pos` kéo lại nữa (bản cũ không có `dp` vẫn được báo vị trí).
+- Máy chủ lướt theo mặt dốc như ứng dụng (`MapInst.slide`, dùng cho chiêu lướt và nút lướt); ứng dụng chia bước dài thành đoạn ≤ 12px để chân bám dốc → hết bị kéo giật lại khi lướt lên dốc.
