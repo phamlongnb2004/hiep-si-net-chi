@@ -33,6 +33,10 @@ const FIT := {
 	"fighter": {"hx": 3, "hw": 44, "hb": .74, "cx": -1, "cy": .47, "ch": 44}}
 const BOB := [0.0, 2.2, 0.0, 2.2]
 
+## ảnh của người chơi khác nạp ở luồng nền (người mới xuất hiện không làm khựng hình); của mình nạp ngay
+func _tx(u) -> Texture2D:
+	return Data.tex(u) if is_me else Data.tex_async(u)
+
 func _process(dt: float) -> void:
 	t += dt
 	say_t = max(0.0, say_t - dt)
@@ -102,7 +106,7 @@ func _draw_wing(al: float, up: float, back := false) -> void:
 	var frames: Array = fx[r]
 	var spd = 14.0 if (moving or air) else 6.0
 	var fi = int(t * spd) % frames.size()
-	var tx = Data.tex(frames[fi])
+	var tx = _tx(frames[fi])
 	if tx == null:
 		return
 	var w = 118.0
@@ -236,7 +240,7 @@ func _draw() -> void:
 	# áo choàng phía sau
 	if tc >= 0 and L.has("cape") and tc < L.cape.size():
 		var cp: Dictionary = L.cape[tc]
-		var ct = Data.tex(cp.u)
+		var ct = _tx(cp.u)
 		if ct:
 			var ch: float = F.ch * (0.96 if swing > 0 else 1.0)
 			var cw: float = ch * cp.w / cp.h
@@ -249,14 +253,14 @@ func _draw() -> void:
 				sway = sin(t * 2) * 0.03
 			draw_set_transform_matrix(xf * Transform2D().translated(Vector2(F.cx, -q.h * (1 - F.cy))) * Transform2D(sway, Vector2.ZERO))
 			draw_texture_rect(ct, Rect2(-cw * 0.92, -ch * 0.06, cw, ch), false, mod)
-	var bt = Data.tex(q.u)
+	var bt = _tx(q.u)
 	if bt:
 		draw_set_transform_matrix(xf)
 		draw_texture_rect(bt, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
 	# mũ trên đỉnh tóc của khung đang vẽ
 	if th >= 0 and L.has("hat") and th < L.hat.size() and q.has("tp"):
 		var ht: Dictionary = L.hat[th]
-		var htx = Data.tex(ht.u)
+		var htx = _tx(ht.u)
 		if htx:
 			# ox/oy/sc: chỉnh riêng từng mũ cho ôm đầu (lùi về sau gáy, hạ xuống, co giãn)
 			var hx: float = F.hx + float(ht.get("ox", 0.0)) + (float(q.hc) - float(set[0].hc) if q.get("hc") != null and set[0].get("hc") != null else 0.0)
@@ -291,19 +295,19 @@ func _draw_die(i: int, q: Dictionary, al: float) -> void:
 	# áo choàng chỉ khi còn đứng
 	if i == 0 and tc >= 0 and L.has("cape") and tc < L.cape.size():
 		var cp: Dictionary = L.cape[tc]
-		var ct = Data.tex(cp.u)
+		var ct = _tx(cp.u)
 		if ct:
 			var cw: float = F.ch * cp.w / cp.h
 			draw_set_transform_matrix(xf * Transform2D().translated(Vector2(F.cx, -q.h * (1 - F.cy))) * Transform2D(0.25, Vector2.ZERO))
 			draw_texture_rect(ct, Rect2(-cw * 0.92, -F.ch * 0.06, cw, F.ch), false, mod)
-	var bt = Data.tex(q.u)
+	var bt = _tx(q.u)
 	if bt:
 		draw_set_transform_matrix(xf)
 		draw_texture_rect(bt, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
 	# mũ: còn trên đầu ở khung trúng đòn, rơi xuống đất cạnh đầu khi đã nằm
 	if th >= 0 and L.has("hat") and th < L.hat.size():
 		var ht: Dictionary = L.hat[th]
-		var htx = Data.tex(ht.u)
+		var htx = _tx(ht.u)
 		if htx:
 			var hw2: float = F.hw * float(ht.get("sc", 1.0))
 			var hh: float = hw2 * ht.h / ht.w
@@ -364,7 +368,7 @@ func _draw_climb(al: float) -> bool:
 	if moving:
 		_cph = t * 7.0
 	var q: Dictionary = set[int(_cph) % set.size()]
-	var tx = Data.tex(q.u)
+	var tx = _tx(q.u)
 	if tx == null:
 		return false
 	var mod = Color(1, 1, 1, al)
@@ -376,7 +380,7 @@ func _draw_climb(al: float) -> bool:
 	# áo choàng mặt sau: treo từ vai, phủ lưng
 	if tc >= 0 and L.has("capeb") and tc < L.capeb.size():
 		var cp: Dictionary = L.capeb[tc]
-		var ct = Data.tex(cp.u)
+		var ct = _tx(cp.u)
 		if ct:
 			var sw = sin(t * 2.4) * 0.03
 			draw_set_transform(Vector2(0, (-q.h + float(q.sy)) * HS), sw, Vector2(HS, HS))
@@ -389,7 +393,7 @@ func _draw_climb(al: float) -> bool:
 	# mũ mặt sau trên đỉnh đầu
 	if th >= 0 and L.has("hatb") and th < L.hatb.size():
 		var ht: Dictionary = L.hatb[th]
-		var htx = Data.tex(ht.u)
+		var htx = _tx(ht.u)
 		if htx:
 			draw_set_transform(Vector2((float(q.hx) - q.ax) * HS, (-q.h + float(q.hy)) * HS), 0, Vector2(HS, HS))
 			draw_texture_rect(htx, Rect2(-float(ht.w) / 2, -float(ht.h) + float(ht.get("dy", 0)), ht.w, ht.h), false, mod)

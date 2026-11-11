@@ -372,6 +372,8 @@ export class World extends DurableObject {
     for (const c of this.clients.values()) if (!c.v2 && c.st && c.map >= 0) { const k = c.srv * 100 + c.map; if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(c.st); }
     // bản đồ v2: máy chủ chạy quái, đòn đánh; gửi ảnh chụp cho người chơi v2 và vị trí cho người chơi v1 cùng bản đồ
     for (const inst of this.insts.values()) {
+      // khu trống (giữ lại để quái còn đó): chạy nhẹ mỗi giây một lần, không dựng ảnh chụp
+      if (!inst.players.size && !inst.keep) { inst._idle = ((inst._idle | 0) + 1) % 10; if (inst._idle === 0) inst.idle(1); continue; }
       inst.tick(TICK_MS / 1000);
       const k = inst.srv * 100 + inst.mi, k1 = inst.khu === 1;
       const sn = inst.snap(k1 ? byMap.get(k) : null), s = JSON.stringify(sn);

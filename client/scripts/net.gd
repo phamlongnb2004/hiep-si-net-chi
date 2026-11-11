@@ -13,6 +13,12 @@ var user = ""
 var srv = 1
 var state = "closed"
 var ping_ms = 0
+# đo hiệu năng (chỉ chạy thử): byte/tin nhận, thời gian xử lý lâu nhất theo loại tin
+var prof = false
+var prof_b = 0
+var prof_n = 0
+var prof_t = {}
+var prof_tx = {}
 
 var _ws: WebSocketPeer = null
 var _want = false            # người chơi đang ở trong game: mất kết nối thì tự nối lại
@@ -118,6 +124,9 @@ func _open() -> void:
 func send(m: Dictionary) -> void:
 	if _ws and _ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		_ws.send_text(JSON.stringify(m))
+		if prof:
+			var k = "tx_" + str(m.get("t"))
+			prof_tx[k] = int(prof_tx.get(k, 0)) + 1
 
 func online() -> bool:
 	return state == "online"
@@ -151,7 +160,12 @@ func _process(dt: float) -> void:
 			_set_state("online", "")
 		while _ws.get_available_packet_count() > 0:
 			_last_rx = Time.get_ticks_msec()
-			var j = JSON.parse_string(_ws.get_packet().get_string_from_utf8())
+			var pk = _ws.get_packet()
+			var t0 = Time.get_ticks_usec()
+			var j = JSON.parse_string(pk.get_string_from_utf8())
+			if prof:
+				prof_b += pk.size()
+				prof_n += 1
 			if j is Dictionary:
 				if j.get("t") == "pong":
 					ping_ms = int(Time.get_ticks_msec() - float(j.get("at", 0)))
@@ -159,6 +173,10 @@ func _process(dt: float) -> void:
 				if j.get("t") == "err":
 					_on_err(j)
 				message.emit(j)
+				if prof:
+					var us = Time.get_ticks_usec() - t0
+					var k = str(j.get("t"))
+					prof_t[k] = maxi(int(prof_t.get(k, 0)), us)
 		_ping_t -= dt
 		if _ping_t <= 0:
 			_ping_t = 3.0

@@ -136,3 +136,9 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Bùa nâng kỹ năng (`charms`, `skl[6]`): cấp tối đa 6, cấp L→L+1 tốn L bùa, chắc chắn thành công (`skup {i}`). Mỗi cấp +15% sát thương / hồi máu, bùa lợi +8% thời gian và +15% phần cộng (`skillFx`). Bùa không bán; rơi rất hiếm: tinh anh 1,2%, trùm 5%, trùm thế giới 30%. Ảnh `hud/ui/charm`.
 - Đá cường hóa hiếm hơn (quái thường ~5–8%, tinh anh 50%, trùm 2–4).
 - Đánh không xuyên tầng: cận chiến bỏ quái lệch dọc > 80 (`VR`).
+
+## Giảm khựng hình, giảm tải máy chủ (2.9.6)
+- Màn hình chờ nạp trước thêm: mọi hiệu ứng (`fx`, gồm vồ/cào/trúng đòn của quái), biểu tượng nút `hud/ui`, cây/đá trang trí, đá/bình rơi; bỏ qua ảnh đã nạp; đóng sớm thì nạp nốt mỗi khung một ảnh.
+- Ảnh của người chơi khác và pet người khác nạp ở luồng nền (`Data.tex_async`), người mới xuất hiện không làm khựng.
+- Máy chủ: khu trống (không người, không giữ) không chạy AI quái và không dựng ảnh chụp, chỉ đếm giờ hồi sinh/đồ rơi mỗi giây (`MapInst.idle`).
+- Đo thử: `HSNC_LATE=1` in ảnh nạp muộn, `HSNC_NETPROF=1` in lưu lượng/tin gửi.

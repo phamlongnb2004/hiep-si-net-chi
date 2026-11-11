@@ -141,6 +141,35 @@ func _assets_for(M: Dictionary, th: String) -> Array:
 		var ks = str(k)
 		if ks.begins_with(th + "_") or ks.begins_with("gate_") or ks.begins_with("ladder") or ks.begins_with("bridge") or ks in ["rope", "vine"]:
 			add.call(Data.A.ai[k])
+	# cây/đá trang trí, đồ rơi (đá, bình), biểu tượng nút, mọi hiệu ứng (vồ, cào, trúng đòn, chiêu các phái):
+	# nhỏ nhưng nếu nạp giữa trận sẽ khựng hình trên điện thoại
+	for k in Data.A.get("ai", {}):
+		var ks2 = str(k)
+		if ks2.begins_with("tree") or ks2.begins_with("rock") or ks2.begins_with("bush") or ks2 in ["stone", "pot"]:
+			add.call(Data.A.ai[k])
+	var addp = func(u):
+		if u is String and u.ends_with(".webp") and not seen.has(u):
+			seen[u] = true
+			out.append(u)
+	for u in Data.A.get("hud", {}).get("ui", {}).values():
+		addp.call(u)
+	var stack: Array = [Data.A.get("fx", {})]
+	while not stack.is_empty():
+		var v = stack.pop_back()
+		if v is Dictionary:
+			if v.has("u"):
+				addp.call(v.u)
+			for x in v.values():
+				if x is Dictionary or x is Array:
+					stack.append(x)
+				else:
+					addp.call(x)
+		elif v is Array:
+			for x in v:
+				if x is Dictionary or x is Array:
+					stack.append(x)
+				else:
+					addp.call(x)
 	var types := {}
 	for sp in M.get("spots", []):
 		types[str(sp.mon)] = true
@@ -196,8 +225,7 @@ func _assets_for(M: Dictionary, th: String) -> Array:
 					seen[f] = true
 					out.append(str(f))
 	# dáng nhân vật của mình (mọi bộ áo): nhảy, ngã, leo, thân; hiệu ứng chiêu của phái — chỉ lần đầu
-	if cls != "" and not warm.has(cls):
-		warm[cls] = true
+	if cls != "":
 		for k in Data.A.get("anim", {}):
 			if ("_" + cls + "_") in str(k):
 				var L = Data.A.anim[k]
@@ -208,7 +236,8 @@ func _assets_for(M: Dictionary, th: String) -> Array:
 		if fl is Array:
 			for e in fl:
 				add.call(e)
-	return out
+	# bỏ ảnh đã nạp rồi (lần vào bản đồ sau chỉ nạp phần mới)
+	return out.filter(func(u): return not Data._tex.has(u))
 
 func _bar() -> void:
 	var w = bar_bg.custom_minimum_size.x - 8
@@ -217,6 +246,9 @@ func _bar() -> void:
 
 func _process(dt: float) -> void:
 	if not visible:
+		# màn hình chờ đóng sớm (máy chủ trả lời nhanh / hủy): nạp nốt phần còn lại, mỗi khung một ảnh
+		if not queue.is_empty():
+			Data.tex(queue.pop_front())
 		return
 	t += dt
 	shown += dt

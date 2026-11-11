@@ -74,6 +74,8 @@ func _json(p: String) -> Dictionary:
 	return v if v is Dictionary else {}
 
 ## ảnh theo đường dẫn tương đối trong assets.json (vd "mon/boar/0/u.webp")
+var hitch_watch := false      # bật sau màn hình chờ: ghi lại ảnh nạp muộn (gây khựng)
+var late_loads: Array = []
 func tex(rel) -> Texture2D:
 	if rel == null or str(rel) == "":
 		return null
@@ -84,9 +86,16 @@ func tex(rel) -> Texture2D:
 		return tex_async(rel)
 	var t: Texture2D = null
 	var p = "res://assets/" + k
+	var t0 = Time.get_ticks_usec()
 	if ResourceLoader.exists(p):
 		t = load(p)
 	_tex[k] = t
+	# đo khựng: ảnh phải nạp ngay giữa lúc chơi (chưa nạp trước ở màn hình chờ)
+	if hitch_watch:
+		var ms = (Time.get_ticks_usec() - t0) / 1000.0
+		late_loads.append([k, ms])
+		if late_loads.size() > 200:
+			late_loads.pop_front()
 	return t
 
 ## nạp ảnh ở luồng nền (đồ rơi khi đang đánh): chưa xong thì trả null, khung hình không bị khựng

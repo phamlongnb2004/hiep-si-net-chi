@@ -317,6 +317,16 @@ export class MapInst {
   }
 
   /* ---------- vòng lặp ---------- */
+  respawnMon(m) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.monY(m, m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); }
+  // khu không có ai: không chạy AI quái, chỉ đếm giờ hồi sinh quái, giờ đồ rơi và hẹn giờ (giảm tải CPU máy chủ → ping ổn định)
+  idle(dt) {
+    this.tk++;
+    for (let i = this.timers.length - 1; i >= 0; i--) { const s = this.timers[i]; s.t -= dt; if (s.t <= 0) { this.timers.splice(i, 1); try { s.fn(); } catch (e) { console.error(e); } } }
+    for (const m of this.mons) { if (m.dead && !m.noRe) { m.respawn -= dt; if (m.respawn <= 0) this.respawnMon(m); } }
+    if (this.mons.some(m => m.gone)) this.mons = this.mons.filter(m => !m.gone);
+    for (let i = this.drops.length - 1; i >= 0; i--) { const d = this.drops[i]; d.life -= dt; d.ownT -= dt; if (d.life <= 0) this.drops.splice(i, 1); }
+    this.projs = []; this.ev = [];
+  }
   tick(dt) {
     this.tk++;
     for (let i = this.timers.length - 1; i >= 0; i--) { const s = this.timers[i]; s.t -= dt; if (s.t <= 0) { this.timers.splice(i, 1); try { s.fn(); } catch (e) { console.error(e); } } }
@@ -351,7 +361,7 @@ export class MapInst {
   near(m, r) { let b = null, bd = r; for (const c of this.players.values()) { const f = c.f; if (c.hidden || f.dead > 0 || this.safe(f.x) || Math.abs(f.y - m.y) > (m.t.boss || m.t.fly ? 180 : 100)) continue; const d = Math.abs(f.x - m.x); if (d < bd) { bd = d; b = c; } } return b; }
   tickMons(dt) {
     for (const m of this.mons) {
-      if (m.dead) { if (m.noRe) continue; m.respawn -= dt; if (m.respawn <= 0) { m.el = R.rollElite(rng, m.type); Object.assign(m, R.monStats(m.type, m.lv, m.el)); m.dead = false; m.hp = m.hpMax; m.x = m.sx; m.y = this.monY(m, m.x); m.vx = 0; m.state = 'idle'; this.ev.push(['r', m.id, Math.round(m.x), Math.round(m.y), m.el ? 1 : 0, m.hpMax]); } continue; }
+      if (m.dead) { if (m.noRe) continue; m.respawn -= dt; if (m.respawn <= 0) this.respawnMon(m); continue; }
       const px = m.x, ab = m.t.ab;
       if (m.t.world) this.tickWorld(m, dt);
       m.cd -= dt; m.shoot -= dt; m.ac -= dt; m.lunge = Math.max(0, m.lunge - dt); if (m.guard > 0) m.guard -= dt;

@@ -104,7 +104,7 @@ func _draw() -> void:
 		k = int(t * 7 + owner_id) % fr.size()
 	_ellipse(Vector2(0, 2), W * 0.3, W * 0.06, Color(0.1, 0.1, 0.2, 0.25))
 	draw_set_transform(Vector2.ZERO, 0, Vector2(face, 1))
-	var tx = Data.tex(fr[k])
+	var tx = Data.tex(fr[k]) if mine else Data.tex_async(fr[k])
 	if tx:
 		if stage == 2 and act != 3:
 			# thần thú: viền sáng nhẹ

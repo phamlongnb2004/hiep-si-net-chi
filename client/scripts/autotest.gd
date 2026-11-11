@@ -711,6 +711,8 @@ func perf_test() -> void:
 		main.hud._build_controls()
 	if OS.get_environment("HSNC_AUTO") != "":
 		g.set_auto(true)
+	Net.prof = OS.get_environment("HSNC_NETPROF") != ""
+	Data.hitch_watch = OS.get_environment("HSNC_LATE") != ""
 	await shot("perf-0")
 	if OS.get_environment("HSNC_UI") != "":
 		# chọn quái gần nhất bằng nút đổi mục tiêu, rồi chọn một đồ rơi giả, mở các bảng mới
@@ -765,6 +767,13 @@ func perf_test() -> void:
 		await wait(1.0)
 		print("PERF t=%d fps=%d maxframe=%dms proc=%.1fms ping=%d pos=%d hp=%s x=%d y=%d draws=%d tex=%dMB" % [i, _fn, int(_fmax), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Net.ping_ms, _pos_n, str(g.me_data.get("hp")), int(g.me.position.x), int(g.me.position.y),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), int(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576)])
+		if Data.hitch_watch and not Data.late_loads.is_empty():
+			for q in Data.late_loads:
+				print("LATE %s %.1fms" % [q[0], q[1]])
+			Data.late_loads.clear()
+		if Net.prof:
+			print("NET bytes=%d msgs=%d tx=%s" % [Net.prof_b, Net.prof_n, str(Net.prof_tx)])
+			Net.prof_b = 0; Net.prof_n = 0; Net.prof_t = {}; Net.prof_tx = {}
 		if OS.get_environment("HSNC_AUTO") != "":
 			print("AUTO focus=%s fx=%s skip=%d mto=%d drops=%d" % [str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), int(g.move_to), g.drops.size()])
 		if i == 2 and OS.get_environment("HSNC_DIE") != "":
