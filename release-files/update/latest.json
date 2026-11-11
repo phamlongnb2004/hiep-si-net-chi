@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.9.9",
+  "version": "2.10.0",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "1551320e09cc826545161557a819a645caa5178d94b8cc554ff8e04af991ccc6",
-   "size": 71816251
+   "sha256": "c703cf2f6f6f6b9d27d4455325d1226c0aeb95f139bf73189b4933bac0e1e3e6",
+   "size": 71815438
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "764c05c19c92b6d78ae8694e2bfcc9c748d11760eb1aa8db6866764c4abd5ca7",
-   "size": 101192692
+   "sha256": "bb49ce20cc2acac566ceb6b2bdac59f43e5cbce032c1319fc4bb15079779e3d1",
+   "size": 101196788
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "ea54f59b2638558c09c79f8cd177cb893435c9edd93e9ddee0e7838ad977026d",
-   "size": 74089531
+   "sha256": "657f1d308ab8f26541752191db64fcf464c8c5aa13b90f1e7cf88db0b3a2c642",
+   "size": 74091598
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,16 +25,16 @@
   }
  },
  "assets": {
-  "version": 29,
+  "version": 30,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-29.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-30.pck",
   "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
   "size": 48879164
  },
  "changelog": [
-  "Thông báo dài (như Ma Long Hắc Vực xuất hiện) chạy chữ ngang trong khung, đọc được hết.",
-  "Ai cường hóa đồ thành công từ +7 trở lên: cả máy chủ thấy băng chúc mừng mới (tím hồng, ngôi sao).",
-  "Lò rèn mới: ô trang bị + ô đá cường hóa (số đá đang có/cần) ở trên; túi đồ ở dưới, chạm để xem chi tiết rồi \"Chọn món này\"."
+  "Thương Nhân Giáp bán đồ thường mọi cấp (1, 5, 10 … 100): bấm « ‹ › » để đổi cấp, \"Cấp của tôi\" để quay về.",
+  "Sửa lỗi nhảy từ mái nhà / thanh cao ra ngoài mép bị khựng một nhịp rồi rơi xuống.",
+  "Bầu trời không còn bị hở một khúc khác màu ở phía trên khi nhảy lên cao."
  ],
- "updated": "2026-11-11T18:21:28.006Z"
+ "updated": "2026-11-11T18:33:46.691Z"
 }
