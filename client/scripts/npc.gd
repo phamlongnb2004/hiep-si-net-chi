@@ -164,6 +164,40 @@ func _skills(d: Dictionary) -> void:
 		_row(str(i + 1), str(s.n), str(s.d), "Cấp yêu cầu %d · Hồi chiêu %s giây%s" % [int(s.req), str(s.cd), (" · Sách %s vàng" % UI.fmt(s.price)) if int(s.price) > 0 else ""], b)
 
 func _pots(d: Dictionary) -> void:
+	body.add_child(UI.label("Bình 3 cỡ: Nhỏ hồi 25%, Vừa hồi 45%, Lớn hồi 70% máu/KI tối đa. Mỗi cỡ mang tối đa 20 bình. Nút bình ngoài trận tự chọn cỡ vừa đủ.", 15, Color("5a6b8c"), "body"))
+	body.add_child(UI.hsep())
+	for ki in [false, true]:
+		for t in 3:
+			var key: String = (Data.KI_KEYS if ki else Data.HP_KEYS)[t]
+			var have = int(d.get(key, 0))
+			var pr = Data.tier_price(t)
+			var r = PanelContainer.new()
+			r.add_theme_stylebox_override("panel", UI.box(Color.WHITE, Color("b8c4dc"), 12, 2, false))
+			var hb = UI.hbox(12)
+			r.add_child(hb)
+			var ic = TextureRect.new()
+			ic.texture = Data.pot_icon(ki, t)
+			ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			ic.custom_minimum_size = Vector2(56, 56)
+			hb.add_child(ic)
+			var mid = UI.vbox(2)
+			mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			mid.add_child(UI.label("%s %s" % ["Bình KI" if ki else "Bình máu", str(Data.POT_T[t].n).to_lower()], 19, UI.INK, "bold"))
+			mid.add_child(UI.label("Hồi %d%% %s · Đang có %d / 20 · %s vàng/bình" % [int(Data.POT_T[t].f * 100), "KI" if ki else "máu", have, UI.fmt(pr)], 14, Color("5a6b8c"), "semi"))
+			hb.add_child(mid)
+			for n in [1, 5]:
+				var b = UI.button("Mua %d" % n, UI.GOLD, 16)
+				b.custom_minimum_size = Vector2(96, 46)
+				b.disabled = int(d.gold) < pr * n or have + n > 20
+				var nn: int = n
+				var tt: int = t
+				var kk = "ki" if ki else ""
+				b.pressed.connect(func(): Net.send({"t": "buypot", "n": nn, "tier": tt, "k": kk}))
+				hb.add_child(b)
+			body.add_child(r)
+
+func _pots_old(d: Dictionary) -> void:
 	body.add_child(UI.label("Bình máu hồi 45% máu tối đa, bình KI hồi 45% KI tối đa. Mỗi loại mang tối đa 20 bình.", 15, Color("5a6b8c"), "body"))
 	for o in [[1, Data.pot_price()], [5, Data.pot_price() * 5]]:
 		var kb = UI.button("Mua %dv" % o[1], UI.GOLD, 18)

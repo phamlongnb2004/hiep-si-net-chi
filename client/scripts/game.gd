@@ -614,11 +614,11 @@ func _auto_tick(dt: float) -> void:
 	# bình máu / bình KI
 	var hp = float(me_data.get("hp", 1))
 	var hpm = max(1.0, float(me_data.get("maxHp", 1)))
-	if a.get("hp", true) and hp < hpm * float(a.get("hpPct", 40)) / 100.0 and int(me_data.get("pots", 0)) > 0:
+	if a.get("hp", true) and hp < hpm * float(a.get("hpPct", 40)) / 100.0 and Data.pot_total(me_data, false) > 0:
 		do_pot()
 	var ki = float(me_data.get("ki", 0))
 	var kim = max(1.0, float(me_data.get("maxKi", 1)))
-	if a.get("ki", true) and ki < kim * float(a.get("kiPct", 30)) / 100.0 and int(me_data.get("kpots", 0)) > 0:
+	if a.get("ki", true) and ki < kim * float(a.get("kiPct", 30)) / 100.0 and Data.pot_total(me_data, true) > 0:
 		do_kpot()
 	# nhặt đồ trước khi đánh tiếp
 	if a.get("pick", true):

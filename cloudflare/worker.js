@@ -470,6 +470,7 @@ export class World extends DurableObject {
     return { t: 'khu', cur: c.inst ? c.inst.khu : 1, max: mx, list };
   }
   hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (k, c, d) => glog(this, k, c, d), ann: (inst, text) => this.srvAnn(inst.srv, text),
+    home: c => { if (this.clients.get(c.id) === c && c.ch) { this.enterMap(c, R.D.maps.findIndex(M => M.village), null); this.sendTo(c, { t: 'log', text: 'Bạn đã hồi sinh ở Làng.', col: '#8fb4ff' }); c.meDirty = true; } },
     wb: (inst, k, c, egg) => { if (k === 'dead') this.srvAnn(inst.srv, '🐉 ' + c.ch.name + ' đã kết liễu Ma Long Hắc Vực tại ' + inst.M.name + ' và nhận ' + egg.name + '!'); } }; }
   /* ---------- Boss Hoang Dã (Ma Long Hắc Vực): ~30 phút/lần mỗi máy chủ, bản đồ săn + khu ngẫu nhiên ---------- */
   wbMaps() { return R.D.maps.map((M, i) => i).filter(i => { const M = R.D.maps[i]; return !M.village && !M.arena && M.spots && M.spots.length; }); }
@@ -526,8 +527,8 @@ export class World extends DurableObject {
   }
   meOf(c, full) {
     const ch = c.ch, f = c.f;
-    const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, kpots: ch.kpots | 0, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
-      hp: Math.round(f.hp), maxHp: f.maxHp, atk: f.atk, def: f.def, spd: f.spd, crit: f.crit, dead: f.dead > 0 ? 1 : 0,
+    const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, kpots: ch.kpots | 0, potS: ch.potS | 0, potL: ch.potL | 0, kpotS: ch.kpotS | 0, kpotL: ch.kpotL | 0, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
+      hp: Math.round(f.hp), maxHp: f.maxHp, atk: f.atk, def: f.def, spd: f.spd, crit: f.crit, dead: f.dead > 0 ? 1 : 0, deadT: f.dead > 0 ? Math.ceil(f.dead) : 0, rvCost: R.reviveCost(ch.lv),
       ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5].map(i => R.kiCost(ch.lv, i)),
       cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), kpCd: +(f.kpCd || 0).toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })),
       stun: f.stunT > 0 ? +f.stunT.toFixed(1) : 0, slow: f.slowT > 0 ? f.slowM : 1, pois: f.pois ? 1 : 0, title: ch.title && ch.title.until > Date.now() ? ch.title.n : '' };

@@ -184,6 +184,22 @@ func score(it) -> float:
 
 ## tham số do máy chủ gửi (admin chỉnh được): giá bình máu, hệ số giá cửa hàng, cộng tỉ lệ rèn, sự kiện, thông báo
 var cfg: Dictionary = {}
+## bình 3 cỡ (khớp shared/rules.js POT_TIERS)
+const POT_T := [{"n": "Nhỏ", "f": 0.25, "p": 1.0}, {"n": "Vừa", "f": 0.45, "p": 3.0}, {"n": "Lớn", "f": 0.7, "p": 7.5}]
+const HP_KEYS := ["potS", "pots", "potL"]
+const KI_KEYS := ["kpotS", "kpots", "kpotL"]
+func pot_total(d: Dictionary, ki: bool) -> int:
+	var n = 0
+	for k in (KI_KEYS if ki else HP_KEYS):
+		n += int(d.get(k, 0))
+	return n
+func pot_icon(ki: bool, t: int) -> Texture2D:
+	var ui: Dictionary = A.get("hud", {}).get("ui", {})
+	var k = ("kpot%d" if ki else "pot%d") % t
+	return tex(ui.get(k, ui.get("pot", "")))
+func tier_price(t: int) -> int:
+	return int(round(pot_price() * float(POT_T[t].p)))
+
 func pot_price() -> int:
 	return int(cfg.get("potPrice", 30))
 func shop_mul() -> float:

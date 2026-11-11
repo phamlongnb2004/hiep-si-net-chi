@@ -730,6 +730,8 @@ func perf_test() -> void:
 		await wait(1.0)
 		print("PERF t=%d fps=%d maxframe=%dms proc=%.1fms ping=%d pos=%d hp=%s x=%d y=%d draws=%d tex=%dMB" % [i, _fn, int(_fmax), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Net.ping_ms, _pos_n, str(g.me_data.get("hp")), int(g.me.position.x), int(g.me.position.y),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), int(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576)])
+		if i == 2 and OS.get_environment("HSNC_DIE") != "":
+			Net.send({"t": "devdie"})
 		if i == 4:
 			Net.send({"t": "chat", "text": "Xin chào cả nhà, ai đi săn cua không?"})
 			main.hud.chat({"all": true, "n": "Long", "text": "Ma Long sắp xuất hiện, ai đi cùng không?"})

@@ -222,8 +222,8 @@ export class MapInst {
     const f = c.f; if (f.dead > 0) return;
     f.hp -= d; this.ev.push(['p', c.id, d]); c.meDirty = true;
     if (f.hp <= 0) {
-      f.hp = 0; f.dead = R.DEATH_T; f.pois = null; f.slowT = 0; f.stunT = 0; const lost = Math.floor(c.ch.gold * .1); c.ch.gold -= lost; this.h.dirty(c);
-      this.h.log(c, 'Bạn đã gục ngã' + (lost ? ' và mất ' + lost + ' vàng' : '') + '. Hồi sinh ở điểm an toàn...', '#d9345a');
+      f.hp = 0; f.dead = R.DEAD_WAIT; f.pois = null; f.slowT = 0; f.stunT = 0; const lost = Math.floor(c.ch.gold * .1); c.ch.gold -= lost; this.h.dirty(c);
+      this.h.log(c, 'Bạn đã gục ngã' + (lost ? ' và mất ' + lost + ' vàng' : '') + '. Chọn hồi sinh tại chỗ hoặc về Làng.', '#d9345a');
       for (const m of this.mons) if (m.tgt === c.id) { m.tgt = 0; if (m.state === 'chase') m.state = 'return'; }
     }
   }
@@ -294,7 +294,7 @@ export class MapInst {
   }
   pickup(c, d) {
     const ch = c.ch;
-    if (d.k === 'pot') { if (ch.pots < R.POT_MAX) { ch.pots++; this.h.log(c, 'Nhặt được 1 bình máu', '#d9345a'); } else { ch.gold += 15; this.h.log(c, 'Đã đủ bình máu, đổi lấy 15 vàng', '#ffd23f'); } }
+    if (d.k === 'pot') { if ((ch.potS | 0) < R.POT_MAX) { ch.potS = (ch.potS | 0) + 1; this.h.log(c, 'Nhặt được 1 bình máu', '#d9345a'); } else { ch.gold += 15; this.h.log(c, 'Đã đủ bình máu, đổi lấy 15 vàng', '#ffd23f'); } }
     else if (d.k === 'stone') { ch.stones += d.n; this.h.log(c, 'Nhặt được ' + d.n + ' Đá cường hóa', '#6fd0ff'); }
     else if (d.item) {
       if (ch.inv.length >= R.INV_MAX) { const g = R.sellPrice(d.item); ch.gold += g; this.h.log(c, 'Túi đầy, tự bán ' + d.item.name + ' được ' + g + ' vàng.', '#8a93a8'); }
@@ -319,7 +319,9 @@ export class MapInst {
   tickPlayer(c, dt) {
     const f = c.f;
     if (c.pet) this.tickPet(c, dt);
-    if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.sendPos(c, { respawn: 1 }); c.meDirty = true; } return; }
+    // hết giờ chờ (hoặc chọn về Làng): hồi sinh đầy máu ở Làng gần nhất
+    if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.buffs = []; c.meDirty = true;
+      if (this.h.home && this.mi !== 0) this.later(0, () => this.h.home(c)); else { const v = this.M.village ? this.M.spawn.x : this.M.spawn.x; f.x = v; f.y = this.gY(f.x); this.sendPos(c, { respawn: 1 }); } } return; }
     f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.kpCd = Math.max(0, (f.kpCd || 0) - dt); f.rollCd = Math.max(0, (f.rollCd || 0) - dt); f.dashT = Math.max(0, f.dashT - dt);
     for (let i = 0; i < 6; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
     const nb = f.buffs.length; f.buffs = f.buffs.filter(b => (b.t -= dt) > 0); if (f.buffs.length !== nb) c.meDirty = true;

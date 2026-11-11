@@ -6,6 +6,13 @@ export { D };
 
 export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 820, MAXSTEP = 105;
 export const KPOT_GAIN = .45, KPOT_CD = 3, KPOT_MAX = 20; // bình KI (2.9.3)
+// bình máu / bình KI 3 cỡ (2.9.4): nhỏ, vừa (= bình cũ), lớn — tỉ lệ hồi và hệ số giá (× giá bình nhỏ)
+export const POT_TIERS = [{ n: 'Nhỏ', f: .25, p: 1 }, { n: 'Vừa', f: .45, p: 3 }, { n: 'Lớn', f: .7, p: 7.5 }];
+export const HP_KEYS = ['potS', 'pots', 'potL'], KI_KEYS = ['kpotS', 'kpots', 'kpotL'];
+// chọn cỡ bình: cỡ nhỏ nhất đủ hồi phần thiếu, không có thì cỡ lớn nhất còn
+export function pickPot(ch, keys, miss, max) { let best = -1; for (let t = 0; t < 3; t++) { if ((ch[keys[t]] | 0) <= 0) continue; best = t; if (max * POT_TIERS[t].f >= miss) return t; } return best; }
+// hồi sinh tại chỗ: khoảng 20 lần hạ quái cùng cấp
+export const DEAD_WAIT = 15, reviveCost = lv => Math.round(20 + lv * 25);
 export const POT_HEAL = .45, POT_CD = 3, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
 export const WORLD_CHAT_COST = 5000;          // nhắn cả máy chủ tốn vàng (cao) để tránh spam
 export const FRIEND_MAX = 100;
@@ -307,7 +314,7 @@ export const inLava = (map, x, y) => (map.lava || []).some(w => x > w[0] + 6 && 
 
 /* ---------- nhân vật mới ---------- */
 export function newChar(cls, name) {
-  return { cls, name, lv: 1, exp: 0, gold: 0, pots: 5, kpots: 3, kills: 0, stones: 0, sk: [1, 0, 0, 0, 0, 0], books: [1, 0, 0, 0, 0, 0], inv: [], eq: { hat: null, armor: null, cape: null, weapon: null }, map: 0, mv: 2, pt: {}, ptReset: 0 };
+  return { cls, name, lv: 1, exp: 0, gold: 0, pots: 2, potS: 5, potL: 0, kpots: 1, kpotS: 3, kpotL: 0, kills: 0, stones: 0, sk: [1, 0, 0, 0, 0, 0], books: [1, 0, 0, 0, 0, 0], inv: [], eq: { hat: null, armor: null, cape: null, weapon: null }, map: 0, mv: 2, pt: {}, ptReset: 0 };
 }
 // chuẩn hóa bản lưu cũ để máy chủ dùng: giữ nguyên mọi giá trị, chỉ thêm trường còn thiếu
 export function normalizeChar(d) {
@@ -320,7 +327,7 @@ export function normalizeChar(d) {
   if (bad.length) c.bad = bad; else delete c.bad;
   for (const k of ['sk', 'books']) { const a = Array.isArray(c[k]) ? c[k] : []; c[k] = [0, 1, 2, 3, 4, 5].map(i => a[i] ? 1 : 0); c[k][0] = 1; }
   if (c.kpots == null) c.kpots = 3;
-  for (const k of ['lv', 'exp', 'gold', 'pots', 'kpots', 'kills', 'stones']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
+  for (const k of ['lv', 'exp', 'gold', 'pots', 'kpots', 'potS', 'potL', 'kpotS', 'kpotL', 'kills', 'stones']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
   c.lv = Math.max(1, c.lv); c.map = clamp(c.map | 0, 0, D.maps.length - 1);
   // điểm tiềm năng: nhân vật cũ chưa có -> để trống (được cộng bù theo cấp hiện tại); điểm vượt quá số được nhận -> trả lại hết để cộng lại
   const pt = c.pt && typeof c.pt === 'object' ? c.pt : {}; c.pt = {};

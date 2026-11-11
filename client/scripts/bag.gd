@@ -113,7 +113,7 @@ func _render_bag(d: Dictionary) -> void:
 	pt.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	pt.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	pc.add_child(pt)
-	var pn = UI.outlined("x%d" % int(d.get("pots", 0)), 14, Color.WHITE, "bold", 4)
+	var pn = UI.outlined("x%d" % (Data.pot_total(d, false) + Data.pot_total(d, true)), 14, Color.WHITE, "bold", 4)
 	pn.size_flags_vertical = Control.SIZE_SHRINK_END
 	pc.add_child(pn)
 	_click(pc, func(): sel = {"from": "pot"}; render())
@@ -177,17 +177,28 @@ func _render_detail(d: Dictionary) -> void:
 		detail.add_child(UI.label("Chọn một món để xem.", 18, Color("5a6b8c"), "semi"))
 		return
 	if f == "pot":
-		detail.add_child(UI.label("Bình máu", 24, UI.INK, "bold"))
-		detail.add_child(UI.label("Hồi 45% máu tối đa. Mang tối đa 20 bình.", 16, UI.INK, "body"))
-		var r = UI.hbox(8)
-		detail.add_child(r)
-		var u = UI.button("Dùng", UI.GREEN, 18)
-		u.pressed.connect(game.do_pot)
-		r.add_child(u)
-		var b = UI.button("Mua (%d vàng)" % Data.pot_price(), UI.GOLD, 18)
-		b.disabled = int(d.gold) < Data.pot_price() or int(d.pots) >= 20
-		b.pressed.connect(func(): Net.send({"t": "buypot", "n": 1}))
-		r.add_child(b)
+		detail.add_child(UI.label("Bình máu & bình KI", 22, UI.INK, "bold"))
+		detail.add_child(UI.label("Nhỏ 25% · Vừa 45% · Lớn 70%. Mua thêm ở Thương Nhân Bảo.", 14, Color("5a6b8c"), "body"))
+		for ki in [false, true]:
+			for t in 3:
+				var key: String = (Data.KI_KEYS if ki else Data.HP_KEYS)[t]
+				var r = UI.hbox(8)
+				detail.add_child(r)
+				var ic = TextureRect.new()
+				ic.texture = Data.pot_icon(ki, t)
+				ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				ic.custom_minimum_size = Vector2(36, 36)
+				r.add_child(ic)
+				var nl = UI.label("%s %s x%d" % ["KI" if ki else "Máu", str(Data.POT_T[t].n).to_lower(), int(d.get(key, 0))], 16, UI.INK, "semi")
+				nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				r.add_child(nl)
+				var u = UI.button("Dùng", UI.GREEN, 15)
+				u.disabled = int(d.get(key, 0)) <= 0
+				var tt: int = t
+				var op = "kpot" if ki else "pot"
+				u.pressed.connect(func(): Net.send({"t": op, "k": tt}))
+				r.add_child(u)
 		return
 	if f == "stone":
 		detail.add_child(UI.label("Đá cường hóa", 24, UI.INK, "bold"))

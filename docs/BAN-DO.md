@@ -120,3 +120,8 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Khu: hiện sẵn 10 khu; khu 1–10 của bản đồ săn quái không bị xoá khi trống (quái, tinh anh giữ nguyên).
 - Rơi đồ: thường/hiếm/sử thi/huyền thoại quái thường 90/9/0,9/0,1; tinh anh 72/23/4,4/0,6; trùm 52/38/8,5/1,5. Cấp đồ = cấp quái. Sao pet 50/28/14/6/2 %. Thương Nhân Giáp chỉ bán đồ thường.
 - Chat bản đồ: bong bóng trên đầu 5 giây; chat thế giới: dải chữ trên giữa 5 giây, bấm để xem 40 tin gần đây.
+
+## Bình 3 cỡ, hồi sinh (2.9.4)
+- Bình máu / KI 3 cỡ: Nhỏ 25% (`potS`/`kpotS`), Vừa 45% (`pots`/`kpots`, = bình cũ), Lớn 70% (`potL`/`kpotL`); giá ×1 / ×3 / ×7,5 giá bình (30); mỗi cỡ tối đa 20. `pot {k}` / `kpot {k}` (không gửi k: máy chủ tự chọn cỡ nhỏ nhất đủ hồi phần thiếu), `buypot {n, tier, k:'ki'}`. Bình rơi từ quái là bình nhỏ.
+- Gục ngã: chờ 15 giây (`DEAD_WAIT`) rồi tự hồi sinh đầy máu ở Làng; hoặc `revive {here:1}` hồi tại chỗ 60% máu, giá `20 + 25 × cấp` vàng (~20 lần hạ quái cùng cấp); `revive {home:1}` về Làng ngay. Vẫn mất 10% vàng khi gục như cũ.
+- Biểu tượng mới (vẽ bằng AI): `hud/ui/auto`, `pot0-2`, `kpot0-2`.

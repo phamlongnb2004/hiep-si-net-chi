@@ -244,6 +244,10 @@ func setup(g: Game) -> void:
 	fr_badge.position = Vector2(38, -4)
 	fr_b.add_child(fr_badge)
 	auto_b = UI.button("AUTO", UI.SKY, 16)
+	if H.ui.has("auto"):
+		auto_b.icon = Data.tex(H.ui.auto)
+		auto_b.expand_icon = true
+		auto_b.text = ""
 	auto_b.custom_minimum_size = Vector2(76, 58)
 	auto_b.tooltip_text = "Tự động đánh quái"
 	auto_b.pressed.connect(open_auto)
@@ -347,8 +351,8 @@ func refresh() -> void:
 	b.exn = max(1.0, float(d.get("need", 1)))
 	gold_l.text = UI.fmt(d.get("gold", 0))
 	stone_l.text = str(int(d.get("stones", 0)))
-	potb.count = int(d.get("pots", 0))
-	kpotb.count = int(d.get("kpots", 0))
+	potb.count = Data.pot_total(d, false)
+	kpotb.count = Data.pot_total(d, true)
 	var icons: Array = Data.A.hud.skills.get(c, [])
 	var sk: Array = d.get("sk", [])
 	for i in 6:
@@ -368,15 +372,13 @@ func _process(_dt: float) -> void:
 	kpotb.cd = game.kpot_cd
 	if rollb:
 		rollb.cd = game.roll_cd
-	if auto_b and auto_b.text != ("AUTO ✓" if game.auto_on else "AUTO"):
+	if auto_b and auto_b.get_meta("on", false) != game.auto_on:
 		_auto_style()
 	if game.joy != null and joy:
 		game.joy = joy.value
 	net_l.text = ("Ping %d ms" % Net.ping_ms) if Net.online() else ""
-	if game.me.dead and Net.online():
-		overlay.visible = true
-		overlay_l.text = "Bạn đã gục ngã. Đang hồi sinh ở điểm an toàn…"
-	elif Net.online() and overlay.visible:
+	_dead_ui()
+	if Net.online() and overlay.visible:
 		overlay.visible = false
 
 func add_log(text: String, col: Color) -> void:
@@ -609,13 +611,14 @@ func _build_controls() -> void:
 			g.atk_held = ev.pressed)
 	potb = SkillBtn.new()
 	potb.mx = 3.0
-	potb.tex = Data.tex(H.ui.get("pot", ""))
+	potb.tex = Data.pot_icon(false, 1)
 	potb.key = "" if touch else "Q"
 	potb.pressed.connect(g.do_pot)
 	kpotb = SkillBtn.new()
 	kpotb.mx = 3.0
-	kpotb.tex = Data.tex(H.ui.get("pot", ""))
-	kpotb.tint = Color(0.45, 0.75, 1.6)
+	kpotb.tex = Data.pot_icon(true, 1)
+	if not H.ui.has("kpot1"):
+		kpotb.tint = Color(0.45, 0.75, 1.6)
 	kpotb.key = "" if touch else "R"
 	kpotb.pressed.connect(g.do_kpot)
 	var rb = SkillBtn.new()
@@ -698,7 +701,9 @@ func _build_controls() -> void:
 ## ---------- bảng tự động đánh quái ----------
 func _auto_style() -> void:
 	if auto_b:
-		auto_b.text = "AUTO ✓" if game.auto_on else "AUTO"
+		auto_b.set_meta("on", game.auto_on)
+		if auto_b.icon == null:
+			auto_b.text = "AUTO ✓" if game.auto_on else "AUTO"
 		auto_b.add_theme_stylebox_override("normal", UI.box(UI.GREEN if game.auto_on else UI.SKY, UI.INK, 12, 3))
 
 func open_auto() -> void:
@@ -865,3 +870,50 @@ func _place(c: Control, off: Vector2, sz: Vector2) -> void:
 	c.offset_top = off.y
 	c.offset_right = off.x + sz.x
 	c.offset_bottom = off.y + sz.y
+
+
+## ---------- gục ngã: đếm ngược về Làng, hoặc hồi sinh tại chỗ mất vàng ----------
+var dead_pan: Control
+var dead_l: Label
+var dead_end = 0.0
+func _dead_ui() -> void:
+	var dead = game.me.dead and Net.online()
+	if not dead:
+		if dead_pan and is_instance_valid(dead_pan):
+			dead_pan.queue_free()
+			dead_pan = null
+		return
+	var d = game.me_data
+	if dead_pan == null or not is_instance_valid(dead_pan):
+		dead_end = Time.get_ticks_msec() / 1000.0 + float(d.get("deadT", 15))
+		dead_pan = ColorRect.new()
+		(dead_pan as ColorRect).color = Color(0.2, 0.02, 0.05, 0.45)
+		dead_pan.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		dead_pan.mouse_filter = Control.MOUSE_FILTER_STOP
+		root.add_child(dead_pan)
+		var card = UI.card(Vector2(520, 0))
+		dead_pan.add_child(UI.center(card))
+		var v = UI.vbox(12)
+		card.add_child(v)
+		var t = UI.label("Bạn đã gục ngã", 30, Color("c0143f"), "title")
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(t)
+		v.add_child(UI.hsep())
+		dead_l = UI.label("", 20, UI.INK, "bold")
+		dead_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(dead_l)
+		var cost = int(d.get("rvCost", 0))
+		var b1 = UI.button("Hồi sinh tại chỗ · %s vàng" % UI.fmt(cost), UI.GOLD, 20)
+		b1.custom_minimum_size = Vector2(0, 56)
+		b1.disabled = int(d.get("gold", 0)) < cost
+		b1.pressed.connect(func(): Net.send({"t": "revive", "here": 1}))
+		v.add_child(b1)
+		if int(d.get("gold", 0)) < cost:
+			v.add_child(UI.label("Không đủ vàng để hồi sinh tại chỗ.", 15, Color("d9345a"), "semi"))
+		var b2 = UI.button("Về Làng ngay", UI.SKY, 20)
+		b2.custom_minimum_size = Vector2(0, 52)
+		b2.pressed.connect(func(): Net.send({"t": "revive", "home": 1}))
+		v.add_child(b2)
+		v.add_child(UI.label("Hồi sinh tại chỗ: 60% máu. Về Làng: đầy máu, đầy KI.", 14, Color("5a6b8c"), "body"))
+	var left = maxf(0.0, dead_end - Time.get_ticks_msec() / 1000.0)
+	dead_l.text = "Tự hồi sinh ở Làng sau %d giây" % ceili(left)

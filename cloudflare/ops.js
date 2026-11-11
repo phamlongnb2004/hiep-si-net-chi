@@ -44,23 +44,35 @@ export const OPS = {
     if (ch.gold < cost) return { ok: false, msg: 'Tẩy điểm cần ' + cost + ' vàng.' };
     ch.gold -= cost; ch.pt = {}; ch.ptReset = (ch.ptReset | 0) + 1; refreshStats(c.f, ch, true); return { ok: true, cost };
   },
-  pot(c) {
-    const ch = c.ch, f = c.f; if (f.dead > 0 || ch.pots <= 0 || f.hp >= f.maxHp || f.potCd > 0) return { ok: false };
-    ch.pots--; f.potCd = R.POT_CD; const h = Math.round(f.maxHp * R.POT_HEAL); f.hp = Math.min(f.maxHp, f.hp + h);
+  pot(c, m) {
+    const ch = c.ch, f = c.f; if (f.dead > 0 || f.hp >= f.maxHp || f.potCd > 0) return { ok: false };
+    const t = m && m.k != null && (ch[R.HP_KEYS[m.k | 0]] | 0) > 0 ? m.k | 0 : R.pickPot(ch, R.HP_KEYS, f.maxHp - f.hp, f.maxHp); if (t < 0 || t > 2) return { ok: false };
+    ch[R.HP_KEYS[t]]--; f.potCd = R.POT_CD; const h = Math.round(f.maxHp * R.POT_TIERS[t].f); f.hp = Math.min(f.maxHp, f.hp + h);
     if (c.inst) c.inst.ev.push(['ph', c.id, h]); return { ok: true, heal: h };
   },
-  kpot(c) {
-    const ch = c.ch, f = c.f; if (f.dead > 0 || (ch.kpots | 0) <= 0 || f.ki >= f.maxKi || f.kpCd > 0) return { ok: false };
-    ch.kpots--; f.kpCd = R.KPOT_CD; const k = Math.round(f.maxKi * R.KPOT_GAIN); f.ki = Math.min(f.maxKi, f.ki + k);
+  kpot(c, m) {
+    const ch = c.ch, f = c.f; if (f.dead > 0 || f.ki >= f.maxKi || f.kpCd > 0) return { ok: false };
+    const t = m && m.k != null && (ch[R.KI_KEYS[m.k | 0]] | 0) > 0 ? m.k | 0 : R.pickPot(ch, R.KI_KEYS, f.maxKi - f.ki, f.maxKi); if (t < 0 || t > 2) return { ok: false };
+    ch[R.KI_KEYS[t]]--; f.kpCd = R.KPOT_CD; const k = Math.round(f.maxKi * R.POT_TIERS[t].f); f.ki = Math.min(f.maxKi, f.ki + k);
     return { ok: true, ki: k };
   },
   buypot(c, m) {
-    if (m.k === 'ki') { const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, price = R.TUNE.potPrice * n;
-      if (ch.gold < price || (ch.kpots | 0) + n > R.KPOT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mang tối đa ' + R.KPOT_MAX + ' bình KI.' };
-      ch.gold -= price; ch.kpots = (ch.kpots | 0) + n; return { ok: true }; }
-    const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, price = R.TUNE.potPrice * n;
-    if (ch.gold < price || ch.pots + n > R.POT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mang tối đa ' + R.POT_MAX + ' bình.' };
-    ch.gold -= price; ch.pots += n; return { ok: true };
+    // cỡ bình: tier 0 nhỏ, 1 vừa (mặc định, bản cũ), 2 lớn
+    const ch = c.ch, n = (m.n | 0) === 5 ? 5 : 1, t = m.tier == null ? 1 : Math.max(0, Math.min(2, m.tier | 0)), ki = m.k === 'ki', key = (ki ? R.KI_KEYS : R.HP_KEYS)[t];
+    const price = Math.round(R.TUNE.potPrice * R.POT_TIERS[t].p) * n, nm = (ki ? 'bình KI ' : 'bình máu ') + R.POT_TIERS[t].n.toLowerCase();
+    if (ch.gold < price || (ch[key] | 0) + n > R.POT_MAX) return { ok: false, msg: ch.gold < price ? 'Không đủ vàng.' : 'Mỗi cỡ mang tối đa ' + R.POT_MAX + ' ' + nm + '.' };
+    ch.gold -= price; ch[key] = (ch[key] | 0) + n; return { ok: true, msg: 'Đã mua ' + n + ' ' + nm + '.' };
+  },
+  // hồi sinh: tại chỗ (mất vàng) hoặc về Làng ngay
+  revive(c, m) {
+    const ch = c.ch, f = c.f; if (!(f.dead > 0)) return { ok: false };
+    if (m.here) {
+      const cost = R.reviveCost(ch.lv); if (ch.gold < cost) return { ok: false, msg: 'Cần ' + cost + ' vàng để hồi sinh tại chỗ.' };
+      ch.gold -= cost; f.dead = 0; f.hp = Math.round(f.maxHp * .6); f.ki = Math.max(f.ki, Math.round(f.maxKi * .5)); f.pois = null; f.slowT = 0; f.stunT = 0; f.buffs = [];
+      if (c.inst) { c.inst.ev.push(['rv', c.id]); c.inst.sendPos(c, { respawn: 1 }); }
+      return { ok: true, msg: 'Hồi sinh tại chỗ (-' + cost + ' vàng).' };
+    }
+    f.dead = .01; return { ok: true }; // về Làng ở lượt tính kế tiếp
   },
   // NPC Thương Nhân Giáp: bán mọi loại đồ của mọi phái, chỉ số mặc định, cấp đồ theo cấp người chơi (bậc 5)
   shopbuy(c, m) {
