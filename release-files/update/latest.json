@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.9.5",
+  "version": "2.9.6",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "15c65173b7e46230dcfdf58e893058e690fd7c451f1bd089f75f87268e225b9f",
-   "size": 71801347
+   "sha256": "9983b7e5e44e2ef1635f49805e75afc1aac4c0fe2c8dc204069e07b97a91bd4c",
+   "size": 71798778
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "f869854a12f3874527f18f48ed8a2ca2f55dcb795a94128ca2ea30a3beb44ba0",
-   "size": 101172071
+   "sha256": "0043102cf625a412895a0d1ed12c5292c19ebb17218a8ae6f59c8e411b51a34a",
+   "size": 101176167
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "314dd8750abd0893ab173029c94082f975dffbfd0002b7d2a872beeaf1aeacae",
-   "size": 74070766
+   "sha256": "a5db8df6f63c423bc0e28863a8b702f3987006e5751146e7f1bb7cd3bce5f9d3",
+   "size": 74072396
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,22 +25,16 @@
   }
  },
  "assets": {
-  "version": 25,
+  "version": 26,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-25.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-26.pck",
   "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
   "size": 48879164
  },
  "changelog": [
-  "Chạm 1 lần để chọn mục tiêu (tam giác chỉ vào), chạm đúp để chạy tới / đánh / nói chuyện / nhặt.",
-  "Chọn đồ rơi hiện nút \"Nhặt\" (hoặc bấm nút đánh để nhặt). Đồ của người khác còn khóa thì báo chưa nhặt được.",
-  "Nút tròn đổi mục tiêu (trên nút lướt), chỉ chọn quái ở gần.",
-  "Bình máu/KI hồi lượng cố định (Nhỏ / Vừa / Lớn), mang tối đa 999 mỗi loại, mua số lượng tùy chọn, chỉ mua ở Thương Nhân Bảo.",
-  "Auto: chọn cỡ bình tự dùng, tự đổi quái khi không tới được, hết nháy trắng ô chọn, nút AUTO chỉ còn hình.",
-  "Gục ngã không mất 10% vàng nữa: rơi 1% vàng mang theo trên đất (1 phút đầu chỉ bạn nhặt được). Hồi sinh tại chỗ giá cố định 500 vàng.",
-  "Bùa nâng kỹ năng (cực hiếm, rơi từ tinh anh và trùm): kỹ năng tối đa cấp 6, cấp L lên L+1 tốn L bùa, chắc chắn thành công. Thẻ Kỹ năng mới trong Hành Trang.",
-  "Bán đồ chỉ ở Thương Nhân Giáp, giá 75% giá cửa hàng (đồ hiếm bán cao hơn). Sách kỹ năng mạnh đắt hơn nhiều, có ảnh sách mới.",
-  "Đá cường hóa hiếm hơn. Không còn đánh trúng quái khác tầng. Thông báo trùm nằm cao hơn, ngay dưới tin thế giới."
+  "Giảm khựng hình khi đánh quái và bật auto: hiệu ứng đòn đánh, biểu tượng nút, cây đá trang trí, đồ rơi được nạp sẵn ở màn hình chờ.",
+  "Người chơi khác và pet của họ mới xuất hiện không còn làm đứng hình (ảnh nạp ngầm).",
+  "Máy chủ nhẹ hơn: khu không có người không chạy quái liên tục, giúp ping ổn định hơn."
  ],
- "updated": "2026-11-11T15:39:34.387Z"
+ "updated": "2026-11-11T16:02:51.439Z"
 }
