@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.9.6",
+  "version": "2.9.7",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "9983b7e5e44e2ef1635f49805e75afc1aac4c0fe2c8dc204069e07b97a91bd4c",
-   "size": 71798778
+   "sha256": "746dd13857d74054b13b8b7eb6437e7d521378afbcc07885a7fb28e8d033c39c",
+   "size": 71804233
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "0043102cf625a412895a0d1ed12c5292c19ebb17218a8ae6f59c8e411b51a34a",
-   "size": 101176167
+   "sha256": "b71bc771890f460f2b3176e39ad0f160859c4c44a7aab84b19bb9d80cf8921d2",
+   "size": 101184500
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "a5db8df6f63c423bc0e28863a8b702f3987006e5751146e7f1bb7cd3bce5f9d3",
-   "size": 74072396
+   "sha256": "644d95f1255e0e194594fb85f1aedf6433afbdf9e246dbb60a81ad243ad5a543",
+   "size": 74080019
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,16 +25,17 @@
   }
  },
  "assets": {
-  "version": 26,
+  "version": 27,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-26.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-27.pck",
   "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
   "size": 48879164
  },
  "changelog": [
-  "Giảm khựng hình khi đánh quái và bật auto: hiệu ứng đòn đánh, biểu tượng nút, cây đá trang trí, đồ rơi được nạp sẵn ở màn hình chờ.",
-  "Người chơi khác và pet của họ mới xuất hiện không còn làm đứng hình (ảnh nạp ngầm).",
-  "Máy chủ nhẹ hơn: khu không có người không chạy quái liên tục, giúp ping ổn định hơn."
+  "Chiêu lướt (Xung Phong của Kiếm, chiêu lướt của Cung và Võ) lướt mượt ngay, không còn giật về chỗ cũ, ping không nhảy vọt khi dùng chiêu.",
+  "Nút lướt và chiêu lướt đi theo mặt dốc, hết bị kéo lại khi lướt lên dốc.",
+  "Auto tự tìm đường: nhảy lên thanh ngang, leo thang/dây, đi ra mép thanh để xuống; không tới được thì đổi quái ngay, hết đứng kẹt dưới thanh.",
+  "Auto chỉ dùng chiêu khi đã tới gần quái và cùng tầng."
  ],
- "updated": "2026-11-11T16:02:51.439Z"
+ "updated": "2026-11-11T16:35:57.632Z"
 }
