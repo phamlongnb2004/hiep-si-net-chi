@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.10.1",
+  "version": "2.10.2",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "9c4f1b33af5dce7ec99d733467174afc60bbdb86f5d4c0035d85264d51bce870",
-   "size": 71819976
+   "sha256": "d6a62517238921adb472accf04d3e2135c7a81172a884dfb86709c2078e5b7d5",
+   "size": 71822676
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "914d1f10899f661f76f4316d5b204b13e39ffb0d135a17eec419024455ec40b2",
+   "sha256": "8142e1ee9c92230ab6141750a8e466f6032d733ea81454015f8fdb7f0ee4b3e5",
    "size": 101196788
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "0e36577695e9e7ddb150ae13c14ea62c25a3c45a9110676e7ed70ff152bbc6e5",
-   "size": 74092689
+   "sha256": "dc790bca683eeb2fb5aeea8625c8d96476ba721f86055038e7451499f90c4d1a",
+   "size": 74093972
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,14 +25,16 @@
   }
  },
  "assets": {
-  "version": 31,
+  "version": 32,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-31.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-32.pck",
   "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
   "size": 48879164
  },
  "changelog": [
-  "Sửa lỗi túi đồ: chạm vào một món thì các món mua ở cửa hàng biến mất, trông như bị đảo lộn vị trí."
+  "Túi đầy không còn tự bán đồ nhặt được: đồ nằm lại trên đất và hiện thông báo \"Hành trang đã đầy\" giữa màn hình để bạn tự bán hoặc vứt bớt. Auto vẫn nhặt bình, đá, vàng, bùa.",
+  "Trùm hiện trên bản đồ nhỏ bằng ngôi sao vàng có vòng sáng nhấp nháy.",
+  "Sửa lỗi túi đồ: chạm vào một món thì các món mua ở cửa hàng biến mất, trông như bị đảo lộn."
  ],
- "updated": "2026-11-11T19:02:07.028Z"
+ "updated": "2026-11-11T19:24:17.603Z"
 }
