@@ -27,6 +27,7 @@ var my_id = 0
 var staff = ""                # vai trò quản trị của tài khoản này (rỗng = người chơi)
 var me_data: Dictionary = {}     # tin 'me' (chỉ số, túi đồ...) do máy chủ gửi
 var heroes = {}                 # id -> Hero (người khác)
+var pos_n = 0                   # số lần máy chủ đặt lại vị trí (gửi kèm 'in' để máy chủ bỏ qua gói cũ)
 var pets = {}                   # id chủ -> Pet (cả pet của mình)
 var mons = {}                   # id -> Mon
 var drops = {}                  # id -> Drop
@@ -95,6 +96,7 @@ func _on_msg(m: Dictionary) -> void:
 	match str(m.get("t")):
 		"welcome":
 			my_id = int(m.id)
+			pos_n = 0
 			staff = str(m.get("staff", ""))
 			if m.get("cfg") is Dictionary:
 				_set_cfg(m.cfg)
@@ -108,7 +110,9 @@ func _on_msg(m: Dictionary) -> void:
 			if ready_map:
 				_snap(m)
 		"pos":
+			pos_n = int(m.get("pn", pos_n + 1))
 			me.position = Vector2(m.x, m.y)
+			last_sent = Vector3(INF, 0, 0)
 			vy = 0
 			climb = []
 			if m.get("respawn"):
@@ -217,6 +221,7 @@ func _build_map(m: Dictionary) -> void:
 	cam.position = me.position
 	cam.reset_smoothing()
 	ready_map = true
+	loading.cls = cls()
 	loading.load_map(mi)
 	map_changed.emit(str(M.name))
 
@@ -758,7 +763,7 @@ func _control(dt: float) -> void:
 	var cur = Vector3(round(me.position.x), round(me.position.y), me.face)
 	if send_t <= 0 or (cur != last_sent and not me.moving):
 		if cur != last_sent or send_t <= -1.0:
-			Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 1 if air else 0})
+			Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 1 if air else 0, "pk": pos_n})
 			last_sent = cur
 		send_t = SEND_DT
 
@@ -790,7 +795,7 @@ func _climb(dt: float, iy: float, dx: float) -> void:
 		air = true
 	send_t -= dt
 	if send_t <= 0:
-		Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 2 if not climb.is_empty() else 1})
+		Net.send({"t": "in", "x": me.position.x, "y": me.position.y, "f": me.face, "mv": 1 if me.moving else 0, "air": 2 if not climb.is_empty() else 1, "pk": pos_n})
 		send_t = SEND_DT
 
 func _unhandled_input(ev: InputEvent) -> void:

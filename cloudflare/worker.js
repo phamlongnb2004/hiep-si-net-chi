@@ -73,12 +73,19 @@ export default {
       return new Response(r.body, { status: r.status, headers: h });
     }
     if (url.pathname.startsWith('/api/') || url.pathname === '/ws') {
-      const world = env.WORLD.get(env.WORLD.idFromName('world'));
-      return world.fetch(req);
+      // máy chủ chính đặt ở châu Á (gần Việt Nam). Lần đầu chạy nó tự chép toàn bộ dữ liệu từ máy chủ cũ ('world', đặt ở xa).
+      // Muốn quay lại máy chủ cũ: đặt biến môi trường DO_NAME=world (dữ liệu cũ vẫn còn nguyên).
+      const name = env.DO_NAME || DO_NAME, world = env.WORLD.get(env.WORLD.idFromName(name), { locationHint: 'apac' });
+      const h = new Headers(req.headers); h.delete('x-mig-src');
+      if (name !== 'world') h.set('x-mig-src', 'world');
+      return world.fetch(new Request(req, { headers: h }));
     }
     return env.ASSETS.fetch(req);
   },
 };
+
+const DO_NAME = 'world-apac';
+const MIG_SKIP = n => /^(sqlite_|_cf_)/.test(n);
 
 export class World extends DurableObject {
   constructor(ctx, env) {
@@ -121,11 +128,57 @@ export class World extends DurableObject {
   async fetch(req) {
     const url = new URL(req.url);
     try {
+      // xuất dữ liệu cho máy chủ mới (chỉ gọi được từ máy chủ khác, không có đường công khai tới đây)
+      if (url.pathname === '/__export') return this.exportAll();
+      const src = req.headers.get('x-mig-src');
+      if (src && !this.migDone) {
+        if (!this.migP) this.migP = this.migrateFrom(src).catch(e => { this.migP = null; throw e; });
+        try { await this.migP; } catch (e) { console.error('chuyển dữ liệu lỗi', e); return json(503, { error: 'Máy chủ đang bảo trì, thử lại sau ít phút.' }); }
+      }
       if (url.pathname === '/ws') return this.openSocket(req, url);
       return await this.api(req, url);
     } catch (e) {
       console.error(e); return json(500, { error: 'Lỗi máy chủ' });
     }
+  }
+
+  /* ---------- chuyển máy chủ: chép nguyên mọi bảng từ máy chủ cũ (không xóa gì ở máy chủ cũ) ---------- */
+  migFlag() { const r = this.one("SELECT v FROM config WHERE k='_mig'"); return r ? r.v : ''; }
+  async migrateFrom(src) {
+    if (this.migFlag()) { this.migDone = true; return; }
+    // máy chủ đã có người chơi (chính là máy chủ cũ, hoặc đã chép xong) thì không chép đè
+    if ((this.one('SELECT COUNT(*) n FROM users') || {}).n > 0) { this.sql.exec("INSERT OR REPLACE INTO config(k,v) VALUES('_mig',?)", JSON.stringify('origin')); this.migDone = true; return; }
+    const old = this.env.WORLD.get(this.env.WORLD.idFromName(src));
+    const r = await old.fetch('https://do/__export');
+    if (!r.ok) throw new Error('export ' + r.status);
+    const dump = await r.json(); let rows = 0;
+    this.ctx.storage.transactionSync(() => {
+      for (const t of dump.tables) {
+        if (MIG_SKIP(t.name)) continue;
+        if (t.sql) this.sql.exec(t.sql.replace(/^CREATE TABLE\s+(IF NOT EXISTS\s+)?/i, 'CREATE TABLE IF NOT EXISTS '));
+        this.sql.exec('DELETE FROM "' + t.name + '"');
+        const have = new Set(this.sql.exec('SELECT name FROM pragma_table_info(?)', t.name).toArray().map(c => c.name));
+        for (const row of t.rows) {
+          const ks = Object.keys(row).filter(k => have.has(k)); if (!ks.length) continue;
+          this.sql.exec('INSERT OR REPLACE INTO "' + t.name + '"(' + ks.map(k => '"' + k + '"').join(',') + ') VALUES(' + ks.map(() => '?').join(',') + ')', ...ks.map(k => row[k]));
+          rows++;
+        }
+      }
+      for (const ix of dump.indexes || []) try { this.sql.exec(ix.replace(/^CREATE (UNIQUE )?INDEX\s+(IF NOT EXISTS\s+)?/i, (m, u) => 'CREATE ' + (u || '') + 'INDEX IF NOT EXISTS ')); } catch (e) {}
+      this.sql.exec("INSERT OR REPLACE INTO config(k,v) VALUES('_mig',?)", JSON.stringify({ from: src, at: Date.now(), rows }));
+    });
+    initAdmin(this); // nạp lại cấu hình, quyền quản trị
+    this.migDone = true;
+    console.log('đã chép dữ liệu từ', src, rows, 'dòng');
+  }
+  exportAll() {
+    // ghi nốt nhân vật đang chơi (nếu còn ai ở máy chủ cũ) rồi xuất
+    for (const c of this.clients.values()) { try { if (c.v2 && c.dirty) this.writeChar(c); else if (c.pending) this.writeSave(c); } catch (e) {} }
+    const tables = this.sql.exec("SELECT name, sql FROM sqlite_master WHERE type='table'").toArray().filter(t => !MIG_SKIP(t.name))
+      .map(t => ({ name: t.name, sql: t.sql, rows: this.sql.exec('SELECT * FROM "' + t.name + '"').toArray() }));
+    const indexes = this.sql.exec("SELECT sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL").toArray().map(r => r.sql);
+    this.sql.exec("INSERT OR REPLACE INTO config(k,v) VALUES('_moved',?)", JSON.stringify(Date.now()));
+    return new Response(JSON.stringify({ tables, indexes }), { headers: { 'Content-Type': 'application/json' } });
   }
 
   limited(ip) {

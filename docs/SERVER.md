@@ -49,3 +49,9 @@ Máy chủ → ứng dụng: `welcome {proto,id,me}`, `map {m,x,y,mons,drops}`, 
 Sự kiện trong `snap.e`: `h` quái trúng đòn, `p` người chơi mất máu, `ph` hồi máu, `a` đánh thường, `s` dùng kỹ năng, `k` quái chết, `r` quái hồi sinh, `ma` quái vồ, `b` rồng khạc, `d` đồ rơi, `g` nhặt, `x` đồ biến mất, `lv` lên cấp.
 
 Còn chỗ cho tính năng sau (nhiệm vụ, bang hội, bạn bè, giao dịch): thêm loại tin mới, tin lạ bị bỏ qua ở cả hai phía.
+
+## Vị trí máy chủ (2.9.1)
+- Máy chủ chính là Durable Object tên `world-apac`, tạo với `locationHint: 'apac'` (gần Việt Nam). Trước đây là `world` (đặt ở xa, mỗi lần gửi/nhận mất thêm ~180 ms).
+- Lần đầu `world-apac` nhận yêu cầu, nó gọi `/__export` của `world` (đường nội bộ, không công khai) và chép nguyên mọi bảng (người chơi, phiên đăng nhập, nhân vật, quản trị, cấu hình, nhật ký) trong một giao dịch; ghi cờ `config._mig`. Máy chủ cũ giữ nguyên dữ liệu (cờ `_moved`).
+- Quay lại máy chủ cũ khi cần: đặt biến môi trường `DO_NAME=world` trên Cloudflare (dữ liệu phát sinh ở máy chủ mới sẽ không có ở máy chủ cũ).
+- Vị trí: máy chủ bỏ qua gói vị trí cũ sau khi đặt lại vị trí (`pos` có `pn`, ứng dụng gửi `pk`); rơi từ trên cao không còn bị kéo lại.

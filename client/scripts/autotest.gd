@@ -5,6 +5,9 @@ extends Node
 var main: Node
 var out = "user://shots"
 var step = 0
+var _fmax = 0.0      # khung hình chậm nhất (ms) trong giây vừa qua (chế độ đo perf)
+var _fn = 0
+var _pos_n = 0
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -42,6 +45,10 @@ func run() -> void:
 		return
 	if OS.get_environment("HSNC_PREVIEW") in ["jump", "die"]:
 		await preview_jump()
+		get_tree().quit()
+		return
+	if OS.get_environment("HSNC_PREVIEW") == "perf":
+		await perf_test()
 		get_tree().quit()
 		return
 	if OS.get_environment("HSNC_PREVIEW") == "pets":
@@ -677,3 +684,46 @@ func preview_pets() -> void:
 	n.render()
 	await wait(0.2)
 	await shot("pets-npc3")
+
+
+func _process(dt: float) -> void:
+	_fmax = max(_fmax, dt * 1000.0)
+	_fn += 1
+
+## đo giật: tới bản đồ có Cá Kiếm, đứng cho quái đánh, nhảy từ trên cao; in khung hình chậm nhất, FPS, ping mỗi giây
+## (cần máy chủ thử có lệnh devtp/devlv — chỉ bản chạy cục bộ)
+func perf_test() -> void:
+	var u = "pf%d" % (Time.get_unix_time_from_system() as int % 100000)
+	await Net.login(u, "matkhau1", true)
+	main.show_servers()
+	await wait(1.0)
+	main.enter(1)
+	await wait(2.0)
+	Net.send({"t": "create", "name": "Pf " + u.substr(2), "cls": "sword"})
+	await wait(2.5)
+	Net.message.connect(func(m): if m.get("t") == "pos": _pos_n += 1)
+	var g: Game = main.game
+	Net.send({"t": "devlv", "lv": int(OS.get_environment("HSNC_LV")) if OS.get_environment("HSNC_LV") != "" else 22})
+	Net.send({"t": "devtp", "map": int(OS.get_environment("HSNC_MAP")) if OS.get_environment("HSNC_MAP") != "" else 6, "x": int(OS.get_environment("HSNC_X")) if OS.get_environment("HSNC_X") != "" else 1650, "y": int(OS.get_environment("HSNC_Y")) if OS.get_environment("HSNC_Y") != "" else 0})
+	await wait(3.0)
+	await shot("perf-0")
+	var secs = int(OS.get_environment("HSNC_SECS")) if OS.get_environment("HSNC_SECS") != "" else 20
+	for i in secs:
+		_fmax = 0.0
+		_fn = 0
+		if OS.get_environment("HSNC_PROF") != "":
+			var parts = [null, g.world, g.ents, g.fx, main.hud]
+			for k in parts.size():
+				if parts[k]:
+					parts[k].visible = k != int(i / 3)
+		if OS.get_environment("HSNC_JUMP") != "" and i % 3 == 0:
+			g.jump()
+		if OS.get_environment("HSNC_WALK") != "":
+			g.joy = Vector2(1 if (i / 4) % 2 == 0 else -1, 0)
+			if OS.get_environment("HSNC_WALK") == "fall":
+				g.joy = Vector2(1, 0) if i >= 1 and i <= 3 else Vector2.ZERO
+		await wait(1.0)
+		print("PERF t=%d fps=%d maxframe=%dms proc=%.1fms ping=%d pos=%d hp=%s x=%d y=%d draws=%d tex=%dMB" % [i, _fn, int(_fmax), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Net.ping_ms, _pos_n, str(g.me_data.get("hp")), int(g.me.position.x), int(g.me.position.y),
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), int(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576)])
+		if i == 6:
+			await shot("perf-1")

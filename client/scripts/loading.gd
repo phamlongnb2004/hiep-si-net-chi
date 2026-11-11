@@ -32,6 +32,8 @@ var prog := 0.0
 var queue: Array = []
 var total := 0
 var fading := -1.0
+var cls := ""           # phái của mình: nạp trước khung động tác (nhảy, ngã, leo) và hiệu ứng chiêu
+var warm := {}            # đã nạp trước dáng nhân vật rồi thì thôi
 
 func _ready() -> void:
 	layer = 40
@@ -161,6 +163,51 @@ func _assets_for(M: Dictionary, th: String) -> Array:
 			if v1 is Array:
 				for f in v1:
 					add.call(f)
+	# hiệu ứng quái trên bản đồ này (vồ, chiêu, đạn): nạp trước để lần đầu trúng đòn không bị khựng
+	var vfx: Dictionary = Data.A.get("vfx", {})
+	var names := {}
+	for ty in types:
+		var mi: Dictionary = Data.D.mons.get(ty, {})
+		names[str(mi.get("afx", ""))] = true
+		var ab = mi.get("ab")
+		if ab is Dictionary:
+			for v in ab.values():
+				names[str(v)] = true
+		for sk in mi.get("sk", []):
+			if sk is Dictionary:
+				names[str(sk.get("fx", ""))] = true
+				names[str(sk.get("zfx", ""))] = true
+				var sm = Data.D.mons.get(str(sk.get("mon", "")), {})
+				if sm is Dictionary and sm.has("art"):
+					var dv = m2.get(str(sm.art))
+					if dv is Dictionary:
+						for an in dv.a.values():
+							for f in an:
+								if not seen.has(f):
+									seen[f] = true
+									out.append(str(f))
+	for nm in ["waterdash", "mud_splash", "poison_glob", "poison_splash", "spores", "shockwave", "rock_spikes", "tail_sweep"]:
+		names[nm] = true
+	for nm in names:
+		var d = vfx.get(nm)
+		if d is Dictionary:
+			for f in d.get("f", []):
+				if not seen.has(f):
+					seen[f] = true
+					out.append(str(f))
+	# dáng nhân vật của mình (mọi bộ áo): nhảy, ngã, leo, thân; hiệu ứng chiêu của phái — chỉ lần đầu
+	if cls != "" and not warm.has(cls):
+		warm[cls] = true
+		for k in Data.A.get("anim", {}):
+			if ("_" + cls + "_") in str(k):
+				var L = Data.A.anim[k]
+				if L is Array:
+					for e in L:
+						add.call(e)
+		var fl = Data.A.get("fx", {}).get(cls, [])
+		if fl is Array:
+			for e in fl:
+				add.call(e)
 	return out
 
 func _bar() -> void:

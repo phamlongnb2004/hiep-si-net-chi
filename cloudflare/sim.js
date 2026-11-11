@@ -72,6 +72,9 @@ export class MapInst {
     const f = c.f; if (f.dead > 0) return;
     const now = Date.now(), dt = clamp((now - f.moveAt) / 1000, .02, 1); f.moveAt = now;
     let x = +m.x, y = +m.y; if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    // vừa bị máy chủ đặt lại vị trí (đẩy lùi, kéo về): bỏ qua các gói vị trí cũ ứng dụng gửi trước khi nhận được 'pos'
+    // (bản mới gửi pk = số lần đã nhận 'pos'; bản cũ: bỏ qua gói lệch xa trong 1,2 giây) — tránh giật qua lại khi mạng chậm
+    if (m.pk != null ? (m.pk | 0) < (c.posN | 0) : (now - (c.posAt || 0) < 1200 && Math.abs(x - f.x) > 40)) return;
     x = clamp(x, 40, this.M.w - 40);
     const spd = f.spd * R.buffMul(f.buffs, 'spd') * (f.stunT > 0 ? .05 : f.slowT > 0 ? f.slowM : 1), lim = spd * dt * 1.35 + 30 + (f.dashT > 0 ? f.dashLen : 0);
     let bad = false;
@@ -82,9 +85,10 @@ export class MapInst {
     // mặt đứng dưới chân (đất hoặc bậc nổi); đang bám dây/thang thì được ở lưng chừng
     const g = this.fY(x, y), rope = R.onRope(this.M, x, y);
     if (y > g) y = g;
-    if (!rope && y < g - 150) { y = g - 150; bad = true; }
+    // bay cao bất thường: chỉ chặn khi đang đi LÊN mà đã ở quá cao so với mặt đứng (rơi từ trên cao xuống là bình thường)
+    if (!rope && y < g - 150 && y < f.y - 4) { y = Math.max(f.y, g - 150); bad = true; }
     f.x = x; f.y = y; f.face = m.f < 0 ? -1 : 1; f.air = m.air == 2 ? 2 : m.air ? 1 : 0; f.mv = m.mv ? 1 : 0;
-    if (bad) { c.badMoves = (c.badMoves || 0) + 1; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y) }); }
+    if (bad) { c.badMoves = (c.badMoves || 0) + 1; this.sendPos(c); }
   }
 
   /* ---------- chiến đấu ---------- */
@@ -183,7 +187,7 @@ export class MapInst {
     f.face = Math.cos(aim) >= 0 ? 1 : -1;
     const sx = f.x; this.run(c, R.SKILL_FX[ch.cls][i], aim, tgt, 0);
     this.ev.push(['s', c.id, i, +aim.toFixed(2), tgt ? tgt.id : 0, Math.round(sx)]);
-    if (f.x !== sx) this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), dash: 1 });
+    if (f.x !== sx) this.sendPos(c, { dash: 1 });
     c.meDirty = true;
   }
   // o: noDodge, flat (sát thương thẳng, không trừ giáp), pois [giây, sát thương/giây], slow [hệ số, giây], stun giây, kb (đẩy theo trục x), air (đang nhảy thì tránh được)
@@ -198,11 +202,13 @@ export class MapInst {
     if (o.kb) this.push(c, o.kb);
     this.damage(c, d);
   }
+  // báo vị trí do máy chủ đặt; đếm số lần để bỏ qua gói vị trí cũ còn trên đường truyền
+  sendPos(c, o) { c.posN = (c.posN | 0) + 1; c.posAt = Date.now(); this.h.send(c, { t: 'pos', x: Math.round(c.f.x), y: Math.round(c.f.y), pn: c.posN, ...(o || {}) }); }
   // đẩy người chơi theo trục x (dừng ở vách), báo vị trí mới cho ứng dụng
   push(c, dx) {
     const f = c.f, dir = Math.sign(dx); let x = f.x;
     for (let s = 0; s < Math.abs(dx); s += 8) { const nx = clamp(x + dir * 8, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
-    if (x === f.x) return; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y)); this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), kb: 1 });
+    if (x === f.x) return; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y)); this.sendPos(c, { kb: 1 });
   }
   damage(c, d) {
     const f = c.f; if (f.dead > 0) return;
@@ -305,7 +311,7 @@ export class MapInst {
   tickPlayer(c, dt) {
     const f = c.f;
     if (c.pet) this.tickPet(c, dt);
-    if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.h.send(c, { t: 'pos', x: Math.round(f.x), y: Math.round(f.y), respawn: 1 }); c.meDirty = true; } return; }
+    if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.x = this.M.spawn.x; f.y = this.gY(f.x); f.buffs = []; this.sendPos(c, { respawn: 1 }); c.meDirty = true; } return; }
     f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.dashT = Math.max(0, f.dashT - dt);
     for (let i = 0; i < 6; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
     const nb = f.buffs.length; f.buffs = f.buffs.filter(b => (b.t -= dt) > 0); if (f.buffs.length !== nb) c.meDirty = true;
