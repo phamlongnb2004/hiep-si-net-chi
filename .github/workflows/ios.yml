@@ -1,0 +1,74 @@
+# Dựng bản iOS (.ipa CHƯA KÝ) miễn phí trên máy macOS của GitHub (kho công khai: không tốn phút).
+# Cài lên iPhone bằng Sideloadly / AltStore với Apple ID miễn phí (ứng dụng chạy 7 ngày rồi ký lại).
+# File .ipa được đưa lên bản phát hành "ios-test"; trang /tai-game và /tai/ios trỏ tới file này.
+name: Build iOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ios
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: Dựng IPA chưa ký
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tải Godot 4.5.1 và mẫu xuất iOS
+        run: |
+          curl -fsSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
+          unzip -q godot.zip
+          curl -fsSL -o tpl.tpz https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_export_templates.tpz
+          T="$HOME/Library/Application Support/Godot/export_templates/4.5.1.stable"
+          mkdir -p "$T"
+          unzip -q -j tpl.tpz 'templates/ios.zip' 'templates/version.txt' -d "$T"
+          rm tpl.tpz
+          ls -la "$T"
+          echo "GODOT=$PWD/Godot.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+
+      - name: Xuất dự án Xcode từ Godot
+        run: |
+          VER=$(sed -n 's/^config\/version="\(.*\)"/\1/p' client/project.godot)
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          sed -i '' "s/^application\/short_version=.*/application\/short_version=\"$VER\"/; s/^application\/version=.*/application\/version=\"$VER\"/" client/export_presets.cfg
+          cp shared/data.json client/data/data.json
+          mkdir -p build/ios
+          "$GODOT" --headless --path client --import > import.log 2>&1 || true
+          tail -5 import.log
+          "$GODOT" --headless --path client --export-release "iOS" "$GITHUB_WORKSPACE/build/ios/HiepSiNetChi.ipa" 2>&1 | tail -40
+          ls -la build/ios
+
+      - name: Dựng .app không ký và đóng gói .ipa
+        working-directory: build/ios
+        run: |
+          P=$(ls -d *.xcodeproj | head -1)
+          S=$(xcodebuild -list -json -project "$P" | python3 -c "import json,sys;print(json.load(sys.stdin)['project']['schemes'][0])")
+          echo "Dự án $P · scheme $S"
+          xcodebuild -project "$P" -scheme "$S" -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath dd CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" build > xb.log 2>&1 || { tail -60 xb.log; exit 1; }
+          tail -3 xb.log
+          APP=$(find dd/Build/Products -maxdepth 2 -name '*.app' | head -1)
+          echo "App: $APP"
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          zip -qry HiepSiNetChi.ipa Payload
+          ls -la HiepSiNetChi.ipa
+          shasum -a 256 HiepSiNetChi.ipa
+
+      - name: Đưa lên bản phát hành "ios-test"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Bản iOS chưa ký ($VER) để thử. Cài bằng Sideloadly hoặc AltStore với Apple ID miễn phí (hết hạn sau 7 ngày, ký lại để dùng tiếp)."
+          if gh release view ios-test >/dev/null 2>&1; then
+            gh release upload ios-test build/ios/HiepSiNetChi.ipa --clobber
+            gh release edit ios-test --title "iOS thử nghiệm $VER" --notes "$NOTES" --prerelease
+          else
+            gh release create ios-test build/ios/HiepSiNetChi.ipa --title "iOS thử nghiệm $VER" --notes "$NOTES" --prerelease
+          fi
