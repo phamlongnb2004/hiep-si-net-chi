@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.9.4",
+  "version": "2.9.5",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "263dc76fe4c95e8a8c926c2133cb5b68072609f2d9e1b045121a3580bfb3e8b0",
-   "size": 71485647
+   "sha256": "15c65173b7e46230dcfdf58e893058e690fd7c451f1bd089f75f87268e225b9f",
+   "size": 71801347
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "63e47fa3dcdd27464498c8da7dc8fbb351b6143f01355329d8b103cf2018ed5c",
-   "size": 100855121
+   "sha256": "f869854a12f3874527f18f48ed8a2ca2f55dcb795a94128ca2ea30a3beb44ba0",
+   "size": 101172071
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "78037345036d266a7081cfdda303dc7a6de14a73d568e19ef9f0b5800d9d687b",
-   "size": 73756138
+   "sha256": "314dd8750abd0893ab173029c94082f975dffbfd0002b7d2a872beeaf1aeacae",
+   "size": 74070766
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,16 +25,22 @@
   }
  },
  "assets": {
-  "version": 24,
+  "version": 25,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-24.pck",
-  "sha256": "54af8aff7a6f7c60a8db2e292e7136e413ad86f9860e52a3c6bacdff02479b87",
-  "size": 48572776
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-25.pck",
+  "sha256": "286043bf1cce9317e1d65c3743252e3b2b1c6df4f424f325d848e453f74490cb",
+  "size": 48879164
  },
  "changelog": [
-  "Bình máu và bình KI có 3 cỡ: Nhỏ (hồi 25%), Vừa (45%), Lớn (70%). Nút bình tự chọn cỡ vừa đủ, trong túi đồ có thể chọn cỡ để dùng.",
-  "Biểu tượng mới cho nút AUTO và các loại bình.",
-  "Gục ngã: không còn hồi sinh ở điểm an toàn. Chờ 15 giây để hồi sinh ở Làng (đầy máu), hoặc trả vàng để hồi sinh tại chỗ."
+  "Chạm 1 lần để chọn mục tiêu (tam giác chỉ vào), chạm đúp để chạy tới / đánh / nói chuyện / nhặt.",
+  "Chọn đồ rơi hiện nút \"Nhặt\" (hoặc bấm nút đánh để nhặt). Đồ của người khác còn khóa thì báo chưa nhặt được.",
+  "Nút tròn đổi mục tiêu (trên nút lướt), chỉ chọn quái ở gần.",
+  "Bình máu/KI hồi lượng cố định (Nhỏ / Vừa / Lớn), mang tối đa 999 mỗi loại, mua số lượng tùy chọn, chỉ mua ở Thương Nhân Bảo.",
+  "Auto: chọn cỡ bình tự dùng, tự đổi quái khi không tới được, hết nháy trắng ô chọn, nút AUTO chỉ còn hình.",
+  "Gục ngã không mất 10% vàng nữa: rơi 1% vàng mang theo trên đất (1 phút đầu chỉ bạn nhặt được). Hồi sinh tại chỗ giá cố định 500 vàng.",
+  "Bùa nâng kỹ năng (cực hiếm, rơi từ tinh anh và trùm): kỹ năng tối đa cấp 6, cấp L lên L+1 tốn L bùa, chắc chắn thành công. Thẻ Kỹ năng mới trong Hành Trang.",
+  "Bán đồ chỉ ở Thương Nhân Giáp, giá 75% giá cửa hàng (đồ hiếm bán cao hơn). Sách kỹ năng mạnh đắt hơn nhiều, có ảnh sách mới.",
+  "Đá cường hóa hiếm hơn. Không còn đánh trúng quái khác tầng. Thông báo trùm nằm cao hơn, ngay dưới tin thế giới."
  ],
- "updated": "2026-11-11T13:28:49.556Z"
+ "updated": "2026-11-11T15:39:34.387Z"
 }
