@@ -4,7 +4,7 @@
 import D from './data.json';
 export { D };
 
-export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 760, MAXSTEP = 105;
+export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 820, MAXSTEP = 105;
 export const POT_HEAL = .45, POT_CD = 3, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
 export const WORLD_CHAT_COST = 5000;          // nhắn cả máy chủ tốn vàng (cao) để tránh spam
 export const FRIEND_MAX = 100;

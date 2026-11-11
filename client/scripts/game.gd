@@ -15,7 +15,7 @@ signal gm_reply(m: Dictionary)
 signal khu_list(m: Dictionary)
 
 const GRAV := 2100.0
-const JUMP := 760.0
+const JUMP := 820.0   # cao tối đa ~160 (2.9.2; trước 760 ~137)
 const SEND_DT := 0.1
 
 var world: World
@@ -85,7 +85,8 @@ func _ready() -> void:
 
 func _zoom() -> void:
 	var h = get_viewport_rect().size.y
-	var z = clampf(h / 700.0, 0.5, 1.1)
+	# điện thoại: màn hình nhỏ nên phóng to cảnh (nhân vật to hơn, thấy ít bản đồ hơn)
+	var z = clampf(h / 700.0, 0.5, 1.1) * (1.35 if Data.is_touch() else 1.0)
 	cam.zoom = Vector2(z, z)
 
 func cls() -> String:

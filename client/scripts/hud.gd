@@ -14,7 +14,7 @@ var logbox: VBoxContainer
 var skills: Array = []
 var pot_l: Label
 var talk_btn: Button
-var joy: Joystick
+var joy: DPad
 var mini: Control
 var chat_edit: LineEdit
 var banner: Label
@@ -145,7 +145,7 @@ class MiniMap extends Control:
 func setup(g: Game) -> void:
 	game = g
 	layer = 10
-	touch = DisplayServer.is_touchscreen_available() or OS.get_name() == "Android" or OS.get_environment("HSNC_TOUCH") == "1"
+	touch = Data.is_touch()
 	root = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -295,10 +295,11 @@ func setup(g: Game) -> void:
 		jb.position = Vector2(-120, 230)
 		jb.pressed.connect(g.jump)
 		br.add_child(jb)
-		joy = Joystick.new()
+		# phím di chuyển kiểu Ngọc Rồng: ◀ ▶ đi, ▲ nhảy/leo, ▼ xuống, ↖ ↗ nhảy chéo
+		joy = DPad.new()
 		joy.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		joy.position = Vector2(20, -280)
-		joy.size = Vector2(280, 260)
+		joy.size = Vector2(DPad.B * 3 + DPad.GAP * 2, DPad.B * 3 + DPad.GAP * 2)
+		joy.position = Vector2(24, -joy.size.y - 20)
 		joy.jump.connect(g.jump)
 		root.add_child(joy)
 	else:

@@ -234,6 +234,10 @@ func item_icon(it: Dictionary) -> Texture2D:
 ## ---------- khu trùm: giờ mở (giống máy chủ, theo giờ Việt Nam) ----------
 var clock_off := 0.0   # mili giây: giờ máy chủ - giờ máy này
 
+## máy cảm ứng (điện thoại, máy tính bảng): phím ảo, phóng to nhân vật
+func is_touch() -> bool:
+	return DisplayServer.is_touchscreen_available() or OS.get_name() in ["Android", "iOS"] or OS.get_environment("HSNC_TOUCH") == "1"
+
 func now_ms() -> float:
 	return Time.get_unix_time_from_system() * 1000.0 + clock_off
 
