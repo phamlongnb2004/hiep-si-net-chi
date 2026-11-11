@@ -1,35 +1,38 @@
 {
  "app": {
-  "version": "2.8.0",
-  "min": "2.8.0",
+  "version": "2.9.0",
+  "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "38568227ecccceba830d626740c7f052090200688686c04abe58a4ef835aa649",
-   "size": 74429408
+   "sha256": "b953be193fba3a77329543f69b0b1eaa827ad16040ac71eca5c15e6e48368dfc",
+   "size": 71214887
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "36c89dedc658330f7025c97f9a84cb73094907ff7b2f199e73e56b0b02342bdb",
-   "size": 103240721
+   "sha256": "e563bca8ce993e08c19df5f35450261d158b25da1d8e283d5958b9464161abc6",
+   "size": 100579147
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "30570e45a14d83d4529d8866a8889d2946759122154d506add9a752ca07a9c6e",
-   "size": 76687052
+   "sha256": "a65177859e8c13634f4a7dc4d82697869e20800bed5b6f8eb215b13d497d7327",
+   "size": 73485426
   }
  },
  "assets": {
-  "version": 19,
-  "min_app": "2.8.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-19.pck",
-  "sha256": "cd0dcfb2b7bb943f47345a7c3a82bbe9288d480400e5c8c41732ade9229f5ce5",
-  "size": 50851664
+  "version": 20,
+  "min_app": "2.9.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-20.pck",
+  "sha256": "6195d1eb8b11a94f47bd3abc18f7ece928b540ea5fa2f80dea4722b760bb4caa",
+  "size": 48327352
  },
  "changelog": [
-  "Đồ theo bậc cấp 1–100: mỗi 10 cấp có bộ đồ mới với tên và hình riêng cho từng phái",
-  "Thêm 4 loại trang sức mới: Nhẫn, Khuyên tai, Đai lưng, Bùa hộ mệnh (mọi phái dùng được)",
-  "Phải đủ cấp mới mặc được đồ; đồ đang có vẫn giữ nguyên",
-  "Thương Nhân Giáp có thêm mục Trang sức"
+  "Boss Hoang Dã Ma Long Hắc Vực: khoảng 30 phút xuất hiện 1 lần ở một bản đồ săn quái ngẫu nhiên (khu ngẫu nhiên), có báo trước. 15–20 phút không ai hạ thì bay đi.",
+  "Ma Long rất mạnh: 3 giai đoạn, nổi giận dưới 60% máu, nhiều chiêu (Cào Xé, Giậm Đất, Hơi Thở Lửa, Mưa Thiên Thạch, gọi rồng con tạo khiên, Long Nộ Diệt Thế).",
+  "Đòn kết liễu nhận 1 Trứng Thần Thú ngẫu nhiên (Rồng Lửa, Cáo Băng, Sói Sấm, Rùa Ngọc). Trứng giao dịch được, không bán cửa hàng.",
+  "NPC mới Bà Ấp Trứng trong Làng: ấp trứng 24 giờ, trả 2.000.000 vàng để rút ngắn một nửa (1 lần mỗi trứng).",
+  "Pet đi theo bạn đánh quái: cấp tối đa 100, sao tư chất 1–5, chỉ số tăng ngẫu nhiên mỗi cấp, 3 kỹ năng mở ở cấp 10/40/80, tiến hóa ở cấp 40 và 80.",
+  "Pet nhận kinh nghiệm, bạn được thêm 10% kinh nghiệm của pet. Pet ngất sẽ tự hồi sinh sau 1 phút.",
+  "Chuồng 3 pet: ra trận/cất, đổi tên miễn phí 1 lần, thả pet (xác nhận 2 bước). Nút Pet ở góc trên màn hình."
  ],
- "updated": "2026-11-08T12:08:21.157Z"
+ "updated": "2026-11-11T09:58:47.752Z"
 }
