@@ -65,6 +65,7 @@ func open(id: String) -> void:
 	name_edit = ""
 	msg = ""
 	fit = {}
+	fpick = {}
 	visible = true
 	render()
 
@@ -238,26 +239,111 @@ func _pots(d: Dictionary) -> void:
 func game_gold() -> int:
 	return int(game.me_data.get("gold", 0))
 
+var fpick = {}           # món đang xem trong danh sách (chưa đặt vào ô)
+
+## lò rèn: trên cùng 2 ô (trang bị cần rèn · đá cường hóa), dưới là túi đồ; chạm một món để xem chi tiết rồi "Chọn món này"
 func _forge(d: Dictionary) -> void:
-	body.add_child(UI.label("Chọn trang bị cần rèn. Rèn tối đa +15, càng cao càng khó; thất bại từ +6 có thể bị tụt cấp.", 15, Color("5a6b8c"), "body"))
 	var list: Array = []
-	for s in Data.SLOTS:
-		if d.eq.get(s) is Dictionary:
-			list.append({"it": d.eq[s], "slot": s})
+	for s2 in Data.SLOTS:
+		if d.eq.get(s2) is Dictionary:
+			list.append({"it": d.eq[s2], "slot": s2})
 	for it in d.inv:
-		list.append({"it": it, "slot": ""})
+		if str(it.get("slot", "")) != "egg":
+			list.append({"it": it, "slot": ""})
+	var cur = null
+	var pk = null
+	for o in list:
+		if fit.get("id") == o.it.id:
+			cur = o
+		if fpick.get("id") == o.it.id:
+			pk = o
+	# ---- hàng trên: ô trang bị + ô đá + thông tin rèn ----
+	var top = UI.hbox(14)
+	top.alignment = BoxContainer.ALIGNMENT_CENTER
+	body.add_child(top)
+	var slot_box = UI.vbox(4)
+	var sl
+	if cur:
+		sl = ItemCell.make(cur.it, true, true, false, 96)
+	else:
+		sl = PanelContainer.new()
+		sl.custom_minimum_size = Vector2(96, 96)
+		sl.add_theme_stylebox_override("panel", UI.box(Color("eef2fb"), Color("8fa0c4"), 14, 3, false))
+		var q = UI.label("+", 44, Color("8fa0c4"), "title")
+		q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		q.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		sl.add_child(q)
+	slot_box.add_child(sl)
+	var sll = UI.label("Trang bị" if cur == null else "+%d" % int(cur.it.get("up", 0)), 14, Color("5a6b8c"), "bold")
+	sll.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	slot_box.add_child(sll)
+	top.add_child(slot_box)
+	var plus = UI.label("+", 34, UI.INK, "title")
+	top.add_child(plus)
+	var f = Data.forge_info(cur.it) if cur else {}
+	var need = int(f.get("stones", 0))
+	var st_box = UI.vbox(4)
+	var sp2 = PanelContainer.new()
+	sp2.custom_minimum_size = Vector2(96, 96)
+	sp2.add_theme_stylebox_override("panel", UI.box(Color("eef6ff"), Color("5aa0e0"), 14, 3, false))
+	var si = TextureRect.new()
+	si.texture = Data.tex(Data.A.ai.get("stone", {}).get("u", ""))
+	si.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	si.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sp2.add_child(si)
+	var sn = UI.outlined("x%d" % int(d.stones), 18, Color.WHITE, "bold", 5)
+	sn.size_flags_vertical = Control.SIZE_SHRINK_END
+	sn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	sp2.add_child(sn)
+	st_box.add_child(sp2)
+	var stl = UI.label(("Cần %d đá" % need) if cur else "Đá cường hóa", 14, (Color("d9345a") if cur and int(d.stones) < need else Color("5a6b8c")), "bold")
+	stl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	st_box.add_child(stl)
+	top.add_child(st_box)
+	var info = UI.vbox(6)
+	info.custom_minimum_size = Vector2(330, 0)
+	top.add_child(info)
+	if cur == null:
+		var hint = UI.label("Chọn một món trong túi bên dưới rồi bấm \"Chọn món này\" để đặt vào ô.", 16, Color("5a6b8c"), "semi")
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.add_child(hint)
+	else:
+		var it2: Dictionary = cur.it
+		info.add_child(UI.label(Data.item_name(it2) + "  →  +%d" % int(f.L), 19, Data.rar_color(int(it2.r)), "bold"))
+		if int(it2.get("up", 0)) >= int(Data.D.forge.max):
+			info.add_child(UI.label("Đã rèn tối đa.", 17, UI.INK, "semi"))
+		else:
+			var l2 = UI.label("Thành công %d%% · %s vàng%s" % [int(f.rate), UI.fmt(f.gold), (" · Thất bại tụt %d cấp" % int(f.drop)) if int(f.drop) > 0 else ""], 16, UI.INK, "semi")
+			l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			info.add_child(l2)
+			var br = UI.hbox(8)
+			info.add_child(br)
+			var b = UI.button("Rèn", UI.GOLD, 22)
+			b.custom_minimum_size = Vector2(150, 52)
+			b.disabled = int(d.gold) < int(f.gold) or int(d.stones) < need
+			var cid = it2.id
+			var cs: String = cur.slot
+			b.pressed.connect(func():
+				var m = {"t": "forge", "id": cid}
+				if cs != "": m["slot"] = cs
+				Net.send(m))
+			br.add_child(b)
+			var bo = UI.button("Bỏ ra", UI.SKY, 16)
+			bo.custom_minimum_size = Vector2(90, 52)
+			bo.pressed.connect(func(): fit = {}; msg = ""; render())
+			br.add_child(bo)
+	body.add_child(UI.hsep())
+	# ---- dưới: túi đồ (trái) + chi tiết món đang xem (phải) ----
+	var low = UI.hbox(14)
+	body.add_child(low)
 	var g = GridContainer.new()
-	g.columns = 9
+	g.columns = 6
 	g.add_theme_constant_override("h_separation", 6)
 	g.add_theme_constant_override("v_separation", 6)
-	body.add_child(g)
-	var cur = null
+	low.add_child(g)
 	for o in list:
 		var it: Dictionary = o.it
-		var selected: bool = fit.get("id") == it.id
-		if selected:
-			cur = o
-		var p = ItemCell.make(it, selected, true, false, 76)
+		var p = ItemCell.make(it, fpick.get("id") == it.id or fit.get("id") == it.id, true, false, 70)
 		if o.slot != "":
 			var e = UI.label("Mặc", 11, Color("2fa84f"), "bold")
 			e.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -267,28 +353,36 @@ func _forge(d: Dictionary) -> void:
 		p.mouse_filter = Control.MOUSE_FILTER_STOP
 		p.gui_input.connect(func(ev):
 			if UI.tapped(ev):
-				fit = {"id": oid, "slot": osl}; msg = ""; render())
+				fpick = {"id": oid, "slot": osl}; render())
 		g.add_child(p)
 	if list.is_empty():
-		body.add_child(UI.label("Bạn chưa có trang bị. Hạ quái để nhặt đồ rồi quay lại.", 16, UI.INK, "body"))
-	if cur:
-		var it2: Dictionary = cur.it
-		var f = Data.forge_info(it2)
-		body.add_child(UI.label(Data.item_name(it2) + "  →  +%d" % int(f.L), 22, Data.rar_color(int(it2.r)), "bold"))
-		if int(it2.get("up", 0)) >= int(Data.D.forge.max):
-			body.add_child(UI.label("Đã rèn tối đa.", 18, UI.INK, "semi"))
-			return
-		body.add_child(UI.label("Tỉ lệ thành công %d%% · Cần %d đá, %s vàng%s" % [int(f.rate), int(f.stones), UI.fmt(f.gold), (" · Thất bại tụt %d cấp" % int(f.drop)) if int(f.drop) > 0 else ""], 18, UI.INK, "semi"))
-		var b = UI.button("Rèn", UI.GOLD, 22)
-		b.custom_minimum_size = Vector2(200, 56)
-		b.disabled = int(d.gold) < int(f.gold) or int(d.stones) < int(f.stones)
-		var cid = it2.id
-		var cs: String = cur.slot
-		b.pressed.connect(func():
-			var m = {"t": "forge", "id": cid}
-			if cs != "": m["slot"] = cs
-			Net.send(m))
-		body.add_child(b)
+		low.add_child(UI.label("Bạn chưa có trang bị. Hạ quái để nhặt đồ rồi quay lại.", 16, UI.INK, "body"))
+		return
+	var det = UI.vbox(6)
+	det.custom_minimum_size = Vector2(300, 0)
+	low.add_child(det)
+	if pk == null:
+		det.add_child(UI.label("Chạm vào một món để xem.", 16, Color("5a6b8c"), "semi"))
+		return
+	var it3: Dictionary = pk.it
+	var nl = UI.label(Data.item_name(it3) + (" +%d" % int(it3.get("up", 0)) if int(it3.get("up", 0)) > 0 else ""), 20, Data.rar_color(int(it3.r)), "bold")
+	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	det.add_child(nl)
+	det.add_child(UI.label("%s · Cấp %d%s" % [str(Data.D.rar[int(it3.r)].n), int(it3.get("lvl", 1)), " · Đang mặc" if pk.slot != "" else ""], 15, Color("5a6b8c"), "semi"))
+	for k in ["atk", "def", "hp", "spd"]:
+		var v = Data.item_stat(it3, k)
+		if v != 0:
+			det.add_child(UI.label("%s: %d" % [Data.STAT_N[k], v], 17, UI.INK, "semi"))
+	var fi = Data.forge_info(it3)
+	if int(it3.get("up", 0)) < int(Data.D.forge.max):
+		det.add_child(UI.label("Rèn lên +%d: %d%% · %d đá · %s vàng" % [int(fi.L), int(fi.rate), int(fi.stones), UI.fmt(fi.gold)], 14, Color("5a6b8c"), "semi"))
+	var ch = UI.button("Đang ở ô rèn" if fit.get("id") == it3.id else "Chọn món này", UI.GREEN, 18)
+	ch.custom_minimum_size = Vector2(0, 50)
+	ch.disabled = fit.get("id") == it3.id
+	var pid = it3.id
+	var psl: String = pk.slot
+	ch.pressed.connect(func(): fit = {"id": pid, "slot": psl}; msg = ""; render())
+	det.add_child(ch)
 
 
 ## Thương Nhân Giáp: đồ mọi phái, mọi độ hiếm, chỉ số mặc định (đồ rơi từ quái có thể thấp hơn hoặc cao hơn)

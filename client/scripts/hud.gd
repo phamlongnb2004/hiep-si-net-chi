@@ -27,6 +27,7 @@ var fr_b: TextureButton
 var gm_b: Button
 var ann_l: Label
 var ann_b: AnnBanner
+var cele_b: AnnBanner
 var ev_l: Label
 var fr_badge: Label
 var potb
@@ -280,9 +281,19 @@ func setup(g: Game) -> void:
 	ann_b.position = Vector2(-470, 72)
 	ann_b.size = Vector2(940, 80)
 	ann_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# băng chúc mừng đập đồ lên cao: ngay dưới băng thông báo
+	cele_b = AnnBanner.new()
+	cele_b.cele = true
+	cele_b.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	cele_b.position = Vector2(-470, 150)
+	cele_b.size = Vector2(940, 80)
+	cele_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cele_b.visible = false
 	ann_b.visible = false
 	root.add_child(ann_b)
+	root.add_child(cele_b)
 	g.announce.connect(show_ann)
+	g.celebrate.connect(show_cele)
 	g.cfg_changed.connect(_cfg)
 	# cụm nút điều khiển (đánh, kỹ năng, bình, lướt, di chuyển): dựng lại khi đổi kiểu điều khiển trong Tùy chọn
 	_build_controls()
@@ -464,6 +475,11 @@ func bind_social() -> void:
 	fr_b.pressed.connect(func(): social.open_friends())
 	social.badge.connect(func(n): fr_badge.text = ("%d" % n) if n > 0 else "")
 
+func show_cele(m: Dictionary) -> void:
+	var s = "Chúc mừng %s đã cường hóa %s lên +%d!" % [str(m.get("n", "")), str(m.get("item", "trang bị")), int(m.get("up", 0))]
+	cele_b.show_msg(s, "cele")
+	add_log("🎉 " + s, Color("ff9be0"))
+
 func show_ann(t: String) -> void:
 	if t == "":
 		return
@@ -483,26 +499,66 @@ func show_ann(t: String) -> void:
 class AnnBanner extends Control:
 	var text = ""
 	var kind = "horn"
+	var cele = false        # băng chúc mừng (đập đồ lên cao): nền tím hồng, ngôi sao xoay
 	var t = 0.0
 	var life = 0.0
 	const DUR := 12.0
+	const SPD := 80.0       # chữ dài chạy ngang (px/giây)
+	const GAP := 90.0
+	var clip: Control
+	var lab: Label
+	var full_w = 0.0
+	func _ready() -> void:
+		clip = Control.new()
+		clip.clip_contents = true
+		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(clip)
+		lab = Label.new()
+		lab.add_theme_font_override("font", Data.fonts.get("bold"))
+		lab.add_theme_font_size_override("font_size", 22)
+		lab.add_theme_color_override("font_color", Color("ffd7f4") if cele else Color(1, 0.88, 0.54))
+		lab.add_theme_color_override("font_outline_color", UI.INK)
+		lab.add_theme_constant_override("outline_size", 7)
+		clip.add_child(lab)
 	func show_msg(s: String, k: String) -> void:
 		text = s
 		kind = k
 		t = 0.0
-		life = DUR
+		var f: Font = Data.fonts.get("bold")
+		full_w = f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
+		var over = full_w > size.x - 150
+		# chữ dài: chạy ngang trong khung, đủ thời gian chạy hết ít nhất 2 vòng
+		life = maxf(DUR, ((full_w + GAP) / SPD) * 2.0 + 3.0) if over else DUR
+		lab.text = (text + "     ✦     " + text) if over else text
 		visible = true
+	func _geo() -> Array:
+		var tw = minf(full_w, size.x - 150)
+		var ih = 76.0
+		var bw = tw + ih + 46
+		var x0 = size.x / 2 - bw / 2
+		return [tw, ih, bw, x0, 6.0]
 	func _process(dt: float) -> void:
 		if life <= 0:
 			visible = false
 			return
 		t += dt
 		life -= dt
+		var G = _geo()
+		var al = clampf(t / 0.25, 0, 1) * clampf(life / 0.8, 0, 1)
+		clip.position = Vector2(G[3] + G[1] + 22, G[4] + 14)
+		clip.size = Vector2(G[0], 38)
+		clip.modulate.a = al
+		var off = 0.0
+		if full_w > G[0] + 1:
+			var f: Font = Data.fonts.get("bold")
+			var period = f.get_string_size(text + "     ✦     ", HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
+			off = -fmod(maxf(0.0, t - 1.2) * SPD, period)
+		lab.position = Vector2(off, 0)
 		queue_redraw()
 	func _draw() -> void:
 		var f: Font = Data.fonts.get("bold")
 		var fs = 22
-		var tw = min(f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, size.x - 150)
+		var tw = minf(full_w, size.x - 150)
 		var al = clampf(t / 0.25, 0, 1) * clampf(life / 0.8, 0, 1)
 		var cx = size.x / 2
 		var ih = 76.0
@@ -514,16 +570,35 @@ class AnnBanner extends Control:
 		draw_set_transform(Vector2(cx, y0 + 32) * (1 - sc), 0, Vector2(sc, sc))
 		var r = Rect2(x0 + ih * 0.45, y0 + 10, bw - ih * 0.45, 46)
 		var sb = StyleBoxFlat.new()
-		sb.bg_color = Color(0.08, 0.06, 0.12, 0.78 * al)
-		sb.border_color = Color(1, 0.8, 0.3, 0.9 * al)
+		sb.bg_color = Color(0.32, 0.08, 0.36, 0.82 * al) if cele else Color(0.08, 0.06, 0.12, 0.78 * al)
+		sb.border_color = Color(1, 0.55, 0.9, 0.95 * al) if cele else Color(1, 0.8, 0.3, 0.9 * al)
 		sb.set_border_width_all(2)
 		sb.set_corner_radius_all(23)
 		draw_style_box(sb, r)
 		if t < 1.2:
 			var sx = r.position.x + (r.size.x + 80) * (t / 1.2) - 40
 			draw_rect(Rect2(clampf(sx, r.position.x + 10, r.end.x - 30), r.position.y + 3, 20, r.size.y - 6), Color(1, 1, 0.85, 0.25 * al))
-		draw_string_outline(f, Vector2(x0 + ih + 22, y0 + 41), text, HORIZONTAL_ALIGNMENT_LEFT, tw, fs, 7, Color(UI.INK, al))
-		draw_string(f, Vector2(x0 + ih + 22, y0 + 41), text, HORIZONTAL_ALIGNMENT_LEFT, tw, fs, Color(1, 0.88, 0.54, al))
+		if cele:
+			# ngôi sao vàng xoay, tỏa tia, hạt lấp lánh quanh băng
+			var c0 = Vector2(x0 + ih * 0.5, y0 + 33)
+			draw_circle(c0, ih * 0.46, Color(1, 0.5, 0.85, (0.3 + 0.15 * sin(t * 5.0)) * al))
+			for i in 10:
+				var an = t * 1.5 + TAU * i / 10.0
+				draw_line(c0 + Vector2(cos(an), sin(an)) * 18, c0 + Vector2(cos(an), sin(an)) * (34 + 4 * sin(t * 6 + i)), Color(1, 0.9, 0.4, 0.7 * al), 3)
+			var pts = PackedVector2Array()
+			for i in 10:
+				var an2 = -PI / 2 + t * 0.8 + TAU * i / 10.0
+				pts.append(c0 + Vector2(cos(an2), sin(an2)) * (26.0 if i % 2 == 0 else 11.0))
+			draw_colored_polygon(pts, Color(1, 0.85, 0.25, al))
+			var o2 = pts.duplicate()
+			o2.append(pts[0])
+			draw_polyline(o2, Color(UI.INK, al), 3)
+			for i in 6:
+				var u = fmod(t * 0.35 + i / 6.0, 1.0)
+				var sp = Vector2(r.position.x + r.size.x * u, r.position.y + (2 if i % 2 == 0 else r.size.y - 2))
+				draw_circle(sp, 2.5 + 1.5 * sin(t * 8 + i), Color(1, 1, 0.8, al * 0.9))
+			draw_set_transform(Vector2.ZERO)
+			return
 		# biểu tượng động: 8 khung ~11 khung/giây, nảy nhẹ
 		var A: Dictionary = Data.A.get("annfx", {}).get(kind, {})
 		if not A.is_empty():

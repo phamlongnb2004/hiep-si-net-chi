@@ -154,3 +154,8 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - `toss {id}`: vứt bỏ một món trong túi (không vứt trứng). Túi: chọn đồ → Mặc / Vứt (bấm 2 lần); Bán chỉ hiện khi đứng cạnh Thương Nhân Giáp.
 - `UI.tapped(ev)`: bỏ sự kiện chuột giả lập từ cảm ứng — trước đây một chạm bị tính 2 lần, bảng vẽ lại rồi lần 2 trúng ô khác → chọn đồ nhảy lung tung.
 - Người chơi khác: vẽ trễ 0,2 giây, nội suy giữa các ảnh chụp, bỏ ảnh chụp lặp vị trí khi đang chạy (`_hbuf_add/_hbuf_pos`).
+
+## Băng chữ chạy, chúc mừng rèn, lò rèn mới (2.9.9)
+- Băng thông báo: chữ dài chạy ngang trong khung (`AnnBanner.clip` + Label, 80px/giây), thời gian hiện đủ chạy 2 vòng.
+- Rèn thành công từ +7: máy chủ gửi `cele {n, up, item, r}` cho cả máy chủ; ứng dụng hiện băng chúc mừng tím hồng có ngôi sao xoay, ngay dưới băng thông báo.
+- Thợ Rèn: trên cùng ô trang bị + ô đá cường hóa (ảnh, số đá đang có, số đá cần) + thông tin/nút Rèn/Bỏ ra; dưới là túi đồ (cả đồ đang mặc), chạm để xem chi tiết rồi "Chọn món này".

@@ -125,7 +125,7 @@ export const OPS = {
     if (ch.gold < f.gold || ch.stones < f.stones) return { ok: false, msg: 'Thiếu vàng hoặc đá cường hóa.' };
     ch.gold -= f.gold; ch.stones -= f.stones;
     let res;
-    if (Math.random() * 100 < f.rate) { it.up = f.L; res = { ok: true, win: 1, up: it.up, msg: 'Rèn thành công! ' + it.name + ' lên +' + f.L + '.' }; }
+    if (Math.random() * 100 < f.rate) { it.up = f.L; res = { ok: true, win: 1, up: it.up, item: it.name, rar: it.r | 0, msg: 'Rèn thành công! ' + it.name + ' lên +' + f.L + '.' }; }
     else { const d = Math.min(f.drop, it.up || 0); it.up = (it.up || 0) - d; res = { ok: true, win: 0, up: it.up, msg: 'Thất bại! Mất ' + f.stones + ' đá' + (d ? ' và tụt ' + d + ' cấp (còn +' + it.up + ')' : '') + '.' }; }
     if (eq) refreshStats(c.f, ch, true);
     return res;

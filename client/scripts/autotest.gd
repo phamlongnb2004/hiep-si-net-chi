@@ -749,6 +749,26 @@ func perf_test() -> void:
 		main.npc.render()
 		await wait(0.5)
 		await shot("ui-pots")
+		g.open_npc.emit("smith")
+		await wait(0.6)
+		await shot("ui-forge0")
+		var eqs = []
+		for it in g.me_data.get("inv", []):
+			eqs.append([it.id, ""])
+		if not eqs.is_empty():
+			main.npc.fpick = {"id": eqs[0][0], "slot": eqs[0][1]}
+			main.npc.render()
+			await wait(0.4)
+			await shot("ui-forge1")
+			main.npc.fit = {"id": eqs[0][0], "slot": eqs[0][1]}
+			main.npc.render()
+			await wait(0.4)
+			await shot("ui-forge2")
+		main.npc.close()
+		main.hud.show_cele({"n": "Long", "item": "Kiếm Rồng Lửa", "up": 9})
+		main.hud.show_ann("⚔ Ma Long Hắc Vực đã xuất hiện tại Núi Lửa Hắc Ám khu 3! Mau tới tiêu diệt để nhận trứng rồng quý hiếm và rất nhiều phần thưởng khác!")
+		await wait(3.0)
+		await shot("ui-banner")
 	var secs = int(OS.get_environment("HSNC_SECS")) if OS.get_environment("HSNC_SECS") != "" else 20
 	for i in secs:
 		_fmax = 0.0

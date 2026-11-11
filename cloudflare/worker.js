@@ -607,6 +607,8 @@ export class World extends DurableObject {
         this.sendTo(c, { t: 'res', op: m.t, rq: m.rq | 0, ...r });
         if (r.ok) { c.dirty = true; c.bagDirty = true; this.sendMe(c); }
         if (m.t === 'forge' && r.win && r.up >= 8) glog(this, 'forge', c, 'Rèn thành công lên +' + r.up);
+        // đập đồ lên cao (từ +7): cả máy chủ thấy băng chúc mừng
+        if (m.t === 'forge' && r.win && r.up >= 7) { const s = JSON.stringify({ t: 'cele', n: c.ch.name, up: r.up, item: r.item || '', r: r.rar | 0 }); for (const o of this.clients.values()) if (o.srv === c.srv) this.sendTo(o, s); }
       }
     }
   }

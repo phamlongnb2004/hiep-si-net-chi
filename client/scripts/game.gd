@@ -11,6 +11,7 @@ signal open_npc(id: String)
 signal map_changed(name: String)
 signal player_tapped(id: int, name: String)
 signal announce(text: String)
+signal celebrate(m: Dictionary)
 signal cfg_changed
 signal gm_reply(m: Dictionary)
 signal khu_list(m: Dictionary)
@@ -169,6 +170,8 @@ func _on_msg(m: Dictionary) -> void:
 				_set_cfg(m.cfg)
 		"ann":
 			announce.emit(str(m.get("text", "")))
+		"cele":
+			celebrate.emit(m)
 		"pickno":
 			pick_goal = null
 			toast.emit("Vật phẩm của người khác. Hiện tại chưa thể nhặt được.")
