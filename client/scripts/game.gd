@@ -80,6 +80,11 @@ var auto_hp0 = 0.0
 var auto_hT = 0.0
 var auto_did = 0
 var auto_dT = 0.0
+var nav := {}            # bước đường đi của auto (Nav.plan): nhảy lên thanh, rơi xuống, đi ra mép, leo dây
+var nav_phase = 0        # 0 đi tới chỗ bắt đầu, 1 đang nhảy/rơi/leo
+var nav_re = 0.0
+var nav_n0 = -2
+var auto_climb = false
 const POT_CD = 3.0
 var warping = false
 var near_npc = ""
@@ -722,19 +727,35 @@ func _auto_tick(dt: float) -> void:
 	if focus.hp < auto_hp0:
 		auto_hp0 = focus.hp
 		auto_hT = 0.0
-	if auto_fT > 4.0 or auto_hT > 10.0:
+	if auto_fT > (7.0 if not nav.is_empty() else 4.0) or auto_hT > 10.0:
 		auto_skip[focus.id] = now + 25.0
 		focus = _auto_pick()
+		nav = {}
 		return
-	if not air:
+	# đường đi khi quái ở thanh ngang khác: tính lại mỗi 0,4 giây lúc đang đứng
+	nav_re -= dt
+	if not air and climb.is_empty() and nav_phase == 0 and nav_re <= 0:
+		nav_re = 0.4
+		var pl = Nav.plan(M, me.position.x, me.position.y, focus.position.x, focus.position.y)
+		if pl == null:
+			auto_skip[focus.id] = now + 25.0
+			focus = _auto_pick()
+			nav = {}
+			return
+		if (pl as Dictionary).is_empty() or nav.is_empty() or str(pl.act) != str(nav.get("act")) or absf(float(pl.x) - float(nav.get("x", 0))) > 30:
+			nav = pl
+			nav_phase = 0
+	if not air and nav.is_empty():
 		if dy < -60 and absf(dx) < 110:
 			jump_q = 0.15       # quái ở bậc trên: nhảy lên (xuyên bậc từ dưới)
 		elif dy > 60 and absf(dx) < 70 and world.gy(me.position.x) > me.position.y + 10:
 			drop_t = 0.3         # quái ở dưới: rơi xuyên bậc đang đứng
 			air = true
 			vy = 60
-	# kỹ năng: dùng lần lượt các chiêu đã học, đủ KI, khi quái đã ở gần
-	if a.get("skill", true) and absf(dx) < 300 and absf(dy) < 140:
+	# kỹ năng: chỉ dùng khi đã tới gần quái (cận chiến: trong tầm đánh; đánh xa: trong ~400) và cùng tầng
+	var cl: Dictionary = Data.D.cls[cls()]
+	var rng = (float(cl.reach) + 70.0 + float(focus._info.get("r", 30)) * 0.5) if cls() in ["sword", "fighter"] else 400.0
+	if a.get("skill", true) and nav.is_empty() and absf(dx) < rng and absf(dy) < 90 and climb.is_empty():
 		var sk: Array = me_data.get("sk", [])
 		var kc: Array = me_data.get("kc", [])
 		for k in 6:
@@ -744,9 +765,29 @@ func _auto_tick(dt: float) -> void:
 				auto_sk = i + 1
 				break
 
+func _nav_go() -> void:
+	nav_n0 = Nav.node_at(M, me.position.x, me.position.y)
+	nav_phase = 1
+	auto_fT = 0.0
+	match str(nav.act):
+		"jump":
+			jump_q = 0.15
+		"drop":
+			drop_t = 0.3
+			air = true
+			vy = 60
+		"rope":
+			var f0 = focus
+			_grab(nav.q)
+			focus = f0
+			auto_climb = true
+
 func set_auto(on: bool) -> void:
 	auto_on = on
 	auto_skip.clear()
+	nav = {}
+	nav_phase = 0
+	auto_climb = false
 	if not on:
 		focus = null
 		move_to = -1
@@ -966,6 +1007,18 @@ func _control(dt: float) -> void:
 	var c: Dictionary = Data.D.cls[cls()]
 	if manual:
 		dx = clampf(ix, -1, 1)
+	elif focus and auto_on and not nav.is_empty():
+		# auto đang theo đường đi: tới chỗ bắt đầu → nhảy / rơi / leo → tới chỗ đáp
+		var tx = float(nav.x) if nav_phase == 0 else float(nav.land)
+		var d3 = tx - p.x
+		if absf(d3) > 6:
+			dx = signf(d3)
+		if nav_phase == 0 and absf(d3) <= 10 and not air and climb.is_empty():
+			_nav_go()
+		elif nav_phase == 1 and not air and climb.is_empty() and (Nav.node_at(M, p.x, p.y) != nav_n0 or absf(d3) <= 8):
+			nav = {}
+			nav_phase = 0
+			nav_re = 0.0
 	elif focus:
 		var ddx = focus.position.x - p.x
 		var need = float(c.reach) - 10 + float(focus._info.get("r", 30)) * 0.5
@@ -989,7 +1042,12 @@ func _control(dt: float) -> void:
 		if not q2.is_empty() and absf(me.position.y - float(q2[1])) < 14:
 			_grab(q2)
 	if not climb.is_empty():
+		if auto_on and auto_climb:
+			iy = -1.0
+			dx = 0.0
 		_climb(dt, iy, dx)
+		if climb.is_empty():
+			auto_climb = false
 		return
 	jump_q = max(0.0, jump_q - dt)
 	if jump_q > 0 and not air:

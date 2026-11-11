@@ -782,7 +782,7 @@ func perf_test() -> void:
 			print("NET bytes=%d msgs=%d tx=%s" % [Net.prof_b, Net.prof_n, str(Net.prof_tx)])
 			Net.prof_b = 0; Net.prof_n = 0; Net.prof_t = {}; Net.prof_tx = {}
 		if OS.get_environment("HSNC_AUTO") != "":
-			print("AUTO focus=%s fx=%s skip=%d mto=%d drops=%d" % [str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), int(g.move_to), g.drops.size()])
+			print("AUTO me=%d,%d focus=%s fx=%s skip=%d nav=%s ph=%d kills=%s" % [g.me.position.x, g.me.position.y, str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), str(g.nav.get("act", "")) + "@" + str(int(g.nav.get("x", 0))), g.nav_phase, str(g.me_data.get("exp"))])
 		if i == 2 and OS.get_environment("HSNC_DIE") != "":
 			Net.send({"t": "devdie"})
 		if i == 4:

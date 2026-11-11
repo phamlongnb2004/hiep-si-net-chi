@@ -146,3 +146,5 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 ## Chiêu lướt mượt (2.9.7)
 - Chiêu lướt (Kiếm 4 "Xung Phong", Cung 4, Võ 4): ứng dụng tự lướt ngay (`SKILL_DASH` trong game.gd, khớp `SKILL_FX` dash) và gửi `sk {dp:1}`; máy chủ không gửi `pos` kéo lại nữa (bản cũ không có `dp` vẫn được báo vị trí).
 - Máy chủ lướt theo mặt dốc như ứng dụng (`MapInst.slide`, dùng cho chiêu lướt và nút lướt); ứng dụng chia bước dài thành đoạn ≤ 12px để chân bám dốc → hết bị kéo giật lại khi lướt lên dốc.
+- Auto tìm đường (`client/scripts/nav.gd`): mặt đứng = thanh ngang + các đoạn mặt đất (tách ở vách dựng > 30px); cạnh nhảy lên (≤ 140), nhảy qua khe (≤ 110), rơi xuyên thanh, đi ra mép, leo dây/thang. Không có đường → đổi quái ngay.
+- Auto chỉ dùng chiêu khi đã tới gần (cận chiến: tầm đánh + 70; đánh xa: 400) và cùng tầng.
