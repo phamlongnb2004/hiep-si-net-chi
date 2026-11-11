@@ -1,44 +1,40 @@
 {
  "app": {
-  "version": "2.9.3",
+  "version": "2.9.4",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "08aba38844910b85009b05988087d021fd45f27a197f25daa21f9945819c6d37",
-   "size": 71239754
+   "sha256": "263dc76fe4c95e8a8c926c2133cb5b68072609f2d9e1b045121a3580bfb3e8b0",
+   "size": 71485647
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "670c3bc797312f1c0166a44510cdb87de71ad0023b6c487e165e4f789e4cd8bd",
-   "size": 100603866
+   "sha256": "63e47fa3dcdd27464498c8da7dc8fbb351b6143f01355329d8b103cf2018ed5c",
+   "size": 100855121
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "9b70b568b5ac1c649c3776ac6a53b3c94a413e15ad46c3afcbd445fb46d41b08",
-   "size": 73511609
+   "sha256": "78037345036d266a7081cfdda303dc7a6de14a73d568e19ef9f0b5800d9d687b",
+   "size": 73756138
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
    "note": "unsigned",
-   "sha256": "8adbdf1165a701113f0a8bccaef51eaeb759ee3887143d7921207dcd25ec867e",
-   "size": 73347525
+   "sha256": "80240aac46b2bd8d1cf3e0d433f4b087f8ac60abe35e136645921805174a496a",
+   "size": 73592349
   }
  },
  "assets": {
-  "version": 23,
+  "version": 24,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-23.pck",
-  "sha256": "6195d1eb8b11a94f47bd3abc18f7ece928b540ea5fa2f80dea4722b760bb4caa",
-  "size": 48327352
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-24.pck",
+  "sha256": "54af8aff7a6f7c60a8db2e292e7136e413ad86f9860e52a3c6bacdff02479b87",
+  "size": 48572776
  },
  "changelog": [
-  "Tự động đánh quái (nút AUTO): chọn loại quái của bản đồ, nhân vật tự chạy bộ tới đánh, tự nhặt đồ, tự dùng kỹ năng, tự uống bình máu và bình KI.",
-  "Thêm bình KI (mua ở Thương Nhân Bảo) và nút lướt ngang thật sự (không còn bị nhảy lên).",
-  "Tùy chọn kiểu điều khiển: phím Ngọc Rồng hoặc nút tròn (kéo chéo lên để nhảy chéo, ô kỹ năng vuông).",
-  "Chiêu chưa học chỉ hiện ô trống; nền trời ở Làng không còn bị phóng to khi nhảy; túi đồ không còn nhảy khi chọn đồ.",
-  "Chat trong bản đồ hiện bong bóng trên đầu; chat thế giới hiện ở trên màn hình 5 giây, bấm vào để xem tin gần đây.",
-  "Mỗi bản đồ có sẵn 10 khu, quái (kể cả tinh anh) giữ nguyên khi đổi khu.",
-  "Đồ hiếm và pet nhiều sao khó ra hơn; Thương Nhân Giáp chỉ bán đồ thường."
+  "Bình máu và bình KI có 3 cỡ: Nhỏ (hồi 25%), Vừa (45%), Lớn (70%). Nút bình tự chọn cỡ vừa đủ, trong túi đồ có thể chọn cỡ để dùng.",
+  "Biểu tượng mới cho nút AUTO và các loại bình.",
+  "Gục ngã: không còn hồi sinh ở điểm an toàn. Chờ 15 giây để hồi sinh ở Làng (đầy máu), hoặc trả vàng để hồi sinh tại chỗ."
  ],
- "updated": "2026-11-11T12:44:19.032Z"
+ "updated": "2026-11-11T13:28:49.556Z"
 }
