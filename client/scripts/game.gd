@@ -46,6 +46,15 @@ var climb: Array = []        # đang bám dây/thang: [x, yTrên, yDưới, ki�
 var drop_t = 0.0              # >0: đang nhảy xuống xuyên bậc nổi
 var air = false
 var focus: Mon = null
+# đối tượng đang chọn (chạm 1 lần): quái, người chơi, NPC hoặc đồ rơi — có tam giác ngược chỉ vào
+var sel = null            # Node2D (Mon / Hero / Drop) hoặc Dictionary (NPC)
+var sel_kind = ""         # "mon", "hero", "npc", "drop"
+var pick_goal = null      # đồ đang chạy tới để nhặt
+var pick_t = 0.0
+var _tap_t = 0.0
+var _tap_p = Vector2.ZERO
+signal sel_changed
+signal toast(text: String)
 var move_to = -1.0
 var npc_go = ""
 var send_t = 0.0
@@ -63,6 +72,11 @@ var auto_skip = {}               # id quái bỏ qua tạm (đánh mãi không t
 var auto_fT = 0.0
 var auto_fid = 0
 var auto_sk = 0
+var auto_best = 0.0
+var auto_hp0 = 0.0
+var auto_hT = 0.0
+var auto_did = 0
+var auto_dT = 0.0
 const POT_CD = 3.0
 var warping = false
 var near_npc = ""
@@ -80,6 +94,10 @@ func _ready() -> void:
 	fx = Fx.new()
 	fx.name = "Fx"
 	add_child(fx)
+	var sm = SelMark.new()
+	sm.g = self
+	sm.z_index = 50
+	add_child(sm)
 	cam = Camera2D.new()
 	cam.position_smoothing_enabled = true
 	cam.position_smoothing_speed = 9
@@ -143,6 +161,9 @@ func _on_msg(m: Dictionary) -> void:
 				_set_cfg(m.cfg)
 		"ann":
 			announce.emit(str(m.get("text", "")))
+		"pickno":
+			pick_goal = null
+			toast.emit("Vật phẩm của người khác. Hiện tại chưa thể nhặt được.")
 		"gm":
 			gm_reply.emit(m)
 		"khu":
@@ -210,6 +231,8 @@ func _build_map(m: Dictionary) -> void:
 	for x in drops.values(): x.queue_free()
 	for x in pets.values(): x.queue_free()
 	heroes.clear(); mons.clear(); drops.clear(); pets.clear()
+	sel = null; sel_kind = ""; pick_goal = null
+	sel_changed.emit()
 	fx.projs.clear(); fx.sprs.clear(); fx.breaths.clear()
 	for info in m.mons:
 		var mo = Mon.new()
@@ -520,7 +543,7 @@ func do_attack() -> void:
 		return
 	var c: Dictionary = Data.D.cls[cls()]
 	atk_t = float(c.cd)
-	var tg: Mon = focus if focus and not focus.dead() else nearest_mon(float(c.reach) + 20)
+	var tg: Mon = focus if focus and not focus.dead() else (sel if sel_kind == "mon" and is_instance_valid(sel) and not sel.dead() and me.position.distance_to(sel.position) < float(c.reach) + 120 else nearest_mon(float(c.reach) + 20))
 	var aim = atan2(tg.position.y - me.position.y, tg.position.x - me.position.x) if tg else (0.0 if me.face > 0 else PI)
 	me.face = 1 if cos(aim) >= 0 else -1
 	Net.send({"t": "atk", "tg": tg.id if tg else 0})
@@ -546,16 +569,23 @@ func do_skill(i: int) -> void:
 	_swing(me)
 	fx.skill(cls(), i, me, aim, tg, me.face)
 
-func do_pot() -> void:
+## tier: -1 tự chọn cỡ vừa đủ, 0/1/2 nhỏ/vừa/lớn (hết cỡ đó thì máy chủ tự chọn cỡ khác)
+func do_pot(tier := -1) -> void:
 	# bình máu có thời gian hồi để không bấm liên tục được
 	if can_act() and pot_cd <= 0.05:
 		pot_cd = POT_CD
-		Net.send({"t": "pot"})
+		var m = {"t": "pot"}
+		if tier >= 0 and int(me_data.get(Data.HP_KEYS[tier], 0)) > 0:
+			m.k = tier
+		Net.send(m)
 
-func do_kpot() -> void:
+func do_kpot(tier := -1) -> void:
 	if can_act() and kpot_cd <= 0.05:
 		kpot_cd = POT_CD
-		Net.send({"t": "kpot"})
+		var m = {"t": "kpot"}
+		if tier >= 0 and int(me_data.get(Data.KI_KEYS[tier], 0)) > 0:
+			m.k = tier
+		Net.send(m)
 
 ## lướt ngang ~160 về hướng đang nhìn (hoặc hướng đang bấm), hồi 1,2 giây
 func do_roll() -> void:
@@ -597,8 +627,11 @@ func _auto_pick() -> Mon:
 func _auto_drop():
 	var best = null
 	var bd = 650.0
+	var now = Time.get_ticks_msec() / 1000.0
 	for d in drops.values():
-		if d.own != 0 and d.own != my_id:
+		if d.own != 0 and d.own != my_id and d.lock_left() > 0:
+			continue
+		if auto_skip.get(-d.id, 0.0) > now:
 			continue
 		if absf(d.position.y - me.position.y) > 150:
 			continue
@@ -615,33 +648,55 @@ func _auto_tick(dt: float) -> void:
 	var hp = float(me_data.get("hp", 1))
 	var hpm = max(1.0, float(me_data.get("maxHp", 1)))
 	if a.get("hp", true) and hp < hpm * float(a.get("hpPct", 40)) / 100.0 and Data.pot_total(me_data, false) > 0:
-		do_pot()
+		do_pot(int(a.get("hpT", -1)))
 	var ki = float(me_data.get("ki", 0))
 	var kim = max(1.0, float(me_data.get("maxKi", 1)))
 	if a.get("ki", true) and ki < kim * float(a.get("kiPct", 30)) / 100.0 and Data.pot_total(me_data, true) > 0:
-		do_kpot()
-	# nhặt đồ trước khi đánh tiếp
+		do_kpot(int(a.get("kiT", -1)))
+	# nhặt đồ trước khi đánh tiếp (đồ không tới được sau 5 giây thì bỏ qua)
 	if a.get("pick", true):
 		var d = _auto_drop()
 		if d and (focus == null or absf(d.position.x - me.position.x) < 300):
-			focus = null
-			move_to = d.position.x
-			return
+			if d.id != auto_did:
+				auto_did = d.id
+				auto_dT = 0.0
+			auto_dT += dt
+			if auto_dT > 5.0:
+				auto_skip[-d.id] = now + 60.0
+			else:
+				focus = null
+				move_to = d.position.x
+				return
 	if focus == null or focus.dead():
 		focus = _auto_pick()
 		auto_fT = 0.0
 	if focus == null:
 		return
-	# đánh mãi không tới (quái ở chỗ không lên được): bỏ qua 20 giây
+	# không tới gần thêm được (quái ở bậc không lên được) trong 4 giây, hoặc đánh 10 giây không mất máu: đổi quái khác, bỏ qua 25 giây
+	var dx = focus.position.x - me.position.x
+	var dy = focus.position.y - me.position.y
+	var dist = absf(dx) + absf(dy) * 1.5
 	if focus.id != auto_fid:
 		auto_fid = focus.id
 		auto_fT = 0.0
-	auto_fT += dt
-	var dx = focus.position.x - me.position.x
-	var dy = focus.position.y - me.position.y
-	if auto_fT > 12.0 and focus.hp >= focus.hp_max * 0.98:
-		auto_skip[focus.id] = now + 20.0
-		focus = null
+		auto_best = dist
+		auto_hp0 = focus.hp
+		auto_hT = 0.0
+	if dist < auto_best - 24:
+		auto_best = dist
+		auto_fT = 0.0
+	var close = absf(dx) < 130 and absf(dy) < 80
+	if close:
+		auto_fT = 0.0
+		auto_hT += dt
+	else:
+		auto_fT += dt
+	if focus.hp < auto_hp0:
+		auto_hp0 = focus.hp
+		auto_hT = 0.0
+	if auto_fT > 4.0 or auto_hT > 10.0:
+		auto_skip[focus.id] = now + 25.0
+		focus = _auto_pick()
 		return
 	if not air:
 		if dy < -60 and absf(dx) < 110:
@@ -697,6 +752,15 @@ func _grab(q: Array) -> void:
 	move_to = -1
 
 ## chạm/nhấp vào thế giới: chọn quái, đi tới NPC hoặc đi tới chỗ đó
+## đang đứng cạnh NPC (Làng) — vd. chỉ bán đồ được ở Thương Nhân Giáp
+func near_shop(id: String) -> bool:
+	if mi != 0:
+		return false
+	for n in M.get("npcs", []):
+		if str(n.id) == id:
+			return absf(me.position.x - float(n.x)) < 190
+	return false
+
 ## nói chuyện với NPC gần, hoặc vào cổng khu trùm
 func talk() -> void:
 	if near_npc.begins_with("gate:"):
@@ -707,51 +771,110 @@ func talk() -> void:
 	if near_npc != "":
 		open_npc.emit(near_npc)
 
+## chạm 1 lần: chỉ chọn đối tượng; chạm 2 lần liền: làm việc với đối tượng (đánh / nói chuyện / nhặt) hoặc chạy bộ tới chỗ đó
 func tap_world(screen_pos: Vector2) -> void:
 	if not can_act():
 		return
 	var wp = get_canvas_transform().affine_inverse() * screen_pos
-	var best: Mon = null
-	var bd = 90.0
+	var now = Time.get_ticks_msec() / 1000.0
+	var dbl = now - _tap_t < 0.38 and screen_pos.distance_to(_tap_p) < 70
+	_tap_t = 0.0 if dbl else now
+	_tap_p = screen_pos
+	var hit = _pick_at(wp)
+	if not dbl:
+		set_sel(hit[0], hit[1])
+		return
+	_act_on(hit[0], hit[1], wp)
+
+func set_sel(kind: String, obj) -> void:
+	sel_kind = kind
+	sel = obj
+	sel_changed.emit()
+
+## tìm đối tượng dưới điểm chạm: [loại, đối tượng]
+func _pick_at(wp: Vector2) -> Array:
+	var cand = []
+	for d in drops.values():
+		var dd = (d.position + Vector2(0, -16)).distance_to(wp)
+		if dd < 46:
+			cand.append([dd - 10, "drop", d])
 	for mo in mons.values():
 		if mo.dead():
 			continue
-		var c = mo.position + Vector2(0, -mo.hh() * 0.45 - mo.lift())
-		var d = c.distance_to(wp)
-		if d < bd:
-			bd = d
-			best = mo
-	# người chơi khác gần chỗ chạm hơn quái: mở menu kết bạn / giao dịch
-	var hb = null
-	var hd = 70.0
+		var dm = (mo.position + Vector2(0, -mo.hh() * 0.45 - mo.lift())).distance_to(wp)
+		if dm < max(70.0, mo.hh() * 0.55):
+			cand.append([dm, "mon", mo])
 	for id in heroes:
 		var h: Hero = heroes[id]
-		var d2 = (h.position + Vector2(0, -36)).distance_to(wp)
-		if d2 < hd:
-			hd = d2
-			hb = id
-	if hb != null and (best == null or hd < bd):
-		player_tapped.emit(int(hb), heroes[hb].nm)
-		return
-	if best:
-		focus = best
-		move_to = -1
-		return
-	for i in M.portals.size():
-		var pt: Dictionary = M.portals[i]
-		if pt.get("arena") and absf(wp.x - float(pt.x)) < 110 and wp.y > float(pt.y) - 240 and wp.y < float(pt.y) + 20:
-			npc_go = "gate:%d" % i
-			move_to = float(pt.x)
-			focus = null
-			return
+		var dh = (h.position + Vector2(0, -40)).distance_to(wp)
+		if dh < 60:
+			h.set_meta("pid", id)
+			cand.append([dh, "hero", h])
 	for n in M.get("npcs", []):
 		if absf(wp.x - n.x) < 70 and wp.y > n.y - 170 and wp.y < n.y + 20:
-			npc_go = str(n.id)
-			move_to = n.x
+			cand.append([absf(wp.x - n.x) + 20, "npc", n])
+	if cand.is_empty():
+		return ["", null]
+	cand.sort_custom(func(a, b): return a[0] < b[0])
+	return [cand[0][1], cand[0][2]]
+
+func _act_on(kind: String, obj, wp: Vector2) -> void:
+	set_sel(kind, obj)
+	match kind:
+		"drop":
+			go_pick(obj)
+		"mon":
+			focus = obj
+			move_to = -1
+		"hero":
+			player_tapped.emit(int(obj.get_meta("pid", 0)), obj.nm)
+		"npc":
+			npc_go = str(obj.id)
+			move_to = obj.x
 			focus = null
-			return
+		_:
+			for i in M.portals.size():
+				var pt: Dictionary = M.portals[i]
+				if pt.get("arena") and absf(wp.x - float(pt.x)) < 110 and wp.y > float(pt.y) - 240 and wp.y < float(pt.y) + 20:
+					npc_go = "gate:%d" % i
+					move_to = float(pt.x)
+					focus = null
+					return
+			focus = null
+			move_to = wp.x
+
+## chạy tới đồ rồi nhặt (đồ người khác còn khóa: báo, không chạy)
+func go_pick(d) -> void:
+	if d == null or not is_instance_valid(d):
+		return
+	if d.own != 0 and d.own != my_id and d.lock_left() > 0:
+		toast.emit("Vật phẩm của người khác. Hiện tại chưa thể nhặt được.")
+		return
+	pick_goal = d
 	focus = null
-	move_to = wp.x
+	move_to = d.position.x
+
+## nút đổi mục tiêu: quái gần kế tiếp (trong 520), xoay vòng
+func next_target() -> void:
+	var L = []
+	for mo in mons.values():
+		if mo.dead():
+			continue
+		var d = absf(mo.position.x - me.position.x) + absf(mo.position.y - me.position.y) * 1.5
+		if d < 520:
+			L.append([d, mo])
+	if L.is_empty():
+		toast.emit("Không có mục tiêu nào ở gần.")
+		return
+	L.sort_custom(func(a, b): return a[0] < b[0])
+	var i = 0
+	if sel_kind == "mon":
+		for k in L.size():
+			if L[k][1] == sel:
+				i = (k + 1) % L.size()
+	set_sel("mon", L[i][1])
+	if focus != null:
+		focus = L[i][1]
 
 func _process(dt: float) -> void:
 	fade = max(0.0, fade - dt * 2)
@@ -804,6 +927,7 @@ func _control(dt: float) -> void:
 	if manual:
 		focus = null
 		move_to = -1
+		pick_goal = null
 		npc_go = ""
 	elif auto_on and not warping:
 		_auto_tick(dt)
@@ -883,8 +1007,23 @@ func _control(dt: float) -> void:
 	me.climb = not climb.is_empty()
 	if focus and absf(focus.position.x - me.position.x) > 4:
 		me.face = 1 if focus.position.x > me.position.x else -1
-	if atk_held or in_reach or Input.is_key_pressed(KEY_J):
+	# đang chọn đồ: bấm đánh = chạy tới nhặt
+	if atk_held and sel_kind == "drop" and is_instance_valid(sel):
+		if pick_goal != sel:
+			go_pick(sel)
+	elif atk_held and sel_kind == "mon" and is_instance_valid(sel) and not sel.dead() and focus != sel:
+		focus = sel
+	elif atk_held or in_reach or Input.is_key_pressed(KEY_J):
 		do_attack()
+	# tới gần đồ đang muốn nhặt thì xin nhặt
+	if pick_goal != null:
+		if not is_instance_valid(pick_goal):
+			pick_goal = null
+		else:
+			pick_t -= dt
+			if absf(pick_goal.position.x - me.position.x) < 70 and absf(pick_goal.position.y - me.position.y) < 110 and pick_t <= 0:
+				pick_t = 0.5
+				Net.send({"t": "pick", "id": pick_goal.id})
 	# cổng: đứng trên đất ở cổng thì xin máy chủ chuyển bản đồ
 	if not air and not warping:
 		for i in M.portals.size():
@@ -947,11 +1086,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_Q: do_pot()
 			KEY_R: do_kpot()
 			KEY_L: do_roll()
+			KEY_TAB: next_target()
+			KEY_F:
+				if sel_kind == "drop" and is_instance_valid(sel):
+					go_pick(sel)
 			KEY_B: get_parent().open_bag()
 			KEY_E:
 				if near_npc != "":
 					talk()
-	elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+	elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and ev.device != InputEvent.DEVICE_ID_EMULATION:
+		# chuột giả lập từ cảm ứng bỏ qua (đã xử lý ở ScreenTouch), kẻo một chạm bị tính thành chạm đúp
 		tap_world(ev.position)
 	elif ev is InputEventScreenTouch and ev.pressed:
 		tap_world(ev.position)

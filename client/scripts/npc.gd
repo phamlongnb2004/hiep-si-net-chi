@@ -102,7 +102,7 @@ func render() -> void:
 			b3.pressed.connect(func(): gear_grp = g2; msg = ""; render())
 			tabs.add_child(b3)
 	if mode == "shop":
-		for k in [["books", "Sách kỹ năng"], ["pots", "Bình máu"]]:
+		for k in [["books", "Sách kỹ năng"], ["pots", "Bình máu & KI"]]:
 			var b = UI.button(k[1], UI.GOLD if tab == k[0] else UI.SKY, 18)
 			var kk: String = k[0]
 			b.pressed.connect(func(): tab = kk; msg = ""; render())
@@ -119,14 +119,22 @@ func render() -> void:
 		"pets": _pets(d)
 	UI.wrap_all(body, 200)
 
-func _row(no: String, h: String, p: String, small: String, btn: Button) -> void:
+func _row(no: String, h: String, p: String, small: String, btn: Button, icon: Texture2D = null) -> void:
 	var r = PanelContainer.new()
 	r.add_theme_stylebox_override("panel", UI.box(Color.WHITE, Color("b8c4dc"), 12, 2, false))
 	var hb = UI.hbox(12)
 	r.add_child(hb)
-	var n = UI.label(no, 26, UI.INK, "title")
-	n.custom_minimum_size = Vector2(36, 0)
-	hb.add_child(n)
+	if icon:
+		var ic = TextureRect.new()
+		ic.texture = icon
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(64, 64)
+		hb.add_child(ic)
+	else:
+		var n = UI.label(no, 26, UI.INK, "title")
+		n.custom_minimum_size = Vector2(36, 0)
+		hb.add_child(n)
 	var mid = UI.vbox(2)
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.add_child(UI.label(h, 20, UI.INK, "bold"))
@@ -161,56 +169,74 @@ func _skills(d: Dictionary) -> void:
 			b.disabled = not okl
 			var ij = i
 			b.pressed.connect(func(): Net.send({"t": "learn", "i": ij}))
-		_row(str(i + 1), str(s.n), str(s.d), "Cấp yêu cầu %d · Hồi chiêu %s giây%s" % [int(s.req), str(s.cd), (" · Sách %s vàng" % UI.fmt(s.price)) if int(s.price) > 0 else ""], b)
+		_row(str(i + 1), str(s.n), str(s.d), "Cấp yêu cầu %d · Hồi chiêu %s giây%s" % [int(s.req), str(s.cd), (" · Sách %s vàng" % UI.fmt(s.price)) if int(s.price) > 0 else ""], b, Data.tex(Data.A.get("hud", {}).get("ui", {}).get("book%d" % clampi(i, 1, 5), "")))
+
+var pot_q := {}     # số lượng đang chọn cho từng loại bình (giữ khi bảng vẽ lại)
 
 func _pots(d: Dictionary) -> void:
-	body.add_child(UI.label("Bình 3 cỡ: Nhỏ hồi 25%, Vừa hồi 45%, Lớn hồi 70% máu/KI tối đa. Mỗi cỡ mang tối đa 20 bình. Nút bình ngoài trận tự chọn cỡ vừa đủ.", 15, Color("5a6b8c"), "body"))
+	body.add_child(UI.label("Bình hồi lượng cố định: Nhỏ cho cấp thấp, Vừa cho cấp giữa, Lớn cho cấp cao. Mỗi loại mang tối đa %d bình. Chỉ mua được ở đây." % Data.POT_MAX, 15, Color("5a6b8c"), "body"))
 	body.add_child(UI.hsep())
 	for ki in [false, true]:
 		for t in 3:
 			var key: String = (Data.KI_KEYS if ki else Data.HP_KEYS)[t]
 			var have = int(d.get(key, 0))
 			var pr = Data.tier_price(t)
+			var room = maxi(0, Data.POT_MAX - have)
 			var r = PanelContainer.new()
 			r.add_theme_stylebox_override("panel", UI.box(Color.WHITE, Color("b8c4dc"), 12, 2, false))
-			var hb = UI.hbox(12)
+			var hb = UI.hbox(10)
 			r.add_child(hb)
 			var ic = TextureRect.new()
 			ic.texture = Data.pot_icon(ki, t)
 			ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			ic.custom_minimum_size = Vector2(56, 56)
+			ic.custom_minimum_size = Vector2(52, 52)
 			hb.add_child(ic)
 			var mid = UI.vbox(2)
 			mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			mid.add_child(UI.label("%s %s" % ["Bình KI" if ki else "Bình máu", str(Data.POT_T[t].n).to_lower()], 19, UI.INK, "bold"))
-			mid.add_child(UI.label("Hồi %d%% %s · Đang có %d / 20 · %s vàng/bình" % [int(Data.POT_T[t].f * 100), "KI" if ki else "máu", have, UI.fmt(pr)], 14, Color("5a6b8c"), "semi"))
+			mid.add_child(UI.label("%s %s" % ["Bình KI" if ki else "Bình máu", str(Data.POT_T[t].n).to_lower()], 18, UI.INK, "bold"))
+			mid.add_child(UI.label("Hồi %d %s · Có %d/%d · %s vàng/bình" % [int(Data.POT_T[t].ki if ki else Data.POT_T[t].hp), "KI" if ki else "máu", have, Data.POT_MAX, UI.fmt(pr)], 13, Color("5a6b8c"), "semi"))
 			hb.add_child(mid)
-			for n in [1, 5]:
-				var b = UI.button("Mua %d" % n, UI.GOLD, 16)
-				b.custom_minimum_size = Vector2(96, 46)
-				b.disabled = int(d.gold) < pr * n or have + n > 20
-				var nn: int = n
-				var tt: int = t
-				var kk = "ki" if ki else ""
-				b.pressed.connect(func(): Net.send({"t": "buypot", "n": nn, "tier": tt, "k": kk}))
-				hb.add_child(b)
+			var qk = key
+			var q = clampi(int(pot_q.get(qk, 1)), 1, maxi(1, room))
+			pot_q[qk] = q
+			var spin = SpinBox.new()
+			spin.min_value = 1
+			spin.max_value = maxi(1, room)
+			spin.step = 1
+			spin.value = q
+			spin.custom_minimum_size = Vector2(96, 44)
+			spin.select_all_on_focus = true
+			var minus = UI.button("−", UI.SKY, 20)
+			minus.custom_minimum_size = Vector2(44, 44)
+			minus.pressed.connect(func(): spin.value = spin.value - 1)
+			var plus = UI.button("+", UI.SKY, 20)
+			plus.custom_minimum_size = Vector2(44, 44)
+			plus.pressed.connect(func(): spin.value = spin.value + 1)
+			hb.add_child(minus)
+			hb.add_child(spin)
+			hb.add_child(plus)
+			var buy = UI.button("Mua %s v" % UI.fmt(pr * q), UI.GOLD, 15)
+			buy.custom_minimum_size = Vector2(130, 44)
+			buy.disabled = room <= 0 or int(d.gold) < pr * q
+			var tt: int = t
+			var kk = "ki" if ki else ""
+			var upd = func(v):
+				pot_q[qk] = int(v)
+				buy.text = "Mua %s v" % UI.fmt(pr * int(v))
+				buy.disabled = room <= 0 or int(game_gold()) < pr * int(v)
+			spin.value_changed.connect(upd)
+			buy.pressed.connect(func(): Net.send({"t": "buypot", "n": int(spin.value), "tier": tt, "k": kk}))
+			hb.add_child(buy)
+			var mx = UI.button("Tối đa", UI.BLUE, 14)
+			mx.custom_minimum_size = Vector2(80, 44)
+			mx.disabled = room <= 0 or pr <= 0
+			mx.pressed.connect(func(): spin.value = clampi(int(game_gold()) / maxi(1, pr), 1, maxi(1, room)))
+			hb.add_child(mx)
 			body.add_child(r)
 
-func _pots_old(d: Dictionary) -> void:
-	body.add_child(UI.label("Bình máu hồi 45% máu tối đa, bình KI hồi 45% KI tối đa. Mỗi loại mang tối đa 20 bình.", 15, Color("5a6b8c"), "body"))
-	for o in [[1, Data.pot_price()], [5, Data.pot_price() * 5]]:
-		var kb = UI.button("Mua %dv" % o[1], UI.GOLD, 18)
-		kb.disabled = int(d.gold) < o[1] or int(d.get("kpots", 0)) + o[0] > 20
-		var kn: int = o[0]
-		kb.pressed.connect(func(): Net.send({"t": "buypot", "n": kn, "k": "ki"}))
-		_row("✦", "Bình KI x%d" % o[0], "", "Giá %d vàng · Đang có %d / 20" % [o[1], int(d.get("kpots", 0))], kb)
-	for o in [[1, Data.pot_price()], [5, Data.pot_price() * 5]]:
-		var b = UI.button("Mua %dv" % o[1], UI.GOLD, 18)
-		b.disabled = int(d.gold) < o[1] or int(d.pots) + o[0] > 20
-		var n: int = o[0]
-		b.pressed.connect(func(): Net.send({"t": "buypot", "n": n}))
-		_row("♥", "Bình máu x%d" % o[0], "", "Giá %d vàng · Đang có %d / 20" % [o[1], int(d.pots)], b)
+func game_gold() -> int:
+	return int(game.me_data.get("gold", 0))
 
 func _forge(d: Dictionary) -> void:
 	body.add_child(UI.label("Chọn trang bị cần rèn. Rèn tối đa +15, càng cao càng khó; thất bại từ +6 có thể bị tụt cấp.", 15, Color("5a6b8c"), "body"))

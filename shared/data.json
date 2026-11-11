@@ -74,35 +74,35 @@
    {
     "n": "Xoáy Kiếm",
     "req": 5,
-    "price": 150,
+    "price": 500,
     "cd": 6,
     "d": "Xoay kiếm đánh mọi quái xung quanh, 240% sát thương."
    },
    {
     "n": "Khiên Thép",
     "req": 10,
-    "price": 600,
+    "price": 3000,
     "cd": 14,
     "d": "Tăng gấp đôi thủ trong 8 giây."
    },
    {
     "n": "Xung Phong",
     "req": 18,
-    "price": 1800,
+    "price": 15000,
     "cd": 8,
     "d": "Lao thẳng về trước, chém mọi quái trên đường 260% và làm choáng 1 giây."
    },
    {
     "n": "Chiến Hống",
     "req": 28,
-    "price": 5000,
+    "price": 50000,
     "cd": 18,
     "d": "Công +40%, chí mạng +15% trong 10 giây, làm choáng quái xung quanh."
    },
    {
     "n": "Kiếm Thần",
     "req": 40,
-    "price": 12000,
+    "price": 150000,
     "cd": 26,
     "d": "Ba nhát chém thần liên tiếp quanh người, mỗi nhát 330% sát thương."
    }
@@ -118,35 +118,35 @@
    {
     "n": "Thiên Thạch",
     "req": 5,
-    "price": 150,
+    "price": 500,
     "cd": 7,
     "d": "Gọi ba thiên thạch giáng xuống mục tiêu."
    },
    {
     "n": "Băng Giá",
     "req": 10,
-    "price": 600,
+    "price": 3000,
     "cd": 10,
     "d": "Vùng băng 5 giây làm chậm quái và gây sát thương liên tục."
    },
    {
     "n": "Tia Sét",
     "req": 18,
-    "price": 1800,
+    "price": 15000,
     "cd": 8,
     "d": "Sét đánh 5 quái gần nhất, 260% mỗi tia, làm choáng nhẹ."
    },
    {
     "n": "Lá Chắn Phép",
     "req": 28,
-    "price": 5000,
+    "price": 50000,
     "cd": 20,
     "d": "Giảm 70% sát thương nhận trong 7 giây và hồi 20% máu."
    },
    {
     "n": "Hỏa Ngục",
     "req": 40,
-    "price": 12000,
+    "price": 150000,
     "cd": 30,
     "d": "Biển lửa rộng cháy 7 giây kèm mưa thiên thạch."
    }
@@ -162,35 +162,35 @@
    {
     "n": "Mưa Tên",
     "req": 5,
-    "price": 150,
+    "price": 500,
     "cd": 7,
     "d": "Bắn quạt chín mũi tên cùng lúc."
    },
    {
     "n": "Bẫy Độc",
     "req": 10,
-    "price": 600,
+    "price": 3000,
     "cd": 10,
     "d": "Vùng độc 7 giây làm chậm quái và đầu độc."
    },
    {
     "n": "Lộn Nhào",
     "req": 18,
-    "price": 1800,
+    "price": 15000,
     "cd": 6,
     "d": "Lộn ra sau, tăng tốc chạy 35% trong 3 giây và bắn trả ba mũi tên."
    },
    {
     "n": "Tên Nổ",
     "req": 28,
-    "price": 5000,
+    "price": 50000,
     "cd": 10,
     "d": "Mũi tên nổ diện rộng, 420% sát thương."
    },
    {
     "n": "Bão Tên",
     "req": 40,
-    "price": 12000,
+    "price": 150000,
     "cd": 28,
     "d": "Sáu đợt tên bắn tỏa ra mọi hướng."
    }
@@ -206,35 +206,35 @@
    {
     "n": "Khí Công Pháo",
     "req": 5,
-    "price": 150,
+    "price": 500,
     "cd": 7,
     "d": "Bắn luồng khí xuyên thấu 340% sát thương."
    },
    {
     "n": "Nhập Định",
     "req": 10,
-    "price": 600,
+    "price": 3000,
     "cd": 16,
     "d": "Hồi 30% máu và tăng thủ 40% trong 6 giây."
    },
    {
     "n": "Quyền Rồng",
     "req": 18,
-    "price": 1800,
+    "price": 15000,
     "cd": 8,
     "d": "Lao tới đấm bay quái trước mặt, tổng 400% sát thương, choáng 1 giây."
    },
    {
     "n": "Địa Chấn",
     "req": 28,
-    "price": 5000,
+    "price": 50000,
     "cd": 14,
     "d": "Giậm chân gây chấn động 300%, choáng 1,5 giây."
    },
    {
     "n": "Bạo Khí",
     "req": 40,
-    "price": 12000,
+    "price": 150000,
     "cd": 30,
     "d": "Công +60%, tốc +25%, chí mạng +20% trong 12 giây."
    }

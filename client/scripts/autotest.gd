@@ -712,6 +712,41 @@ func perf_test() -> void:
 	if OS.get_environment("HSNC_AUTO") != "":
 		g.set_auto(true)
 	await shot("perf-0")
+	if OS.get_environment("HSNC_UI") != "":
+		# chọn quái gần nhất bằng nút đổi mục tiêu, rồi chọn một đồ rơi giả, mở các bảng mới
+		g.next_target()
+		await wait(0.5)
+		await shot("ui-sel")
+		var fd = {"id": 999999, "k": "gold", "n": 120, "x": g.me.position.x + 120, "y": g.me.position.y, "own": 12345, "lk": 50}
+		var o = Drop.new()
+		o.setup(fd)
+		g.ents.add_child(o)
+		g.drops[o.id] = o
+		g.set_sel("drop", o)
+		g.go_pick(o)
+		await wait(0.6)
+		await shot("ui-drop")
+		main.hud.open_auto()
+		await wait(0.5)
+		await shot("ui-auto")
+		main.hud.open_auto()
+		main.open_bag()
+		main.bag.tab = "skill"
+		main.bag.render()
+		await wait(0.5)
+		await shot("ui-skill")
+		main.bag.sk_ask = true
+		main.bag.render()
+		await wait(0.3)
+		await shot("ui-skill2")
+		main.bag.close()
+		g.open_npc.emit("shop")
+		await wait(0.8)
+		await shot("ui-shop")
+		main.npc.tab = "pots"
+		main.npc.render()
+		await wait(0.5)
+		await shot("ui-pots")
 	var secs = int(OS.get_environment("HSNC_SECS")) if OS.get_environment("HSNC_SECS") != "" else 20
 	for i in secs:
 		_fmax = 0.0
@@ -730,6 +765,8 @@ func perf_test() -> void:
 		await wait(1.0)
 		print("PERF t=%d fps=%d maxframe=%dms proc=%.1fms ping=%d pos=%d hp=%s x=%d y=%d draws=%d tex=%dMB" % [i, _fn, int(_fmax), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Net.ping_ms, _pos_n, str(g.me_data.get("hp")), int(g.me.position.x), int(g.me.position.y),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), int(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576)])
+		if OS.get_environment("HSNC_AUTO") != "":
+			print("AUTO focus=%s fx=%s skip=%d mto=%d drops=%d" % [str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), int(g.move_to), g.drops.size()])
 		if i == 2 and OS.get_environment("HSNC_DIE") != "":
 			Net.send({"t": "devdie"})
 		if i == 4:

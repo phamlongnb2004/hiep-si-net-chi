@@ -4,15 +4,29 @@
 import D from './data.json';
 export { D };
 
-export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 20, GRAV = 2100, JUMP = 820, MAXSTEP = 105;
+export const MAX_LV = 100, INV_MAX = 30, POT_MAX = 999, GRAV = 2100, JUMP = 820, MAXSTEP = 105;
 export const KPOT_GAIN = .45, KPOT_CD = 3, KPOT_MAX = 20; // bình KI (2.9.3)
 // bình máu / bình KI 3 cỡ (2.9.4): nhỏ, vừa (= bình cũ), lớn — tỉ lệ hồi và hệ số giá (× giá bình nhỏ)
-export const POT_TIERS = [{ n: 'Nhỏ', f: .25, p: 1 }, { n: 'Vừa', f: .45, p: 3 }, { n: 'Lớn', f: .7, p: 7.5 }];
+// 2.9.5: hồi lượng cố định (không theo %): nhỏ hợp cấp thấp, vừa cấp trung, lớn cấp cao; p = giá mỗi bình
+export const POT_TIERS = [{ n: 'Nhỏ', hp: 150, ki: 60, p: 20 }, { n: 'Vừa', hp: 600, ki: 200, p: 80 }, { n: 'Lớn', hp: 1500, ki: 450, p: 250 }];
 export const HP_KEYS = ['potS', 'pots', 'potL'], KI_KEYS = ['kpotS', 'kpots', 'kpotL'];
 // chọn cỡ bình: cỡ nhỏ nhất đủ hồi phần thiếu, không có thì cỡ lớn nhất còn
-export function pickPot(ch, keys, miss, max) { let best = -1; for (let t = 0; t < 3; t++) { if ((ch[keys[t]] | 0) <= 0) continue; best = t; if (max * POT_TIERS[t].f >= miss) return t; } return best; }
+export const potAmt = (t, ki) => POT_TIERS[t][ki ? 'ki' : 'hp'];
+export function pickPot(ch, keys, miss, max) { const ki = keys === KI_KEYS; let best = -1; for (let t = 0; t < 3; t++) { if ((ch[keys[t]] | 0) <= 0) continue; best = t; if (potAmt(t, ki) >= miss) return t; } return best; }
 // hồi sinh tại chỗ: khoảng 20 lần hạ quái cùng cấp
-export const DEAD_WAIT = 15, reviveCost = lv => Math.round(20 + lv * 25);
+export const REVIVE_GOLD = 500, DEATH_DROP = .01; // hồi sinh tại chỗ: một giá cho mọi cấp; gục ngã rơi 1% vàng
+export const DEAD_WAIT = 15, reviveCost = () => REVIVE_GOLD;
+// bùa nâng cấp kỹ năng: cấp tối đa 6, từ cấp L lên L+1 cần L bùa; mỗi cấp +15% sát thương kỹ năng
+export const SKILL_MAX = 6, SKILL_UP = .15, charmCost = L => L;
+const _skc = new Map();
+export function skillFx(cls, i, lv) {
+  lv = Math.max(1, Math.min(SKILL_MAX, lv | 0)); const key = cls + i + ':' + lv; if (_skc.has(key)) return _skc.get(key);
+  // sát thương (m) x(1+15%/cấp); bùa lợi (buff): thời gian +8%/cấp, phần cộng thêm của chỉ số +15%/cấp; hồi máu (heal f) +15%/cấp
+  const mul = 1 + SKILL_UP * (lv - 1), tm = 1 + .08 * (lv - 1);
+  const buf = o => Object.fromEntries(Object.entries(o).map(([k, x]) => [k, typeof x !== 'number' ? x : k === 't' ? x * tm : (k === 'atk' || k === 'def' || k === 'spd') ? 1 + (x - 1) * mul : k === 'crit' ? x * mul : k === 'take' ? Math.min(.6, x * mul) : x]));
+  const sc = (v, pk) => Array.isArray(v) ? v.map(x => sc(x)) : v && typeof v === 'object' ? (pk === 'buff' ? buf(v) : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, typeof x === 'number' && (k === 'm' || (pk === 'heal' && k === 'f')) ? x * mul : sc(x, k)]))) : v;
+  const r = sc(SKILL_FX[cls][i]); _skc.set(key, r); return r;
+}
 export const POT_HEAL = .45, POT_CD = 3, POT_PRICE = 30, DEATH_T = 2.6, SAFE_REGEN = .08;
 export const WORLD_CHAT_COST = 5000;          // nhắn cả máy chủ tốn vàng (cao) để tránh spam
 export const FRIEND_MAX = 100;
@@ -89,7 +103,9 @@ export const expMul = l => l <= 30 ? 1 : l <= 60 ? Math.pow(1.15, l - 30) : Math
 const expOld = l => 30 * Math.pow(l, 1.45) * expMul(l);
 export const expNeed = l => Math.floor(Math.max(expOld(l), (6 + 2.2 * l) * monCurve(l, 4)) * (TUNE.lvMul || 1));
 export const itemStat = (it, k) => Math.round(((it.st && it.st[k]) || 0) * (1 + .12 * (it.up || 0)));
-export const sellPrice = it => Math.round((4 + it.lvl * 2.2) * D.rar[it.r].m * (1 + .35 * (it.up || 0)));
+// bán cho Thương Nhân Giáp: 75% giá đồ thường cùng cấp trong cửa hàng; đồ hiếm trở lên cao hơn một chút
+export const SELL_RAR = [1, 1.3, 1.7, 2.2];
+export const sellPrice = it => Math.round(Math.round((25 + it.lvl * 9) * (1 + it.lvl / 3) * 3.5 * TUNE.shopMul) * .75 * (SELL_RAR[it.r] || 1) * (1 + .15 * (it.up || 0)));
 export const score = it => it ? itemStat(it, 'atk') * 2 + itemStat(it, 'def') * 1.5 + itemStat(it, 'hp') * .1 + itemStat(it, 'spd') * .6 : 0;
 /* ---------- điểm tiềm năng: mỗi lần lên cấp được PT_PER_LV điểm, người chơi tự cộng vào chỉ số ----------
   v: mỗi điểm cộng bao nhiêu; max: số điểm tối đa được dồn vào chỉ số đó (chỉ số tỉ lệ có trần) */
@@ -226,7 +242,9 @@ export function monDrops(rng, type, lv, cls, nextId, elite) {
   if (t.boss) { ds.push({ k: 'item', item: genItem(rng, lv, 'boss', cls, nextId()) }); ds.push({ k: 'pot' }); ds.push({ k: 'pot' }); }
   if (t.boss && rng() < TUNE.wingChance * (evOn() ? TUNE.ev.drop : 1)) ds.push({ k: 'item', item: genItem(rng, lv, 'wing', cls, nextId()) });
   if (rng() < (elite ? .35 : .14)) ds.push({ k: 'pot' });
-  const sn = t.boss ? ri(rng, 5, 8) : elite ? ri(rng, 1, 3) : (rng() < .2 + Math.min(.08, lv * .003) ? 1 : 0);
+  // đá cường hóa khó có hơn (2.9.5); bùa kỹ năng cực hiếm, chỉ tinh anh và trùm
+  const sn = t.boss ? ri(rng, 2, 4) : elite ? (rng() < .5 ? ri(rng, 1, 2) : 0) : (rng() < .05 + Math.min(.03, lv * .001) ? 1 : 0);
+  if (t.boss ? rng() < (t.world ? .3 : .05) : elite && rng() < .012) ds.push({ k: 'charm', n: 1 });
   if (sn) ds.push({ k: 'stone', n: sn });
   return ds;
 }
@@ -327,7 +345,9 @@ export function normalizeChar(d) {
   if (bad.length) c.bad = bad; else delete c.bad;
   for (const k of ['sk', 'books']) { const a = Array.isArray(c[k]) ? c[k] : []; c[k] = [0, 1, 2, 3, 4, 5].map(i => a[i] ? 1 : 0); c[k][0] = 1; }
   if (c.kpots == null) c.kpots = 3;
-  for (const k of ['lv', 'exp', 'gold', 'pots', 'kpots', 'potS', 'potL', 'kpotS', 'kpotL', 'kills', 'stones']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
+  if (!Array.isArray(c.skl) || c.skl.length !== 6) c.skl = [1, 1, 1, 1, 1, 1];
+  c.skl = c.skl.map(v => Math.max(1, Math.min(SKILL_MAX, v | 0)));
+  for (const k of ['lv', 'exp', 'gold', 'pots', 'kpots', 'potS', 'potL', 'kpotS', 'kpotL', 'kills', 'stones', 'charms']) c[k] = Math.max(0, Math.floor(+c[k] || 0));
   c.lv = Math.max(1, c.lv); c.map = clamp(c.map | 0, 0, D.maps.length - 1);
   // điểm tiềm năng: nhân vật cũ chưa có -> để trống (được cộng bù theo cấp hiện tại); điểm vượt quá số được nhận -> trả lại hết để cộng lại
   const pt = c.pt && typeof c.pt === 'object' ? c.pt : {}; c.pt = {};

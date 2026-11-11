@@ -80,11 +80,43 @@ func tex(rel) -> Texture2D:
 	var k = str(rel)
 	if _tex.has(k):
 		return _tex[k]
+	if not _sync_tex:
+		return tex_async(rel)
 	var t: Texture2D = null
 	var p = "res://assets/" + k
 	if ResourceLoader.exists(p):
 		t = load(p)
 	_tex[k] = t
+	return t
+
+## nạp ảnh ở luồng nền (đồ rơi khi đang đánh): chưa xong thì trả null, khung hình không bị khựng
+var _async_on := false
+func tex_async(rel) -> Texture2D:
+	if rel == null or str(rel) == "":
+		return null
+	var k = str(rel)
+	if _tex.has(k):
+		return _tex[k]
+	var p = "res://assets/" + k
+	if not ResourceLoader.exists(p):
+		_tex[k] = null
+		return null
+	var st = ResourceLoader.load_threaded_get_status(p)
+	if st == ResourceLoader.THREAD_LOAD_LOADED:
+		_tex[k] = ResourceLoader.load_threaded_get(p)
+		return _tex[k]
+	if st == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE or st == ResourceLoader.THREAD_LOAD_FAILED:
+		if ResourceLoader.load_threaded_request(p) != OK:
+			_tex[k] = load(p)
+			return _tex[k]
+	return null
+
+## đường dẫn ảnh của đồ (không nạp)
+var _sync_tex := true
+func item_icon_async(it: Dictionary) -> Texture2D:
+	_sync_tex = false
+	var t = item_icon(it)
+	_sync_tex = true
 	return t
 
 func _font(fam: String, w: int) -> Font:
@@ -175,7 +207,11 @@ func item_stat(it: Dictionary, k: String) -> int:
 	return int(round(float(st.get(k, 0)) * (1.0 + 0.12 * float(it.get("up", 0)))))
 
 func sell_price(it: Dictionary) -> int:
-	return int(round((4.0 + float(it.lvl) * 2.2) * float(D.rar[int(it.r)].m) * (1.0 + 0.35 * float(it.get("up", 0)))))
+	# 75% giá cửa hàng của món cùng cấp; đồ hiếm và đồ đã rèn bán cao hơn (khớp shared/rules.js sellPrice)
+	var lv = float(it.lvl)
+	var shop = round((25.0 + lv * 9.0) * (1.0 + lv / 3.0) * 3.5 * float(cfg.get("shopMul", 1.0)))
+	var rm = [1.0, 1.3, 1.7, 2.2][clampi(int(it.r), 0, 3)]
+	return int(round(shop * 0.75 * rm * (1.0 + 0.15 * float(it.get("up", 0)))))
 
 func score(it) -> float:
 	if it == null or not (it is Dictionary):
@@ -185,7 +221,9 @@ func score(it) -> float:
 ## tham số do máy chủ gửi (admin chỉnh được): giá bình máu, hệ số giá cửa hàng, cộng tỉ lệ rèn, sự kiện, thông báo
 var cfg: Dictionary = {}
 ## bình 3 cỡ (khớp shared/rules.js POT_TIERS)
-const POT_T := [{"n": "Nhỏ", "f": 0.25, "p": 1.0}, {"n": "Vừa", "f": 0.45, "p": 3.0}, {"n": "Lớn", "f": 0.7, "p": 7.5}]
+## hồi lượng cố định: nhỏ cho cấp thấp, vừa cho cấp giữa, lớn cho cấp cao; tối đa 999 mỗi loại
+const POT_T := [{"n": "Nhỏ", "hp": 150, "ki": 60, "p": 20}, {"n": "Vừa", "hp": 600, "ki": 200, "p": 80}, {"n": "Lớn", "hp": 1500, "ki": 450, "p": 250}]
+const POT_MAX := 999
 const HP_KEYS := ["potS", "pots", "potL"]
 const KI_KEYS := ["kpotS", "kpots", "kpotL"]
 func pot_total(d: Dictionary, ki: bool) -> int:
@@ -198,7 +236,7 @@ func pot_icon(ki: bool, t: int) -> Texture2D:
 	var k = ("kpot%d" if ki else "pot%d") % t
 	return tex(ui.get(k, ui.get("pot", "")))
 func tier_price(t: int) -> int:
-	return int(round(pot_price() * float(POT_T[t].p)))
+	return int(round(float(POT_T[t].p) * pot_price() / 30.0))
 
 func pot_price() -> int:
 	return int(cfg.get("potPrice", 30))

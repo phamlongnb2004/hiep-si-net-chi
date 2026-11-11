@@ -9,7 +9,7 @@ const rng = Math.random;
 const rand = (a, b) => a + rng() * (b - a);
 const BR_T = 1.75, BR_C = .5, BR_E = 1.35; // rồng khạc: tổng thời gian, hết lấy hơi, ngừng phun (giống side.js)
 const MS = .76;                               // tỉ lệ vẽ quái trong side.js (dùng để ước chỗ miệng rồng)
-const OWN_T = 30, DROP_LIFE = 75, PICK_R = 40; // đồ rơi: 30 giây đầu chỉ người hạ quái nhặt được, sau đó ai cũng nhặt được
+const OWN_T = 30, DROP_LIFE = 75, PICK_R = 40, VR = 80; // VR: chênh độ cao tối đa để đòn đánh trúng (một tầng) // đồ rơi: 30 giây đầu chỉ người hạ quái nhặt được, sau đó ai cũng nhặt được
 
 // trạng thái chiến đấu của một người chơi (không lưu xuống cơ sở dữ liệu)
 export function makeFighter(ch) {
@@ -59,7 +59,7 @@ export class MapInst {
     this.mons.push(m); this.ev.push(['nm', this.monInfo(m)]); return m;
   }
   monInfo(m) { return { id: m.id, type: m.type, lv: m.lv, el: m.el ? 1 : 0, hpMax: m.hpMax, x: Math.round(m.x), y: Math.round(m.y), hp: Math.round(m.hp), dead: m.dead ? 1 : 0 }; }
-  dropInfo(d) { return { id: d.id, k: d.k, n: d.n || 0, x: Math.round(d.x), y: Math.round(d.y), item: d.item || null, own: d.own }; }
+  dropInfo(d) { return { id: d.id, k: d.k, n: d.n || 0, x: Math.round(d.x), y: Math.round(d.y), item: d.item || null, own: d.own, lk: Math.max(0, Math.ceil(d.ownT || 0)) }; }
   join(c, x) {
     const f = c.f, p = x != null ? x : this.M.spawn.x; f.x = p; f.y = this.gY(p); f.air = 0; f.moveAt = Date.now();
     this.players.set(c.id, c); this.syncPet(c);
@@ -97,7 +97,7 @@ export class MapInst {
   findTarget(f, id, maxR) {
     let m = id ? this.mons.find(q => q.id === id && !q.dead) : null;
     if (m && Math.hypot(m.x - f.x, m.y - f.y) > maxR + 120) m = null;
-    if (!m) { let bd = maxR; for (const q of this.mons) { if (q.dead) continue; const d = Math.hypot(q.x - f.x, q.y - f.y) - q.t.r; if (d < bd) { bd = d; m = q; } } }
+    if (!m) { let bd = maxR; for (const q of this.mons) { if (q.dead || Math.abs(q.y - f.y) > VR + 60) continue; const d = Math.hypot(q.x - f.x, q.y - f.y) - q.t.r; if (d < bd) { bd = d; m = q; } } }
     return m;
   }
   hitMon(c, m, raw, o) {
@@ -125,11 +125,12 @@ export class MapInst {
   }
   melee(c, aim, r, half, mult, kb) {
     const f = c.f; let n = 0;
-    for (const m of this.mons) { if (m.dead) continue; const dx = m.x - f.x, dy = m.y - f.y; if (Math.hypot(dx, dy) > r + m.t.r) continue; if (half < Math.PI && angDiff(Math.atan2(dy, dx), aim) > half) continue; this.hitMon(c, m, this.patk(f) * mult, { kb }); n++; }
+    // chỉ trúng quái cùng tầng (không xuyên bậc trên/dưới)
+    for (const m of this.mons) { if (m.dead) continue; const dx = m.x - f.x, dy = m.y - f.y; if (Math.abs(dy) > VR || Math.hypot(dx, dy) > r + m.t.r) continue; if (half < Math.PI && angDiff(Math.atan2(dy, dx), aim) > half) continue; this.hitMon(c, m, this.patk(f) * mult, { kb }); n++; }
     return n;
   }
   aoe(c, x, y, r, mult, o) {
-    for (const m of this.mons) { if (m.dead || Math.hypot(m.x - x, m.y - y) > r + m.t.r) continue; this.hitMon(c, m, this.patk(c.f) * mult, { kb: o.kb || 0 }); this.status(m, { ...o, by: c.id }); }
+    for (const m of this.mons) { if (m.dead || Math.abs(m.y - y) > Math.max(VR, r * .45) || Math.hypot(m.x - x, m.y - y) > r + m.t.r) continue; this.hitMon(c, m, this.patk(c.f) * mult, { kb: o.kb || 0 }); this.status(m, { ...o, by: c.id }); }
   }
   shoot(c, a, p, mult, ox, oy) {
     this.projs.push({ c, x: ox, y: oy, vx: Math.cos(a) * p.sp, vy: Math.sin(a) * p.sp, sp: p.sp, dmg: mult, r: p.r, range: p.range, trav: 0, pierce: !!p.pierce, splash: p.splash || 0, hit: new Set() });
@@ -185,7 +186,7 @@ export class MapInst {
     f.ki -= cost; f.cds[i] = S.cd; f.gcd = D.world.gcd;
     const tgt = this.findTarget(f, m.tg | 0, 460), aim = tgt ? Math.atan2(tgt.y - f.y, tgt.x - f.x) : (f.face > 0 ? 0 : Math.PI); if (tgt) f.lastTgt = tgt.id;
     f.face = Math.cos(aim) >= 0 ? 1 : -1;
-    const sx = f.x; this.run(c, R.SKILL_FX[ch.cls][i], aim, tgt, 0);
+    const sx = f.x; this.run(c, R.skillFx(ch.cls, i, ch.skl[i]), aim, tgt, 0);
     this.ev.push(['s', c.id, i, +aim.toFixed(2), tgt ? tgt.id : 0, Math.round(sx)]);
     if (f.x !== sx) this.sendPos(c, { dash: 1 });
     c.meDirty = true;
@@ -210,6 +211,14 @@ export class MapInst {
     f.rollCd = 1.2; f.face = dir; f.dashT = .45; f.dashLen = Math.abs(x - f.x) + 20; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y));
     this.ev.push(['rl', c.id, dir]);
   }
+  // nhặt tay (bấm vào đồ rồi bấm Nhặt / nút đánh): tới gần là nhặt; đồ người khác còn khóa thì báo
+  pick(c, m) {
+    const f = c.f, i = this.drops.findIndex(d => d.id === (m.id | 0)); if (i < 0 || f.dead > 0) return;
+    const d = this.drops[i];
+    if (d.ownT > 0 && d.own !== c.id) return this.h.send(c, { t: 'pickno', id: d.id, s: Math.ceil(d.ownT) });
+    if (Math.hypot(f.x - d.x, f.y - d.y) > PICK_R + 70) return;
+    this.drops.splice(i, 1); this.pickup(c, d);
+  }
   // báo vị trí do máy chủ đặt; đếm số lần để bỏ qua gói vị trí cũ còn trên đường truyền
   sendPos(c, o) { c.posN = (c.posN | 0) + 1; c.posAt = Date.now(); this.h.send(c, { t: 'pos', x: Math.round(c.f.x), y: Math.round(c.f.y), pn: c.posN, ...(o || {}) }); }
   // đẩy người chơi theo trục x (dừng ở vách), báo vị trí mới cho ứng dụng
@@ -222,8 +231,10 @@ export class MapInst {
     const f = c.f; if (f.dead > 0) return;
     f.hp -= d; this.ev.push(['p', c.id, d]); c.meDirty = true;
     if (f.hp <= 0) {
-      f.hp = 0; f.dead = R.DEAD_WAIT; f.pois = null; f.slowT = 0; f.stunT = 0; const lost = Math.floor(c.ch.gold * .1); c.ch.gold -= lost; this.h.dirty(c);
-      this.h.log(c, 'Bạn đã gục ngã' + (lost ? ' và mất ' + lost + ' vàng' : '') + '. Chọn hồi sinh tại chỗ hoặc về Làng.', '#d9345a');
+      f.hp = 0; f.dead = R.DEAD_WAIT; f.pois = null; f.slowT = 0; f.stunT = 0; const lost = Math.floor(c.ch.gold * R.DEATH_DROP); c.ch.gold -= lost; this.h.dirty(c);
+      // rơi 1% vàng xuống đất: 1 phút đầu chỉ chủ nhặt được, sau đó ai cũng nhặt được
+      if (lost > 0) { const o = { id: this.seq++, k: 'gold', n: lost, x: f.x, y: this.fY(f.x, f.y), life: 180, own: c.id, ownT: 60 }; this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]); }
+      this.h.log(c, 'Bạn đã gục ngã' + (lost ? ', rơi ' + lost + ' vàng (1 phút để nhặt lại)' : '') + '. Chọn hồi sinh tại chỗ hoặc về Làng.', '#d9345a');
       for (const m of this.mons) if (m.tgt === c.id) { m.tgt = 0; if (m.state === 'chase') m.state = 'return'; }
     }
   }
@@ -268,7 +279,7 @@ export class MapInst {
         if (pu) { this.syncPet(c, true); this.ev.push(['plv', c.id, pt.lv, R.petStage(pt.lv) !== st0 ? 1 : 0]); this.h.log(c, pt.name + ' lên cấp ' + pt.lv + (R.PET_SK_LV.includes(pt.lv) ? ' · mở kỹ năng ' + R.PET_SP[pt.sp].sk[R.PET_SK_LV.indexOf(pt.lv)] : '') + (R.petStage(pt.lv) !== st0 ? ' · tiến hóa!' : ''), '#7dffb0'); } }
       this.h.send(c, { t: 'gain', m: m.id, exp: ee, gold: gg, pct: share ? Math.round(k * 100) : 0, pexp: pe });
       if (up) { refreshStats(c.f, ch, false); this.ev.push(['lv', c.id, ch.lv]); this.h.log(c, 'Lên cấp ' + ch.lv + ' · +' + up * R.PT_PER_LV + ' điểm tiềm năng (Túi đồ → Chỉ số)', '#ffd23f'); }
-      c.meDirty = true; this.h.dirty(c);
+      c.meDirty = true; c.dirty = true; // chỉ kinh nghiệm/vàng: gửi bản tin nhẹ, không gửi lại cả túi đồ
     }
     const ch = best.ch, got = [];
     for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
@@ -296,6 +307,8 @@ export class MapInst {
     const ch = c.ch;
     if (d.k === 'pot') { if ((ch.potS | 0) < R.POT_MAX) { ch.potS = (ch.potS | 0) + 1; this.h.log(c, 'Nhặt được 1 bình máu', '#d9345a'); } else { ch.gold += 15; this.h.log(c, 'Đã đủ bình máu, đổi lấy 15 vàng', '#ffd23f'); } }
     else if (d.k === 'stone') { ch.stones += d.n; this.h.log(c, 'Nhặt được ' + d.n + ' Đá cường hóa', '#6fd0ff'); }
+    else if (d.k === 'gold') { ch.gold += d.n | 0; this.h.log(c, 'Nhặt được ' + d.n + ' vàng', '#ffd23f'); }
+    else if (d.k === 'charm') { ch.charms = (ch.charms | 0) + (d.n | 0 || 1); this.h.log(c, 'Nhặt được Bùa Kỹ Năng! (đang có ' + ch.charms + ')', '#e07bff'); }
     else if (d.item) {
       if (ch.inv.length >= R.INV_MAX) { const g = R.sellPrice(d.item); ch.gold += g; this.h.log(c, 'Túi đầy, tự bán ' + d.item.name + ' được ' + g + ' vàng.', '#8a93a8'); }
       else { ch.inv.push(d.item); this.h.log(c, 'Nhặt được ' + d.item.name + ' (' + D.rar[d.item.r].n + ')', D.rar[d.item.r].c); }

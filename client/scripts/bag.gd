@@ -34,7 +34,7 @@ func setup(g: Game) -> void:
 	head.add_child(UI.label("Hành Trang", 30, UI.INK, "title"))
 	tabs = UI.hbox(6)
 	head.add_child(tabs)
-	for k in [["bag", "Túi đồ"], ["char", "Nhân vật"], ["stat", "Chỉ số"]]:
+	for k in [["bag", "Túi đồ"], ["char", "Nhân vật"], ["stat", "Chỉ số"], ["skill", "Kỹ năng"]]:
 		var b = UI.button(k[1], UI.SKY, 18)
 		var kk: String = k[0]
 		b.pressed.connect(func(): tab = kk; sel = {}; render())
@@ -94,6 +94,8 @@ func render() -> void:
 		_render_bag(d)
 	elif tab == "stat":
 		_render_stat(d)
+	elif tab == "skill":
+		_render_skill(d)
 	else:
 		_render_char(d)
 
@@ -178,7 +180,7 @@ func _render_detail(d: Dictionary) -> void:
 		return
 	if f == "pot":
 		detail.add_child(UI.label("Bình máu & bình KI", 22, UI.INK, "bold"))
-		detail.add_child(UI.label("Nhỏ 25% · Vừa 45% · Lớn 70%. Mua thêm ở Thương Nhân Bảo.", 14, Color("5a6b8c"), "body"))
+		detail.add_child(UI.label("Nhỏ hồi 150 máu/60 KI · Vừa 600/200 · Lớn 1500/450. Mua thêm ở Thương Nhân Bảo trong Làng.", 14, Color("5a6b8c"), "body"))
 		for ki in [false, true]:
 			for t in 3:
 				var key: String = (Data.KI_KEYS if ki else Data.HP_KEYS)[t]
@@ -244,7 +246,11 @@ func _render_detail(d: Dictionary) -> void:
 	be.pressed.connect(func(): Net.send({"t": "equip", "id": iid}); sel = {})
 	row.add_child(be)
 	var price = Data.sell_price(it)
-	var bs = UI.button(("Chắc chắn bán?" if arm_sell == str(iid) else "Bán %d vàng" % price), UI.GOLD, 18)
+	var near = game.near_shop("gear")
+	var bs = UI.button(("Chắc chắn bán?" if arm_sell == str(iid) else "Bán %s vàng" % UI.fmt(price)), UI.GOLD, 18)
+	bs.disabled = not near
+	if not near:
+		detail.add_child(UI.label("Chỉ bán được khi đứng cạnh Thương Nhân Giáp trong Làng.", 13, Color("b0552f"), "semi"))
 	bs.pressed.connect(func():
 		if r2 >= 2 and arm_sell != str(iid):
 			arm_sell = str(iid)
@@ -395,6 +401,111 @@ func _render_stat(d: Dictionary) -> void:
 
 
 ## chữ dài tự xuống dòng trong khung cố định (khung không bị kéo rộng)
+## ---------- thẻ Kỹ năng: 6 chiêu của phái, chiêu chưa học tối màu; nâng cấp bằng bùa (cấp L lên L+1 tốn L bùa) ----------
+var sk_sel = 0
+var sk_ask = false
+const SKILL_MAX := 6
+
+func _render_skill(d: Dictionary) -> void:
+	var c = game.cls()
+	var S: Array = Data.D.skills.get(c, [])
+	var icons: Array = Data.A.get("hud", {}).get("skills", {}).get(c, [])
+	var sk: Array = d.get("sk", [])
+	var skl: Array = d.get("skl", [])
+	var charms = int(d.get("charms", 0))
+	var left = UI.vbox(10)
+	body.add_child(left)
+	var g = GridContainer.new()
+	g.columns = 3
+	g.add_theme_constant_override("h_separation", 10)
+	g.add_theme_constant_override("v_separation", 10)
+	left.add_child(g)
+	for i in S.size():
+		var learned = i < sk.size() and int(sk[i]) == 1
+		var lv = int(skl[i]) if i < skl.size() else 1
+		var p = _cell(112)
+		if i == sk_sel:
+			p.add_theme_stylebox_override("panel", UI.box(Color("fff3c4"), Color("ffb020"), 12, 3, false))
+		var ic = TextureRect.new()
+		ic.texture = Data.tex(icons[i]) if i < icons.size() else null
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(84, 84)
+		ic.modulate = Color.WHITE if learned else Color(0.25, 0.27, 0.35, 0.85)
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.add_child(ic)
+		var ll = UI.outlined(("Lv.%d" % lv) if learned else "Chưa học", 19, Color("ffd23f") if learned else Color("c9d3e6"), "bold", 5)
+		ll.size_flags_vertical = Control.SIZE_SHRINK_END
+		ll.size_flags_horizontal = Control.SIZE_SHRINK_END
+		ll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.add_child(ll)
+		var ii = i
+		_click(p, func(): sk_sel = ii; sk_ask = false; render())
+		g.add_child(p)
+	var cr = UI.hbox(8)
+	left.add_child(cr)
+	var ci = TextureRect.new()
+	ci.texture = Data.tex(Data.A.get("hud", {}).get("ui", {}).get("charm", ""))
+	ci.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ci.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ci.custom_minimum_size = Vector2(40, 40)
+	cr.add_child(ci)
+	cr.add_child(UI.label("Bùa nâng cấp: %d" % charms, 18, UI.INK, "bold"))
+	left.add_child(UI.label("Bùa rơi rất hiếm từ quái tinh anh và trùm.", 13, Color("5a6b8c"), "body"))
+	detail = UI.vbox(8)
+	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(detail)
+	if sk_sel >= S.size():
+		return
+	var s: Dictionary = S[sk_sel]
+	var learned2 = sk_sel < sk.size() and int(sk[sk_sel]) == 1
+	var L = int(skl[sk_sel]) if sk_sel < skl.size() else 1
+	detail.add_child(UI.label(str(s.n), 26, UI.INK, "title"))
+	detail.add_child(UI.label(("Cấp %d / %d" % [L, SKILL_MAX]) if learned2 else "Chưa học · mua sách ở Thương Nhân Bảo trong Làng", 17, Color("2f6fd0") if learned2 else Color("b0552f"), "bold"))
+	var dl = UI.label(str(s.d), 16, UI.INK, "body")
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_child(dl)
+	var kc: Array = d.get("kc", [])
+	var info = "Cấp yêu cầu %d · Hồi chiêu %s giây" % [int(s.req), str(s.cd)]
+	if sk_sel < kc.size():
+		info += " · Tốn %d KI" % int(kc[sk_sel])
+	detail.add_child(UI.label(info, 14, Color("5a6b8c"), "semi"))
+	detail.add_child(UI.hsep())
+	var pw = int(round(15.0 * (L - 1)))
+	detail.add_child(UI.label("Sức mạnh hiện tại: +%d%% sát thương / hiệu quả" % pw, 16, UI.INK, "semi"))
+	if L < SKILL_MAX:
+		detail.add_child(UI.label("Cấp %d: +%d%% (tốn %d bùa, chắc chắn thành công)" % [L + 1, pw + 15, L], 16, Color("2fa84f"), "semi"))
+	else:
+		detail.add_child(UI.label("Đã đạt cấp tối đa.", 16, Color("2fa84f"), "semi"))
+	if not learned2 or L >= SKILL_MAX:
+		return
+	if sk_ask:
+		var box = PanelContainer.new()
+		box.add_theme_stylebox_override("panel", UI.box(Color("fff3c4"), Color("ffb020"), 12, 2, false))
+		var bv = UI.vbox(8)
+		box.add_child(bv)
+		var q = UI.label("Bạn đang có %d bùa, nâng cấp %s lên cấp %d tốn %d bùa. Nâng cấp?" % [charms, str(s.n), L + 1, L], 16, UI.INK, "semi")
+		q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		bv.add_child(q)
+		var br = UI.hbox(10)
+		bv.add_child(br)
+		var ok = UI.button("Đồng ý", UI.GREEN, 18)
+		ok.disabled = charms < L
+		var ij = sk_sel
+		ok.pressed.connect(func(): sk_ask = false; Net.send({"t": "skup", "i": ij}))
+		br.add_child(ok)
+		var no = UI.button("Hủy", UI.GREY, 18)
+		no.pressed.connect(func(): sk_ask = false; render())
+		br.add_child(no)
+		detail.add_child(box)
+	else:
+		var up = UI.button("Nâng cấp (%d bùa)" % L, UI.GOLD, 20)
+		up.custom_minimum_size = Vector2(0, 52)
+		up.pressed.connect(func(): sk_ask = true; render())
+		detail.add_child(up)
+		if charms < L:
+			detail.add_child(UI.label("Chưa đủ bùa (đang có %d)." % charms, 14, Color("b0552f"), "semi"))
+
 func _fix_width(box: Control, w: float) -> void:
 	for c in box.get_children():
 		if c is Label:

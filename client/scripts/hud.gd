@@ -13,6 +13,8 @@ var net_l: Label
 var logbox: VBoxContainer
 var skills: Array = []
 var talk_btn: Button
+var pick_btn: Button
+var toast_l: Control
 var joy   # DPad hoặc Joystick
 var mini: Control
 var chat_edit: LineEdit
@@ -31,7 +33,8 @@ var potb
 var kpotb
 var kpot_l: Label
 var ctl: Control           # lớp chứa các nút điều khiển (dựng lại khi đổi kiểu)
-var auto_b: Button
+var auto_b: TextureButton
+var auto_on_l: Label
 var world_log: Array = []   # [tên, nội dung] chat thế giới gần đây
 var wt: Control
 var rollb
@@ -243,12 +246,12 @@ func setup(g: Game) -> void:
 	fr_badge = UI.outlined("", 14, Color("ff5d7d"), "bold", 5)
 	fr_badge.position = Vector2(38, -4)
 	fr_b.add_child(fr_badge)
-	auto_b = UI.button("AUTO", UI.SKY, 16)
-	if H.ui.has("auto"):
-		auto_b.icon = Data.tex(H.ui.auto)
-		auto_b.expand_icon = true
-		auto_b.text = ""
-	auto_b.custom_minimum_size = Vector2(76, 58)
+	# nút AUTO chỉ có hình (không nền trắng); đang bật thì có chữ ON xanh ở góc
+	auto_b = UI.icon_button(Data.tex(H.ui.get("auto", "")), 62)
+	auto_on_l = UI.outlined("ON", 13, Color("7dff8a"), "bold", 5)
+	auto_on_l.position = Vector2(36, 40)
+	auto_on_l.visible = false
+	auto_b.add_child(auto_on_l)
 	auto_b.tooltip_text = "Tự động đánh quái"
 	auto_b.pressed.connect(open_auto)
 	tbtn.add_child(auto_b)
@@ -274,7 +277,7 @@ func setup(g: Game) -> void:
 	root.add_child(ann_l)
 	ann_b = AnnBanner.new()
 	ann_b.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	ann_b.position = Vector2(-470, 262)
+	ann_b.position = Vector2(-470, 72)
 	ann_b.size = Vector2(940, 80)
 	ann_b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ann_b.visible = false
@@ -290,6 +293,15 @@ func setup(g: Game) -> void:
 	talk_btn.visible = false
 	talk_btn.pressed.connect(func(): g.talk())
 	root.add_child(talk_btn)
+	# nút Nhặt nhỏ ở giữa dưới màn hình khi đang chọn đồ rơi
+	pick_btn = UI.button("Nhặt", UI.GREEN, 20)
+	pick_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_place(pick_btn, Vector2(-60, -84), Vector2(120, 50))
+	pick_btn.visible = false
+	pick_btn.pressed.connect(func(): if g.sel_kind == "drop": g.go_pick(g.sel))
+	root.add_child(pick_btn)
+	g.sel_changed.connect(func(): pick_btn.visible = g.sel_kind == "drop")
+	g.toast.connect(_toast)
 	chat_edit = UI.edit("Nhắn cùng bản đồ · gõ /all trước để nhắn cả máy chủ (5.000 vàng)")
 	chat_edit.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	chat_edit.position = Vector2(-260, 80)
@@ -627,6 +639,11 @@ func _build_controls() -> void:
 	rb.key = "" if touch else "L"
 	rb.pressed.connect(g.do_roll)
 	rollb = rb
+	var tgb = SkillBtn.new()
+	tgb.tex = Data.tex(H.ui.get("target", ""))
+	tgb.mx = 0.3
+	tgb.key = "" if touch else "Tab"
+	tgb.pressed.connect(g.next_target)
 	if mode == "joy":
 		# kiểu nút tròn: ô kỹ năng vuông một hàng ở dưới (như Ngọc Rồng), nút đánh tròn lớn ở góc
 		_place(br, Vector2(-760, -190), Vector2(760, 190))
@@ -648,6 +665,10 @@ func _build_controls() -> void:
 			b2.size = Vector2(74, 74)
 			b2.position = Vector2(760 - 190 - (3 - int(q[1])) * 82, 190 - 190)
 			br.add_child(b2)
+		# nút đổi mục tiêu: tròn, ngay trên nút đánh
+		tgb.size = Vector2(70, 70)
+		tgb.position = Vector2(760 - 130, -64)
+		br.add_child(tgb)
 		var js = Joystick.new()
 		js.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		_place(js, Vector2(20, -280), Vector2(280, 260))
@@ -681,6 +702,10 @@ func _build_controls() -> void:
 			rb.size = Vector2(88, 88)
 			rb.position = Vector2(-120, 230)
 			br.add_child(rb)
+			# nút đổi mục tiêu: tròn, ngay trên nút lướt
+			tgb.size = Vector2(72, 72)
+			tgb.position = Vector2(-112, 140)
+			br.add_child(tgb)
 			# phím di chuyển kiểu Ngọc Rồng: ◀ ▶ đi, ▲ nhảy/leo, ▼ xuống, ↖ ↗ nhảy chéo
 			var dp = DPad.new()
 			dp.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -702,9 +727,8 @@ func _build_controls() -> void:
 func _auto_style() -> void:
 	if auto_b:
 		auto_b.set_meta("on", game.auto_on)
-		if auto_b.icon == null:
-			auto_b.text = "AUTO ✓" if game.auto_on else "AUTO"
-		auto_b.add_theme_stylebox_override("normal", UI.box(UI.GREEN if game.auto_on else UI.SKY, UI.INK, 12, 3))
+		auto_on_l.visible = game.auto_on
+		auto_b.modulate = Color(1.15, 1.15, 1.15) if game.auto_on else Color.WHITE
 
 func open_auto() -> void:
 	if auto_pop and is_instance_valid(auto_pop):
@@ -754,10 +778,7 @@ func open_auto() -> void:
 	if types.is_empty():
 		v.add_child(UI.label("Bản đồ này không có quái.", 15, UI.INK, "body"))
 	for t in types:
-		var cb = CheckBox.new()
-		cb.text = "%s (cấp %d–%d)" % [str(Data.D.mons.get(t, {}).get("n", t)), types[t][0], types[t][1]]
-		cb.button_pressed = cur.has(t)
-		cb.add_theme_font_size_override("font_size", 17)
+		var cb = _cb("%s (cấp %d–%d)" % [str(Data.D.mons.get(t, {}).get("n", t)), types[t][0], types[t][1]], cur.has(t))
 		var tt: String = t
 		cb.toggled.connect(func(on):
 			if on and not cur.has(tt): cur.append(tt)
@@ -768,10 +789,7 @@ func open_auto() -> void:
 		grid.add_child(cb)
 	v.add_child(_sep())
 	var opt = func(label: String, key: String, def: bool) -> CheckBox:
-		var c = CheckBox.new()
-		c.text = label
-		c.button_pressed = bool(a.get(key, def))
-		c.add_theme_font_size_override("font_size", 17)
+		var c = _cb(label, bool(a.get(key, def)))
 		c.toggled.connect(func(on): a[key] = on; save.call())
 		return c
 	v.add_child(opt.call("Tự nhặt đồ rơi", "pick", true))
@@ -787,6 +805,14 @@ func open_auto() -> void:
 		var kk: String = q[1]
 		ob.item_selected.connect(func(i): a[kk] = vals[i]; save.call())
 		row.add_child(ob)
+		# chọn cỡ bình dùng khi auto
+		var tb = OptionButton.new()
+		for nm in ["Bình tự chọn", "Bình nhỏ", "Bình vừa", "Bình lớn"]:
+			tb.add_item(nm)
+		var tk: String = q[0] + "T"
+		tb.selected = clampi(int(a.get(tk, -1)) + 1, 0, 3)
+		tb.item_selected.connect(func(i): a[tk] = i - 1; save.call())
+		row.add_child(tb)
 		v.add_child(row)
 	v.add_child(_sep())
 	var go = UI.button("TẮT AUTO" if game.auto_on else "BẬT AUTO", UI.RED if game.auto_on else UI.GREEN, 22)
@@ -795,12 +821,46 @@ func open_auto() -> void:
 	v.add_child(go)
 	root.add_child(auto_pop)
 
+## ô đánh dấu không bị nháy trắng khi bấm (bỏ hết nền theo trạng thái)
+static func _cb(text: String, on: bool) -> CheckBox:
+	var c = CheckBox.new()
+	c.text = text
+	c.button_pressed = on
+	c.focus_mode = Control.FOCUS_NONE
+	c.add_theme_font_size_override("font_size", 17)
+	for st in ["normal", "pressed", "hover", "hover_pressed", "focus", "disabled"]:
+		c.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	for fc in ["font_color", "font_pressed_color", "font_hover_color", "font_hover_pressed_color", "font_focus_color"]:
+		c.add_theme_color_override(fc, UI.INK)
+	return c
+
 func _sep() -> Control:
 	var s = ColorRect.new()
 	s.color = Color("c9d3e6")
 	s.custom_minimum_size = Vector2(0, 2)
 	return s
 
+
+## dòng nhắc ngắn giữa màn hình (vd. đồ của người khác)
+func _toast(text: String) -> void:
+	if toast_l and is_instance_valid(toast_l):
+		toast_l.queue_free()
+	var p = PanelContainer.new()
+	p.add_theme_stylebox_override("panel", UI.box(Color(0.09, 0.12, 0.25, 0.85), Color("ffb347"), 10, 2, false))
+	p.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_place(p, Vector2(0, 150), Vector2.ZERO)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l = UI.label(text, 18, Color("ffe08a"), "semi")
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p.add_child(l)
+	root.add_child(p)
+	toast_l = p
+	var tw = p.create_tween()
+	tw.tween_interval(2.2)
+	tw.tween_property(p, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(p.queue_free)
+	add_log(text, Color("ffb347"))
 
 func _world_toast(n: String, text: String) -> void:
 	if wt and is_instance_valid(wt):

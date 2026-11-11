@@ -125,3 +125,14 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Bình máu / KI 3 cỡ: Nhỏ 25% (`potS`/`kpotS`), Vừa 45% (`pots`/`kpots`, = bình cũ), Lớn 70% (`potL`/`kpotL`); giá ×1 / ×3 / ×7,5 giá bình (30); mỗi cỡ tối đa 20. `pot {k}` / `kpot {k}` (không gửi k: máy chủ tự chọn cỡ nhỏ nhất đủ hồi phần thiếu), `buypot {n, tier, k:'ki'}`. Bình rơi từ quái là bình nhỏ.
 - Gục ngã: chờ 15 giây (`DEAD_WAIT`) rồi tự hồi sinh đầy máu ở Làng; hoặc `revive {here:1}` hồi tại chỗ 60% máu, giá `20 + 25 × cấp` vàng (~20 lần hạ quái cùng cấp); `revive {home:1}` về Làng ngay. Vẫn mất 10% vàng khi gục như cũ.
 - Biểu tượng mới (vẽ bằng AI): `hud/ui/auto`, `pot0-2`, `kpot0-2`.
+
+## Chọn mục tiêu, bình cố định, bùa kỹ năng (2.9.5)
+- Bình hồi lượng cố định (`POT_TIERS`): Nhỏ 150 máu / 60 KI (20v), Vừa 600 / 200 (80v), Lớn 1500 / 450 (250v); mỗi cỡ tối đa 999 (`POT_MAX`). `buypot {n 1..999, tier, k}` chỉ ở Thương Nhân Bảo (`nearNpc 'shop'`). Auto chọn cỡ bình riêng cho máu / KI (`hpT`, `kiT`: -1 tự chọn).
+- Gục ngã: không mất 10% vàng nữa; rơi 1% vàng mang theo (`DEATH_DROP`) thành túi vàng `{k:'gold'}` trên đất, 60 giây đầu chỉ chủ nhặt, sống 180 giây. Hồi tại chỗ giá cố định `REVIVE_GOLD` = 500 vàng mọi cấp.
+- Chạm 1 lần = chọn (quái / người / NPC / đồ rơi, tam giác ngược chỉ vào); chạm đúp = đánh / nói chuyện / nhặt / chạy bộ tới. Chọn đồ rơi: nút "Nhặt" giữa dưới màn hình, hoặc bấm nút đánh. `pick {id}`; đồ còn khóa của người khác → `pickno` ("Vật phẩm của người khác…"). Đồ rơi gửi `lk` = số giây còn khóa.
+- Nút đổi mục tiêu (`hud/ui/target`, phím Tab) xoay vòng quái trong ~520px.
+- Bán đồ chỉ ở Thương Nhân Giáp, giá = 75% giá cửa hàng cùng cấp × độ hiếm `SELL_RAR` [1; 1,3; 1,7; 2,2] × (1 + 15%/cấp rèn).
+- Sách kỹ năng: giá nhân [1; 3,3; 5; 8,3; 10; 12,5] theo thứ tự chiêu. Ảnh sách `hud/ui/book1-5`.
+- Bùa nâng kỹ năng (`charms`, `skl[6]`): cấp tối đa 6, cấp L→L+1 tốn L bùa, chắc chắn thành công (`skup {i}`). Mỗi cấp +15% sát thương / hồi máu, bùa lợi +8% thời gian và +15% phần cộng (`skillFx`). Bùa không bán; rơi rất hiếm: tinh anh 1,2%, trùm 5%, trùm thế giới 30%. Ảnh `hud/ui/charm`.
+- Đá cường hóa hiếm hơn (quái thường ~5–8%, tinh anh 50%, trùm 2–4).
+- Đánh không xuyên tầng: cận chiến bỏ quái lệch dọc > 80 (`VR`).

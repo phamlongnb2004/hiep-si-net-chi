@@ -8,12 +8,16 @@ var n = 0
 var item: Dictionary = {}
 var t = 0.0
 var own = 0     # người được nhặt trước (30 giây đầu)
+var lock_until = 0.0
+func lock_left() -> float:
+	return lock_until - Time.get_ticks_msec() / 1000.0
 
 func setup(d: Dictionary) -> void:
 	id = int(d.id)
 	k = str(d.k)
 	n = int(d.get("n", 0))
 	own = int(d.get("own", 0)) if d.get("own") != null else 0
+	lock_until = Time.get_ticks_msec() / 1000.0 + float(d.get("lk", 30))
 	item = d.item if d.get("item") is Dictionary else {}
 	position = Vector2(d.x, d.y)
 	t = randf() * 6
@@ -30,7 +34,7 @@ func _draw() -> void:
 	var tx: Texture2D = null
 	var S = 30.0
 	if k == "item":
-		tx = Data.item_icon(item)
+		tx = Data.item_icon_async(item)
 		var r = int(item.get("r", 0))
 		if r >= 1:
 			var c = Data.rar_color(r)
@@ -41,6 +45,14 @@ func _draw() -> void:
 	elif k == "pot":
 		tx = Data.tex(Data.A.ai.get("pot", {}).get("u", ""))
 		S = 26
+	elif k == "gold":
+		tx = Data.tex(Data.A.get("hud", {}).get("ui", {}).get("gold", ""))
+		S = 26
+	elif k == "charm":
+		tx = Data.tex(Data.A.get("hud", {}).get("ui", {}).get("charm", ""))
+		var gc = Color(1, 0.8, 0.3, 0.3 + sin(t * 3) * 0.12)
+		draw_circle(Vector2(0, -14 + bob), 20, gc)
+		S = 30
 	else:
 		tx = Data.tex(Data.A.ai.get("stone", {}).get("u", ""))
 		S = 24
