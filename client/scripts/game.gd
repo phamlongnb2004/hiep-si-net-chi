@@ -12,6 +12,7 @@ signal map_changed(name: String)
 signal player_tapped(id: int, name: String)
 signal announce(text: String)
 signal celebrate(m: Dictionary)
+signal bag_full
 signal cfg_changed
 signal gm_reply(m: Dictionary)
 signal khu_list(m: Dictionary)
@@ -86,6 +87,7 @@ var nav_phase = 0        # 0 đi tới chỗ bắt đầu, 1 đang nhảy/rơi/l
 var nav_re = 0.0
 var nav_n0 = -2
 var auto_climb = false
+var full_t = -100.0
 const POT_CD = 3.0
 var warping = false
 var near_npc = ""
@@ -172,6 +174,13 @@ func _on_msg(m: Dictionary) -> void:
 			announce.emit(str(m.get("text", "")))
 		"cele":
 			celebrate.emit(m)
+		"full":
+			pick_goal = null
+			# đang auto thì nhắc thưa hơn (20 giây/lần) cho đỡ phiền
+			var tn = Time.get_ticks_msec() / 1000.0
+			if tn - full_t > (20.0 if auto_on else 2.5):
+				full_t = tn
+				bag_full.emit()
 		"pickno":
 			pick_goal = null
 			toast.emit("Vật phẩm của người khác. Hiện tại chưa thể nhặt được.")
@@ -701,6 +710,9 @@ func _auto_drop():
 		if d.own != 0 and d.own != my_id and d.lock_left() > 0:
 			continue
 		if auto_skip.get(-d.id, 0.0) > now:
+			continue
+		# túi đầy: auto bỏ qua trang bị (vẫn nhặt bình, đá, vàng, bùa)
+		if d.item is Dictionary and not d.item.is_empty() and me_data.get("inv", []).size() >= 30:
 			continue
 		if absf(d.position.y - me.position.y) > 150:
 			continue

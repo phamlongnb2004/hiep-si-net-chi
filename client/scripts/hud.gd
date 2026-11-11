@@ -163,12 +163,31 @@ class MiniMap extends Control:
 			draw_rect(Rect2(z.x * sx, 2, z.w * sx, 4), Color(1, 0.88, 0.43, 0.9))
 		for p in M.portals:
 			draw_circle(Vector2(p.x * sx, p.y * sy - 6), 3.5, Color("7fc8ff"))
+		var bosses = []
 		for m in game.mons.values():
 			if not m.dead():
-				draw_circle(Vector2(m.position.x * sx, m.position.y * sy - 3), 2.2 if not m._info.get("boss", false) else 4.0, Color("d9345a"))
+				if m._info.get("boss", false):
+					bosses.append(m)
+				else:
+					draw_circle(Vector2(m.position.x * sx, m.position.y * sy - 3), 2.2, Color("d9345a"))
 		for h in game.heroes.values():
 			draw_circle(Vector2(h.position.x * sx, h.position.y * sy - 4), 3, Color("8fb4ff"))
 		draw_circle(Vector2(game.me.position.x * sx, game.me.position.y * sy - 4), 4, Color("ffd23f"))
+		# trùm: ngôi sao vàng viền đen, tâm đỏ, vòng sáng nhấp nháy (vẽ trên cùng cho dễ thấy)
+		var tt = Time.get_ticks_msec() / 1000.0
+		for m in bosses:
+			var c = Vector2(clampf(m.position.x * sx, 9, size.x - 9), clampf(m.position.y * sy - 8, 9, size.y - 9))
+			var u = fmod(tt * 1.2, 1.0)
+			draw_arc(c, 6 + u * 10, 0, TAU, 20, Color(1, 0.3, 0.3, 0.9 * (1 - u)), 2)
+			var sp_ = PackedVector2Array()
+			for i in 10:
+				var an = -PI / 2 + TAU * i / 10.0
+				sp_.append(c + Vector2(cos(an), sin(an)) * (8.0 if i % 2 == 0 else 3.6))
+			draw_colored_polygon(sp_, Color("ffd23f"))
+			var o = sp_.duplicate()
+			o.append(sp_[0])
+			draw_polyline(o, UI.INK, 1.5)
+			draw_circle(c, 2.2, Color("e0303a"))
 		draw_rect(Rect2(Vector2.ZERO, size), UI.INK, false, 2)
 
 func setup(g: Game) -> void:
@@ -313,6 +332,7 @@ func setup(g: Game) -> void:
 	root.add_child(pick_btn)
 	g.sel_changed.connect(func(): pick_btn.visible = g.sel_kind == "drop")
 	g.toast.connect(_toast)
+	g.bag_full.connect(show_full)
 	chat_edit = UI.edit("Nhắn cùng bản đồ · gõ /all trước để nhắn cả máy chủ (5.000 vàng)")
 	chat_edit.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	chat_edit.position = Vector2(-260, 80)
@@ -936,6 +956,33 @@ func _toast(text: String) -> void:
 	tw.tween_property(p, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(p.queue_free)
 	add_log(text, Color("ffb347"))
+
+## "Hành trang đã đầy" to, giữa màn hình (máy chủ không tự bán nữa, người chơi tự bán hoặc vứt)
+var full_l: Control
+func show_full() -> void:
+	if full_l and is_instance_valid(full_l):
+		full_l.queue_free()
+	var p = PanelContainer.new()
+	p.add_theme_stylebox_override("panel", UI.box(Color(0.35, 0.06, 0.1, 0.88), Color("ffb347"), 16, 3, false))
+	p.set_anchors_preset(Control.PRESET_CENTER)
+	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	p.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_place(p, Vector2(0, -60), Vector2.ZERO)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var v = UI.vbox(2)
+	p.add_child(v)
+	var l = UI.outlined("Hành trang đã đầy", 32, Color("ffe08a"), "bold", 8)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(l)
+	var l2 = UI.label("Mở túi để bán hoặc vứt bớt đồ rồi nhặt tiếp.", 16, Color("ffe9d0"), "semi")
+	l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(l2)
+	root.add_child(p)
+	full_l = p
+	var tw = p.create_tween()
+	tw.tween_interval(2.2)
+	tw.tween_property(p, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(p.queue_free)
 
 func _world_toast(n: String, text: String) -> void:
 	if wt and is_instance_valid(wt):

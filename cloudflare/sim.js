@@ -225,6 +225,7 @@ export class MapInst {
     const d = this.drops[i];
     if (d.ownT > 0 && d.own !== c.id) return this.h.send(c, { t: 'pickno', id: d.id, s: Math.ceil(d.ownT) });
     if (Math.hypot(f.x - d.x, f.y - d.y) > PICK_R + 70) return;
+    if (!this.canTake(c, d, true)) return;
     this.drops.splice(i, 1); this.pickup(c, d);
   }
   // báo vị trí do máy chủ đặt; đếm số lần để bỏ qua gói vị trí cũ còn trên đường truyền
@@ -311,6 +312,13 @@ export class MapInst {
       for (const [c, k] of share) this.h.log(c, msg + ' · Bạn góp ' + Math.round(k * 100) + '% sát thương', '#ffd23f');
     }
   }
+  // túi đầy: không nhặt trang bị (để nguyên trên đất), báo "Hành trang đã đầy" giữa màn hình (tối đa 3 giây một lần)
+  canTake(c, d, force) {
+    if (!d.item || c.ch.inv.length < R.INV_MAX) return true;
+    const now = Date.now();
+    if (force || !c.fullAt || now - c.fullAt > 3000) { c.fullAt = now; this.h.send(c, { t: 'full' }); }
+    return false;
+  }
   pickup(c, d) {
     const ch = c.ch;
     if (d.k === 'pot') { if ((ch.potS | 0) < R.POT_MAX) { ch.potS = (ch.potS | 0) + 1; this.h.log(c, 'Nhặt được 1 bình máu', '#d9345a'); } else { ch.gold += 15; this.h.log(c, 'Đã đủ bình máu, đổi lấy 15 vàng', '#ffd23f'); } }
@@ -318,8 +326,7 @@ export class MapInst {
     else if (d.k === 'gold') { ch.gold += d.n | 0; this.h.log(c, 'Nhặt được ' + d.n + ' vàng', '#ffd23f'); }
     else if (d.k === 'charm') { ch.charms = (ch.charms | 0) + (d.n | 0 || 1); this.h.log(c, 'Nhặt được Bùa Kỹ Năng! (đang có ' + ch.charms + ')', '#e07bff'); }
     else if (d.item) {
-      if (ch.inv.length >= R.INV_MAX) { const g = R.sellPrice(d.item); ch.gold += g; this.h.log(c, 'Túi đầy, tự bán ' + d.item.name + ' được ' + g + ' vàng.', '#8a93a8'); }
-      else { ch.inv.push(d.item); this.h.log(c, 'Nhặt được ' + d.item.name + ' (' + D.rar[d.item.r].n + ')', D.rar[d.item.r].c); }
+      { ch.inv.push(d.item); this.h.log(c, 'Nhặt được ' + d.item.name + ' (' + D.rar[d.item.r].n + ')', D.rar[d.item.r].c); }
     }
     this.ev.push(['g', d.id, c.id]); c.meDirty = true; this.h.dirty(c);
   }
@@ -344,7 +351,7 @@ export class MapInst {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i]; d.life -= dt; d.ownT -= dt;
       if (d.life <= 0) { this.drops.splice(i, 1); this.ev.push(['x', d.id]); continue; }
-      for (const c of this.players.values()) { if (c.f.dead > 0 || (d.ownT > 0 && d.own !== c.id)) continue; if (Math.hypot(c.f.x - d.x, c.f.y - d.y) < PICK_R + 20) { this.drops.splice(i, 1); this.pickup(c, d); break; } }
+      for (const c of this.players.values()) { if (c.f.dead > 0 || (d.ownT > 0 && d.own !== c.id)) continue; if (Math.hypot(c.f.x - d.x, c.f.y - d.y) < PICK_R + 20 && this.canTake(c, d)) { this.drops.splice(i, 1); this.pickup(c, d); break; } }
     }
   }
   tickPlayer(c, dt) {

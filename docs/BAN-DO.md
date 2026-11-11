@@ -167,3 +167,7 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 
 ## Sửa túi đồ đảo lộn (2.10.1)
 - Nguyên nhân: đồ rơi có mã số, đồ cửa hàng có mã chữ ("s…"); so `sel.id == it.id` giữa số và chữ là lỗi GDScript → hàm vẽ ô bỏ dở → các ô đồ cửa hàng biến mất sau khi chạm một món có mã số, túi trông như bị đảo lộn. Dùng `Data.same_id(a, b)` (so bằng chuỗi) ở túi và lò rèn.
+
+## Túi đầy không tự bán, trùm trên bản đồ nhỏ (2.10.2)
+- Túi đầy: máy chủ không nhặt trang bị (để nguyên trên đất, vẫn nhặt bình/đá/vàng/bùa), gửi `full` (tối đa 3 giây/lần, bấm Nhặt thì gửi ngay); ứng dụng hiện "Hành trang đã đầy" giữa màn hình (đang auto: 20 giây/lần), auto bỏ qua trang bị khi túi đầy. Bỏ tự bán.
+- Bản đồ nhỏ: trùm là ngôi sao vàng viền đen, tâm đỏ, vòng sáng nhấp nháy, vẽ trên cùng.

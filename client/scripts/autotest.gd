@@ -712,6 +712,7 @@ func perf_test() -> void:
 	if OS.get_environment("HSNC_AUTO") != "":
 		g.set_auto(true)
 	Net.prof = OS.get_environment("HSNC_NETPROF") != ""
+	g.bag_full.connect(func(): print("BAGFULL"); shot("bagfull"))
 	Data.hitch_watch = OS.get_environment("HSNC_LATE") != ""
 	await shot("perf-0")
 	if OS.get_environment("HSNC_UI") != "":
