@@ -1,38 +1,35 @@
 {
  "app": {
-  "version": "2.9.0",
+  "version": "2.9.1",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "b953be193fba3a77329543f69b0b1eaa827ad16040ac71eca5c15e6e48368dfc",
-   "size": 71214887
+   "sha256": "4c852219337684b00add730f081b721c1f8690b53674b1e2e22f6019067ea2ed",
+   "size": 71219561
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "e563bca8ce993e08c19df5f35450261d158b25da1d8e283d5958b9464161abc6",
-   "size": 100579147
+   "sha256": "2efb2a563d3feaebfa2c0c8c1e8ee95ac748a4ea2a330fded9ffeeb890b162c9",
+   "size": 100583243
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "a65177859e8c13634f4a7dc4d82697869e20800bed5b6f8eb215b13d497d7327",
-   "size": 73485426
+   "sha256": "8052724630f0bd9b6ba02834816d31b39b463048a65b812e29a37ffaa2ac3f75",
+   "size": 73489052
   }
  },
  "assets": {
-  "version": 20,
+  "version": 21,
   "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-20.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-21.pck",
   "sha256": "6195d1eb8b11a94f47bd3abc18f7ece928b540ea5fa2f80dea4722b760bb4caa",
   "size": 48327352
  },
  "changelog": [
-  "Boss Hoang Dã Ma Long Hắc Vực: khoảng 30 phút xuất hiện 1 lần ở một bản đồ săn quái ngẫu nhiên (khu ngẫu nhiên), có báo trước. 15–20 phút không ai hạ thì bay đi.",
-  "Ma Long rất mạnh: 3 giai đoạn, nổi giận dưới 60% máu, nhiều chiêu (Cào Xé, Giậm Đất, Hơi Thở Lửa, Mưa Thiên Thạch, gọi rồng con tạo khiên, Long Nộ Diệt Thế).",
-  "Đòn kết liễu nhận 1 Trứng Thần Thú ngẫu nhiên (Rồng Lửa, Cáo Băng, Sói Sấm, Rùa Ngọc). Trứng giao dịch được, không bán cửa hàng.",
-  "NPC mới Bà Ấp Trứng trong Làng: ấp trứng 24 giờ, trả 2.000.000 vàng để rút ngắn một nửa (1 lần mỗi trứng).",
-  "Pet đi theo bạn đánh quái: cấp tối đa 100, sao tư chất 1–5, chỉ số tăng ngẫu nhiên mỗi cấp, 3 kỹ năng mở ở cấp 10/40/80, tiến hóa ở cấp 40 và 80.",
-  "Pet nhận kinh nghiệm, bạn được thêm 10% kinh nghiệm của pet. Pet ngất sẽ tự hồi sinh sau 1 phút.",
-  "Chuồng 3 pet: ra trận/cất, đổi tên miễn phí 1 lần, thả pet (xác nhận 2 bước). Nút Pet ở góc trên màn hình."
+  "Giảm độ trễ: máy chủ game chuyển về khu vực châu Á, ping từ Việt Nam giảm mạnh. Dữ liệu tài khoản, nhân vật được chuyển nguyên vẹn.",
+  "Sửa giật khi nhảy/rơi từ trên cao xuống (trước đây bị kéo ngược lên).",
+  "Sửa giật qua lại khi bị quái đẩy lùi (Cá Kiếm húc, v.v.).",
+  "Nạp trước hiệu ứng quái và dáng nhân vật khi vào bản đồ để không khựng lần đầu."
  ],
- "updated": "2026-11-11T09:58:47.752Z"
+ "updated": "2026-11-11T10:28:04.212Z"
 }
