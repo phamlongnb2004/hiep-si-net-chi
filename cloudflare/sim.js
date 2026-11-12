@@ -291,7 +291,8 @@ export class MapInst {
       c.meDirty = true; c.dirty = true; // chỉ kinh nghiệm/vàng: gửi bản tin nhẹ, không gửi lại cả túi đồ
     }
     const ch = best.ch, got = [];
-    for (const d of R.monDrops(rng, m.type, m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
+    // trùm cấp cố định: đồ rơi theo cấp người kết liễu (không rơi đồ cấp 80 cho người cấp thấp)
+    for (const d of R.monDrops(rng, m.type, m.t.fixLv ? Math.min(m.lv, ch.lv + 3) : m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
       const o = { id: this.seq++, k: d.k, n: d.n, item: d.item, x: clamp(m.x + rand(-34, 34) * (m.t.boss ? 2.5 : 1), 40, this.M.w - 40), y: 0, life: DROP_LIFE, own: best.id, ownT: OWN_T };
       o.y = this.fY(o.x, m.y); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
       if (d.item) got.push(d.item.name);

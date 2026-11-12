@@ -225,6 +225,8 @@ const famOf = type => MON_FAM[type.replace(/\d+$/, '')] || { hp: 1, atk: 1, def:
 export function monStats(type, lv, elite) {
   const t = D.mons[type], e = elite ? ELITE : { hp: 1, atk: 1, def: 1 };
   // Boss Hoang Dã: theo đường cong quái thường cùng cấp, nhân hệ số lớn
+  // trùm thế giới có cấp cố định (Ma Long: siêu mạnh, không phụ thuộc bản đồ xuất hiện)
+  if (t.world && t.fixLv) lv = t.fixLv;
   if (t.world) return { hpMax: Math.round(monCurve(lv, 1) * t.hpm * mt(type, 'hp')), atk: monCurve(lv, 2) * t.atkm * mt(type, 'atk'), def: monCurve(lv, 3) * t.defm * mt(type, 'def') };
   if (t.boss) return { hpMax: Math.round(t.hp * (1 + .28 * (lv - 1)) * e.hp * mt(type, 'hp')), atk: t.atk * (1 + .12 * (lv - 1)) * e.atk * mt(type, 'atk'), def: (t.def + lv * .5) * e.def * mt(type, 'def') };
   const F = famOf(type);
@@ -393,6 +395,18 @@ export const PET_SP = {
   turtle: { n: 'Rùa Ngọc', bias: 'hp', el: 'jade', sk: ['Khiên Ngọc', 'Suối Hồi Phục', 'Thành Đồng Vách Sắt'] }
 };
 export const PET_KEYS = Object.keys(PET_SP);
+// danh sách vật phẩm tặng được ở trang quản trị (không phải trang bị/sách). Thêm vật phẩm mới vào đây là trang quản trị tự có ô tặng.
+export function giftMisc() {
+  const L = [];
+  POT_TIERS.forEach((t, i) => L.push({ k: HP_KEYS[i], n: 'Bình máu ' + t.n.toLowerCase(), max: POT_MAX, icon: 'admin-icons/misc/pot' + i + '.webp' }));
+  POT_TIERS.forEach((t, i) => L.push({ k: KI_KEYS[i], n: 'Bình KI ' + t.n.toLowerCase(), max: POT_MAX, icon: 'admin-icons/misc/kpot' + i + '.webp' }));
+  L.push({ k: 'charms', n: 'Bùa kỹ năng', max: 1e6, icon: 'admin-icons/misc/charm.webp' });
+  L.push({ k: 'stones', n: 'Đá cường hóa', max: 1e6, icon: 'admin-icons/stone.webp' });
+  L.push({ k: 'gold', n: 'Vàng', max: 1e10, icon: 'admin-icons/gold.webp' });
+  L.push({ k: 'exp', n: 'Kinh nghiệm', max: 1e12 });
+  for (const sp of PET_KEYS) L.push({ k: 'egg:' + sp, n: eggName(sp), max: 30, egg: sp, icon: 'admin-icons/egg/' + sp + '.webp' });
+  return L;
+}
 export const PET_STAT = { hp: 'Máu', atk: 'Sức đánh', def: 'Giáp', aspd: 'Tốc đánh', crit: 'Chí mạng' };
 export const PET_MAX = 3, PET_SK_LV = [10, 40, 80], PET_SK_CD = [8, 15, 40], PET_REVIVE = 60, PET_SHARE = .1, PET_PT = 3;
 export const HATCH_MS = 24 * 3600e3, HATCH_CUT = .5, HATCH_GOLD = 2000000;

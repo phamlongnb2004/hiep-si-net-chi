@@ -97,13 +97,16 @@ func render() -> void:
 		for c in Data.CLS_KEYS:
 			var b2 = UI.button(str(Data.D.cls[c].n), UI.GOLD if gear_cls == c else UI.SKY, 16)
 			var cc: String = c
-			b2.pressed.connect(func(): gear_cls = cc; msg = ""; render())
+			b2.pressed.connect(func(): gear_cls = cc; tab = "gear"; msg = ""; render())
 			tabs.add_child(b2)
 		for gi in 3:
-			var b3 = UI.button(["Giáp & vũ khí", "Giày, găng, dây", "Trang sức"][gi], UI.GREEN if gear_grp == gi else UI.SKY, 16)
+			var b3 = UI.button(["Giáp & vũ khí", "Giày, găng, dây", "Trang sức"][gi], UI.GREEN if gear_grp == gi and tab == "gear" else UI.SKY, 16)
 			var g2: int = gi
-			b3.pressed.connect(func(): gear_grp = g2; msg = ""; render())
+			b3.pressed.connect(func(): gear_grp = g2; tab = "gear"; msg = ""; render())
 			tabs.add_child(b3)
+		var bs = UI.button("Bán đồ", UI.GOLD if tab == "sell" else Color("e0565b"), 16)
+		bs.pressed.connect(func(): tab = "sell"; sell_sel = {}; sell_arm = false; msg = ""; render())
+		tabs.add_child(bs)
 	if mode == "shop":
 		for k in [["books", "Sách kỹ năng"], ["pots", "Bình máu & KI"]]:
 			var b = UI.button(k[1], UI.GOLD if tab == k[0] else UI.SKY, 18)
@@ -118,9 +121,82 @@ func render() -> void:
 		"pots": _pots(d)
 		"forge": _forge(d)
 		"gear": _gear(d)
+		"sell": _sell(d)
 		"hatch": _hatch(d)
 		"pets": _pets(d)
 	UI.wrap_all(body, 200)
+
+## bán nhiều món một lúc: chạm để đánh dấu, rồi bấm Bán (bấm 2 lần để chắc chắn)
+var sell_sel := {}
+var sell_arm := false
+func _sell(d: Dictionary) -> void:
+	var inv: Array = []
+	for it in d.inv:
+		if str(it.get("slot", "")) != "egg":
+			inv.append(it)
+	var total = 0
+	var cnt = 0
+	for it in inv:
+		if sell_sel.has(str(it.id)):
+			total += Data.sell_price(it)
+			cnt += 1
+	var top = UI.hbox(8)
+	body.add_child(top)
+	var all_b = UI.button("Chọn hết", UI.SKY, 15)
+	all_b.pressed.connect(func():
+		for it in inv: sell_sel[str(it.id)] = true
+		sell_arm = false; render())
+	top.add_child(all_b)
+	var com_b = UI.button("Chọn đồ thường", UI.SKY, 15)
+	com_b.pressed.connect(func():
+		sell_sel = {}
+		for it in inv:
+			if int(it.r) == 0 and int(it.get("up", 0)) == 0: sell_sel[str(it.id)] = true
+		sell_arm = false; render())
+	top.add_child(com_b)
+	var no_b = UI.button("Bỏ chọn", UI.SKY, 15)
+	no_b.pressed.connect(func(): sell_sel = {}; sell_arm = false; render())
+	top.add_child(no_b)
+	var go = UI.button(("Chắc chắn bán %d món?" % cnt) if sell_arm else ("Bán %d món · %s vàng" % [cnt, UI.fmt(total)]), Color("e0565b") if sell_arm else UI.GOLD, 17)
+	go.disabled = cnt == 0
+	go.pressed.connect(func():
+		if not sell_arm:
+			sell_arm = true; render(); return
+		var ids = sell_sel.keys()
+		sell_sel = {}; sell_arm = false
+		Net.send({"t": "sellm", "ids": ids}))
+	top.add_child(go)
+	body.add_child(UI.label("Chạm vào món đồ để đánh dấu bán (giá bằng 75% giá cửa hàng, đồ hiếm và đồ đã rèn bán cao hơn).", 14, Color("5a6b8c"), "body"))
+	var g = GridContainer.new()
+	g.columns = 9
+	g.add_theme_constant_override("h_separation", 6)
+	g.add_theme_constant_override("v_separation", 6)
+	body.add_child(g)
+	for it in inv:
+		var on = sell_sel.has(str(it.id))
+		var cell = ItemCell.make(it, on, true, false, 76)
+		if on:
+			var ck = UI.outlined("✓", 26, Color("7dff8a"), "bold", 6)
+			ck.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			ck.size_flags_horizontal = Control.SIZE_SHRINK_END
+			ck.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cell.add_child(ck)
+		var pl = UI.outlined(UI.fmt(Data.sell_price(it)), 11, Color("ffe08a"), "bold", 4)
+		pl.size_flags_vertical = Control.SIZE_SHRINK_END
+		pl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(pl)
+		var iid = str(it.id)
+		cell.mouse_filter = Control.MOUSE_FILTER_STOP
+		cell.gui_input.connect(func(ev):
+			if UI.tapped(ev):
+				if sell_sel.has(iid): sell_sel.erase(iid)
+				else: sell_sel[iid] = true
+				sell_arm = false
+				render())
+		g.add_child(cell)
+	if inv.is_empty():
+		body.add_child(UI.label("Túi chưa có món nào để bán.", 16, UI.INK, "body"))
 
 func _row(no: String, h: String, p: String, small: String, btn: Button, icon: Texture2D = null) -> void:
 	var r = PanelContainer.new()

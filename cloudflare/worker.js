@@ -478,7 +478,7 @@ export class World extends DurableObject {
   wbMaps() { return R.D.maps.map((M, i) => i).filter(i => { const M = R.D.maps[i]; return !M.village && !M.arena && M.spots && M.spots.length; }); }
   wbSpawn(srv, mi, khu, x) {
     const M = R.D.maps[mi], inst = this.instOf(srv, mi, khu); inst.keep = true;
-    const lv = Math.min(R.MAX_LV, Math.max(...M.spots.map(s => s.lv[1])) + 10);
+    const lv = R.D.mons.malong.fixLv || Math.min(R.MAX_LV, Math.max(...M.spots.map(s => s.lv[1])) + 10);
     if (x == null) { const sp = M.spots[Math.floor(Math.random() * M.spots.length)]; x = sp.x + sp.w / 2; }
     const m = inst.addMon('malong', lv, x, false); m.noRe = true;
     m.x0 = Math.max(60, x - 500); m.x1 = Math.min(M.w - 60, x + 500);

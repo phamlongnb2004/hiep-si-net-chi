@@ -1311,7 +1311,8 @@
      "fx": "ml_ult",
      "ph": 3
     }
-   ]
+   ],
+   "fixLv": 80
   },
   "dragonling": {
    "n": "Rồng Con",

@@ -171,3 +171,9 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 ## Túi đầy không tự bán, trùm trên bản đồ nhỏ (2.10.2)
 - Túi đầy: máy chủ không nhặt trang bị (để nguyên trên đất, vẫn nhặt bình/đá/vàng/bùa), gửi `full` (tối đa 3 giây/lần, bấm Nhặt thì gửi ngay); ứng dụng hiện "Hành trang đã đầy" giữa màn hình (đang auto: 20 giây/lần), auto bỏ qua trang bị khi túi đầy. Bỏ tự bán.
 - Bản đồ nhỏ: trùm là ngôi sao vàng viền đen, tâm đỏ, vòng sáng nhấp nháy, vẽ trên cùng.
+
+## Bán nhiều món, quản trị tặng mọi vật phẩm, bỏ qua giờ ấp, Ma Long cố định (2.10.3)
+- Thương Nhân Giáp có thẻ "Bán đồ": chạm đánh dấu nhiều món (Chọn hết / Chọn đồ thường / Bỏ chọn), bấm Bán 2 lần → `sellm {ids}`.
+- Trang quản trị: "Vật phẩm khác" lấy từ `R.giftMisc()` (bình máu/KI 3 cỡ, bùa, đá, vàng, kinh nghiệm, trứng từng loài) — thêm vật phẩm mới vào hàm này là trang quản trị tự có ô tặng. `give {misc: {khóa: số}}` (vẫn nhận pots/stones/gold/exp kiểu cũ).
+- Quản trị: thẻ nhân vật hiện bùa, pet, trứng đang ấp; nút "Bỏ qua thời gian ấp" → `hatch_skip` (chỉ chủ).
+- Ma Long Hắc Vực: cấp cố định `fixLv: 80` (~3,1 triệu máu), không theo bản đồ; đồ rơi theo cấp người kết liễu (≤ cấp người đó + 3).

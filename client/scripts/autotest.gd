@@ -782,6 +782,13 @@ func perf_test() -> void:
 		g.open_npc.emit("gear")
 		await wait(0.6)
 		await shot("ui-gear")
+		main.npc.tab = "sell"
+		var invs = g.me_data.get("inv", [])
+		for k in min(5, invs.size()):
+			main.npc.sell_sel[str(invs[k].id)] = true
+		main.npc.render()
+		await wait(0.4)
+		await shot("ui-sell")
 		main.npc.close()
 		g.open_npc.emit("smith")
 		await wait(0.6)

@@ -10,7 +10,7 @@ const BOOT_HASH = '8589c830546d707be0f730af2652f3faeea08b28318a5973c78fbd9d79e4c
 const ROLE = { viewer: 1, gm: 2, owner: 3 };
 const ROLE_N = { viewer: 'Chỉ xem', gm: 'GM hỗ trợ', owner: 'Chủ' };
 const NEED = { // quyền tối thiểu cho mỗi thao tác
-  me: 1, overview: 1, catalog: 1, give: 3, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
+  me: 1, overview: 1, catalog: 1, give: 3, hatch_skip: 3, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
   ban: 2, unban: 2, mute: 2, kick: 2, announce: 2,
   // đụng tới tài sản/tài khoản người chơi: chỉ chủ (GM có lạm quyền cũng không tự làm giàu hay chiếm tài khoản được)
   char_edit: 3, item_add: 3, item_del: 3, restore: 3, reset_pw: 3, maint: 3, event: 3, event_stop: 3, servers_set: 3, app_cfg: 3, arena_now: 3, tune_set: 3, tune_reset: 3,
@@ -249,7 +249,7 @@ function kickUser(w, uid, msg, code) {
   for (const c of [...w.clients.values()]) if (c.uid === uid) { w.sendTo(c, { t: 'err', code: code || 'kick', msg }); try { c.ws.close(code === 'ban' ? 4008 : 4010, code || 'kick'); } catch (e) {} w.drop(c); }
 }
 const userRow = (w, uid) => { const u = w.one('SELECT id, username, created, banned_until, ban_reason, muted_until, last_login, last_ip FROM users WHERE id=?', uid | 0); if (!u) bad('Không có tài khoản.'); return u; };
-const charSummary = d => ({ name: d.name, cls: d.cls, lv: d.lv, exp: d.exp, gold: d.gold, stones: d.stones, pots: d.pots, kills: d.kills, map: d.map, inv: d.inv || [], eq: d.eq || {}, sk: d.sk, bad: d.bad || null });
+const charSummary = d => ({ name: d.name, cls: d.cls, lv: d.lv, exp: d.exp, gold: d.gold, stones: d.stones, pots: d.pots, kills: d.kills, map: d.map, inv: d.inv || [], eq: d.eq || {}, sk: d.sk, bad: d.bad || null, charms: d.charms | 0, hatch: d.hatch || null, pets: (d.pets || []).map(p => ({ sp: p.sp, name: p.name, lv: p.lv, star: p.star })) });
 
 const ACT = {
   async me(w, A) { return { user: A.user, role: A.role, roleName: ROLE_N[A.role], uid: A.uid, servers: w.servers().map(x => ({ id: x.id, name: x.name })) }; },
@@ -331,12 +331,16 @@ const ACT = {
     const books = {}; for (const cls of R.CLS_KEYS) books[cls] = R.D.skills[cls].map((s, i) => ({ i, n: s.n, d: s.d, req: s.req, price: s.price, icon: `admin-icons/skills/${cls}/${i}.webp` }));
     return { lvl, gear, books, cls: Object.fromEntries(R.CLS_KEYS.map(k => [k, R.D.cls[k].n])), rar: R.D.rar.map(x => ({ n: x.n, c: x.c })),
       max: { lv: R.MAX_LV, up: R.D.forge.max, inv: R.INV_MAX, pots: R.POT_MAX },
-      misc: [{ k: 'pots', n: 'Bình máu', icon: 'admin-icons/pot.webp' }, { k: 'stones', n: 'Đá cường hóa', icon: 'admin-icons/stone.webp' }, { k: 'gold', n: 'Vàng', icon: 'admin-icons/gold.webp' }, { k: 'exp', n: 'Kinh nghiệm', icon: 'admin-icons/exp.webp' }] };
+      misc: R.giftMisc() };
   },
   // tặng nhiều vật phẩm một lần: cho một nhân vật, hoặc cho mọi người đang online trên một máy chủ
   async give(w, A, b) {
     const gear = Array.isArray(b.gear) ? b.gear.slice(0, 30) : [], books = Array.isArray(b.books) ? b.books.slice(0, 6) : [];
-    const n = k => int(b[k] || 0, 0, k === 'exp' ? 1e12 : k === 'gold' ? 1e10 : 1e6);
+    // vật phẩm khác: b.misc {khóa: số} (bản trang cũ gửi pots/stones/gold/exp ở ngoài; 'pots' cũ = bình máu vừa)
+    const MISC = R.giftMisc(), mi = Object.assign({}, b.misc && typeof b.misc === 'object' ? b.misc : {});
+    for (const k of ['pots', 'stones', 'gold', 'exp']) if (b[k] && mi[k] == null) mi[k] = b[k];
+    const n = k => { const d = MISC.find(x => x.k === k); return d ? int(mi[k] || 0, 0, d.max) : 0; };
+    const eggN = MISC.filter(x => x.egg).reduce((a, x) => a + n(x.k), 0);
     const make = g => {
       const slot = String(g.slot), cls = R.isFree(slot) ? R.CLS_KEYS[0] : String(g.cls), r = int(g.r, 0, 3), lvl = int(g.lvl, 1, R.MAX_LV);
       if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot)) bad('Món đồ không hợp lệ.');
@@ -349,16 +353,19 @@ const ACT = {
       return it;
     };
     const items = []; for (const g of gear) { const q = int(g.qty || 1, 1, 30); for (let i = 0; i < q; i++) items.push(g); }
-    if (!items.length && !books.length && !['pots', 'stones', 'gold', 'exp'].some(k => n(k))) bad('Chưa chọn vật phẩm nào.');
+    if (!items.length && !books.length && !MISC.some(x => n(x.k))) bad('Chưa chọn vật phẩm nào.');
     const note = clean(b.note, 120);
     const apply = (ch) => {
-      const room = R.INV_MAX - (ch.inv || []).length; if (items.length > room) bad('Túi của ' + ch.name + ' chỉ còn ' + Math.max(0, room) + ' ô trống.');
+      const room = R.INV_MAX - (ch.inv || []).length; if (items.length + eggN > room) bad('Túi của ' + ch.name + ' chỉ còn ' + Math.max(0, room) + ' ô trống.');
       const got = [];
       for (const g of items) { const it = make(g); ch.inv.push(it); got.push((it.up ? '+' + it.up + ' ' : '') + it.name); }
-      if (n('pots')) { const add = Math.min(n('pots'), R.POT_MAX - (ch.pots | 0)); ch.pots = (ch.pots | 0) + Math.max(0, add); got.push(Math.max(0, add) + ' bình máu'); }
-      if (n('stones')) { ch.stones = (ch.stones | 0) + n('stones'); got.push(n('stones') + ' đá cường hóa'); }
-      if (n('gold')) { ch.gold = (ch.gold | 0) + n('gold'); got.push(n('gold') + ' vàng'); }
-      if (n('exp')) { R.addExp(ch, n('exp')); got.push(n('exp') + ' kinh nghiệm'); }
+      for (const x of MISC) {
+        const q = n(x.k); if (!q) continue;
+        if (x.egg) { for (let i = 0; i < q; i++) ch.inv.push(R.newEgg(x.egg, 'e' + Date.now().toString(36) + rnd(4))); got.push(q + ' ' + x.n.toLowerCase()); }
+        else if (x.k === 'exp') { R.addExp(ch, q); got.push(q + ' kinh nghiệm'); }
+        else if (x.max === R.POT_MAX) { const add = Math.max(0, Math.min(q, R.POT_MAX - (ch[x.k] | 0))); ch[x.k] = (ch[x.k] | 0) + add; got.push(add + ' ' + x.n.toLowerCase()); }
+        else { ch[x.k] = (ch[x.k] | 0) + q; got.push(q + ' ' + x.n.toLowerCase()); }
+      }
       for (const x of books) { const i = int(x.i ?? x, 0, 5); if (!ch.books[i]) { ch.books[i] = 1; got.push('sách ' + R.D.skills[ch.cls][i].n); } if (x.learn && ch.lv >= R.D.skills[ch.cls][i].req) ch.sk[i] = 1; }
       return got;
     };
@@ -376,6 +383,15 @@ const ACT = {
     const d = editChar(w, A, uid, srv, 'Tặng vật phẩm', ch => { got = apply(ch); });
     tell(uid, srv, got);
     return { ok: true, n: 1, got, char: charSummary(d) };
+  },
+  // bỏ qua thời gian ấp trứng (chỉ quản trị): trứng nở ngay, người chơi tới Bà Ấp Trứng để nhận
+  async hatch_skip(w, A, b) {
+    const d = editChar(w, A, userRow(w, b.uid).id, b.srv | 0, 'Bỏ qua thời gian ấp trứng', ch => {
+      if (!ch.hatch) bad('Nhân vật này không có trứng đang ấp.');
+      ch.hatch.end = Date.now();
+    });
+    for (const c of w.clients.values()) if (c.uid === (b.uid | 0) && c.srv === (b.srv | 0)) w.sendTo(c, { t: 'log', text: '🥚 Quản trị đã cho trứng của bạn nở ngay. Tới Bà Ấp Trứng để nhận pet!', col: '#ffd23f' });
+    return { ok: true, char: charSummary(d) };
   },
   async item_del(w, A, b) {
     const d = editChar(w, A, userRow(w, b.uid).id, b.srv | 0, 'Xóa đồ', ch => {

@@ -28,6 +28,15 @@ export const OPS = {
     if (ch.inv[i].slot === 'egg') return { ok: false, msg: 'Không bán được trứng cho cửa hàng.' };
     const g = R.sellPrice(ch.inv[i]); ch.gold += g; ch.inv.splice(i, 1); return { ok: true, gold: g };
   },
+  // bán nhiều món một lần ở Thương Nhân Giáp (bỏ qua trứng)
+  sellm(c, m) {
+    const ch = c.ch; if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Mang đồ tới Thương Nhân Giáp trong Làng để bán.' };
+    const ids = Array.isArray(m.ids) ? m.ids.slice(0, R.INV_MAX).map(String) : [];
+    let n = 0, g = 0;
+    for (const id of ids) { const i = findInv(ch, id); if (i < 0 || ch.inv[i].slot === 'egg') continue; g += R.sellPrice(ch.inv[i]); ch.inv.splice(i, 1); n++; }
+    if (!n) return { ok: false, msg: 'Chưa chọn món nào để bán.' };
+    ch.gold += g; return { ok: true, gold: g, msg: 'Đã bán ' + n + ' món, nhận ' + g + ' vàng.' };
+  },
   // vứt bỏ một món trong túi (mất hẳn); trứng pet không vứt được ở đây
   toss(c, m) {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
