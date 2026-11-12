@@ -23,6 +23,7 @@ var say_t = 0.0
 var title = ""          # danh hiệu (vd Kẻ Kết Liễu, 24 giờ sau khi hạ trùm)
 var deb = 0             # trạng thái xấu: 1 choáng, 2 chậm, 4 độc
 var climb = false       # đang leo dây/thang: vẽ dáng nhìn từ sau lưng
+var myth = 0            # đồ Thần Thoại: bit 1 áo, 2 mũ, 4 áo choàng; (myth >> 3) = số món đang mặc
 var _sp: Array = []     # hạt sáng quanh cánh
 
 const HS := 0.8
@@ -140,11 +141,49 @@ var _dead_t := 99.0
 var die_force := -1    # xem thử: ép khung ngã (0..3)
 var jump_force := -1   # xem thử: ép khung nhảy (0..3)
 
+## bậc ảnh thân (áo): "4" = áo Thần Thoại, "b" = không mặc áo
+func _ak() -> String:
+	if myth & 1:
+		return "4"
+	var a = look % 5 - 1
+	return "b" if a < 0 else str(a)
+
+## bậc mũ / áo choàng đang vẽ (4 = Thần Thoại; thiếu ảnh bậc 4 thì dùng bậc 3)
+func _th(L: Dictionary, k: String) -> int:
+	var v = (4 if myth & 2 else int(look / 5) % 5 - 1) if k.begins_with("hat") else (4 if myth & 4 else int(look / 25) - 1)
+	if v == 4 and L.has(k) and L[k].size() < 5:
+		v = 3
+	return v
+
+## hào quang Thần Thoại quanh người: 1-2 món sáng nhẹ, từ 3 món hiện đầy đủ (vòng sau lưng + lớp sáng trước người)
+func _myth_aura(front: bool, al: float) -> void:
+	var n = myth >> 3
+	if n <= 0 or (front and n < 3):
+		return
+	var d: Dictionary = Data.A.get("vfx", {}).get("myth_front" if front else "myth_aura", {})
+	if d.is_empty():
+		return
+	var f: Array = d.f
+	var tx = _tx(f[int(t * 10.0) % f.size()])
+	if tx == null:
+		return
+	var full = n >= 3
+	var h = (112.0 if full else 92.0)
+	var w = h * float(d.w) / float(d.h)
+	draw_set_transform(Vector2.ZERO)
+	var col = Color(1, 1, 1, al * ((0.85 if front else 0.95) if full else 0.42 + 0.1 * sin(t * 3.0)))
+	if front:
+		# lớp trước người: chỉ nửa dưới (vòng sáng dưới chân, hạt bay quanh chân) để không che mặt
+		var ts = tx.get_size()
+		var k = 0.42
+		draw_texture_rect_region(tx, Rect2(-w / 2, -h * k + h * 0.07, w, h * k), Rect2(0, ts.y * (1.0 - k), ts.x, ts.y * k), col)
+	else:
+		draw_texture_rect(tx, Rect2(-w / 2, -h + h * 0.07, w, h), false, col)
+
 ## khung nhảy: 0 lấy đà/chạm đất, 1 bật lên, 2 đỉnh, 3 rơi xuống (thiếu ảnh thì trả về rỗng)
 func _jump_frame() -> Dictionary:
-	var a = look % 5 - 1
 	var an: Dictionary = Data.A.get("anim", {})
-	var js: Array = an.get("jump_%s_%s" % [cls, "b" if a < 0 else str(a)], an.get("jump_%s_0" % cls, []))
+	var js: Array = an.get("jump_%s_%s" % [cls, _ak()], an.get("jump_%s_0" % cls, []))
 	if js.size() < 4:
 		return {}
 	if jump_force >= 0:
@@ -163,17 +202,15 @@ func _jump_frame() -> Dictionary:
 func _die_frame() -> Array:
 	if not dead and die_force < 0:
 		return []
-	var a = look % 5 - 1
 	var an: Dictionary = Data.A.get("anim", {})
-	var ds: Array = an.get("die_%s_%s" % [cls, "b" if a < 0 else str(a)], an.get("die_%s_0" % cls, []))
+	var ds: Array = an.get("die_%s_%s" % [cls, _ak()], an.get("die_%s_0" % cls, []))
 	if ds.size() < 4:
 		return []
 	var i = die_force if die_force >= 0 else (0 if _dead_t < 0.16 else 1 if _dead_t < 0.32 else 2 if _dead_t < 0.46 else 3)
 	return [i, ds[i]]
 
 func _frames() -> Array:
-	var a = look % 5 - 1
-	var k = "body_%s_%s" % [cls, "b" if a < 0 else str(a)]
+	var k = "body_%s_%s" % [cls, _ak()]
 	var an: Dictionary = Data.A.get("anim", {})
 	if an.has(k):
 		return an[k]
@@ -215,6 +252,8 @@ func _draw() -> void:
 	var sk = 1.0 - up * 0.05
 	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
 	_ellipse(Vector2(0, 1.5), 28 * sk, 7, Color(0.1, 0.12, 0.2, 0.28 * al))
+	_myth_aura(false, al)
+	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
 	# cánh sau lưng (vẽ trước thân)
 	if wing >= 0:
 		_draw_wing(al, up)
@@ -234,8 +273,8 @@ func _draw() -> void:
 	xf = xf * Transform2D(rot, Vector2.ZERO) * Transform2D().translated(Vector2(lunge, -up)) * Transform2D().scaled(Vector2(sx, sy))
 	var F: Dictionary = FIT.get(cls, FIT.sword)
 	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
-	var tc = int(look / 25) - 1
-	var th = int(look / 5) % 5 - 1
+	var tc = _th(L, "cape")
+	var th = _th(L, "hat")
 	var mod = Color(1, 1, 1, al)
 	# áo choàng phía sau
 	if tc >= 0 and L.has("cape") and tc < L.cape.size():
@@ -278,14 +317,15 @@ func _draw() -> void:
 			var y: float = -q.h + top + hw2 * F.hb + float(ht.get("oy", 0.0))
 			draw_set_transform_matrix(xf)
 			draw_texture_rect(htx, Rect2(hx - hw2 / 2, y - hh, hw2, hh), false, mod)
+	_myth_aura(true, al)
 	draw_set_transform(Vector2.ZERO)
 	_labels()
 
 func _draw_die(i: int, q: Dictionary, al: float) -> void:
 	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
 	var F: Dictionary = FIT.get(cls, FIT.sword)
-	var th = int(look / 5) % 5 - 1
-	var tc = int(look / 25) - 1
+	var th = _th(L, "hat")
+	var tc = _th(L, "cape")
 	var mod = Color(1, 1, 1, al)
 	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
 	_ellipse(Vector2(0, 1.5), 34.0 if i >= 2 else 26.0, 7, Color(0.1, 0.12, 0.2, 0.28 * al))
@@ -360,9 +400,8 @@ func _labels() -> void:
 ## Mũ và áo choàng dùng ảnh mặt sau; cánh mọc từ lưng, vẽ đè lên thân, xoè đủ hai bên.
 var _cph = 0.0
 func _draw_climb(al: float) -> bool:
-	var a = look % 5 - 1
 	var an: Dictionary = Data.A.get("anim", {})
-	var set: Array = an.get("climb_%s_%s" % [cls, "b" if a < 0 else str(a)], an.get("climb_%s_b" % cls, []))
+	var set: Array = an.get("climb_%s_%s" % [cls, _ak()], an.get("climb_%s_b" % cls, []))
 	if set.size() < 4:
 		return false
 	if moving:
@@ -373,8 +412,9 @@ func _draw_climb(al: float) -> bool:
 		return false
 	var mod = Color(1, 1, 1, al)
 	var L: Dictionary = Data.A.get("layer", {}).get(cls, {})
-	var tc = int(look / 25) - 1
-	var th = int(look / 5) % 5 - 1
+	var tc = _th(L, "capeb")
+	var th = _th(L, "hatb")
+	_myth_aura(false, al)
 	draw_set_transform(Vector2.ZERO, 0, Vector2(HS, HS))
 	draw_texture_rect(tx, Rect2(-q.ax, -q.h, q.w, q.h), false, mod)
 	# áo choàng mặt sau: treo từ vai, phủ lưng
@@ -397,6 +437,7 @@ func _draw_climb(al: float) -> bool:
 		if htx:
 			draw_set_transform(Vector2((float(q.hx) - q.ax) * HS, (-q.h + float(q.hy)) * HS), 0, Vector2(HS, HS))
 			draw_texture_rect(htx, Rect2(-float(ht.w) / 2, -float(ht.h) + float(ht.get("dy", 0)), ht.w, ht.h), false, mod)
+	_myth_aura(true, al)
 	draw_set_transform(Vector2.ZERO)
 	return true
 

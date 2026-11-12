@@ -205,6 +205,8 @@ func _bar(top: float, sw: float) -> void:
 		draw_rect(Rect2(-bw / 2, ly2, bw * clampf(hp / hp_max, 0, 1), 5), Color("d9345a"))
 	var f2: Font = Data.fonts.get("bold")
 	var lab = "Lv.%d %s%s" % [lv, _info.get("n", type), " Tinh Anh" if elite else ""]
+	if _info.get("nolv", false):
+		lab = "☠ %s ☠" % _info.get("n", type)
 	var sz = 16 if boss else 14
 	var w = f2.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
 	draw_string_outline(f2, Vector2(-w / 2, ly2 - 5), lab, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, 4, Color(1, 1, 1, 0.85))
@@ -251,11 +253,14 @@ func _draw2() -> void:
 	if hit_t > 0:
 		var q = hit_t / 0.18
 		col = Color(1, 1 - 0.55 * q, 1 - 0.55 * q, al)
-	if flags & 128:
+	if flags & 128 and not _info.get("world2", false):
 		col = col * Color(0.7, 0.85, 1.25)
 	# bóng dưới chân
 	_ellipse(Vector2(0, 2), W * 0.32 * (0.75 if flyh > 0 else 1.0), W * 0.07, Color(0.1, 0.1, 0.2, 0.22 if flyh > 0 else 0.3))
 	var lng = sin(lunge / 0.25 * PI) * 8.0 if lunge > 0 and anim == "" else 0.0
+	var au = _info.get("aura")
+	if au is Array and die_t < 0:
+		_aura(str(au[0]), W * float(au[2]), H * float(au[2]), al, false)
 	draw_set_transform(Vector2(lng * face, 0), 0, Vector2(face, 1))
 	var tx = Data.tex(fr[k])
 	if tx:
@@ -266,7 +271,19 @@ func _draw2() -> void:
 				draw_texture_rect(tx, Rect2(r.position + o, r.size), false, Color(1.0, 0.75, 0.25, gl))
 		draw_texture_rect(tx, r, false, col)
 	draw_set_transform(Vector2.ZERO)
-	if flags & 128:
+	if au is Array and die_t < 0:
+		_aura(str(au[1]), W * float(au[2]), H * float(au[2]), al * 0.8, true)
+	if flags & 128 and _info.get("world2", false):
+		# khiên Hỗn Mang: ít hơn 3 người cùng đánh thì chỉ nhận 15% sát thương (vòng tím mờ quanh thân + chữ nhắc)
+		var pa = 0.35 + sin(t * 4.0) * 0.12
+		for kk in 3:
+			draw_arc(Vector2(0, y0 + H * 0.55), W * (0.46 + kk * 0.03), 0, TAU, 48, Color(0.75, 0.35, 1.0, pa * (1.0 - kk * 0.3)), 5.0 - kk)
+		var fs: Font = Data.fonts.get("bold")
+		var tip = "Khiên Hỗn Mang · cần ít nhất 3 người"
+		var tw = fs.get_string_size(tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+		draw_string_outline(fs, Vector2(-tw / 2, y0 + H * 0.12), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 4, Color(0.12, 0.02, 0.2, 0.9))
+		draw_string(fs, Vector2(-tw / 2, y0 + H * 0.12), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.9, 0.7, 1.0))
+	elif flags & 128:
 		var sh: Dictionary = Data.A.get("vfx", {}).get("ml_shield", {})
 		if world and not sh.is_empty():
 			var sf: Array = sh.f
@@ -280,6 +297,26 @@ func _draw2() -> void:
 	var top = y0 + 4
 	_status(top)
 	_bar(top, W * 0.36)
+
+## hào quang quanh trùm (lớp sau và lớp trước thân), đặt sát đất, lặp liên tục
+func _aura(nm: String, w: float, h: float, al: float, front: bool) -> void:
+	var d: Dictionary = Data.A.get("vfx", {}).get(nm, {})
+	if d.is_empty():
+		return
+	var f: Array = d.f
+	var tx = Data.tex(f[int(t * 9.0 + id) % f.size()])
+	if tx == null:
+		return
+	# vòng lửa trải rộng theo thân trùm (thân rộng hơn ảnh hào quang), đáy sát đất
+	var ww = w * 1.05
+	var hh2 = h * 0.95
+	if front:
+		# lớp trước thân: chỉ phần dưới (khói tím quanh chân) để không che mặt trùm
+		var ts = tx.get_size()
+		var k = 0.38
+		draw_texture_rect_region(tx, Rect2(-ww / 2, -hh2 * k + h * 0.04, ww, hh2 * k), Rect2(0, ts.y * (1.0 - k), ts.x, ts.y * k), Color(1, 1, 1, al))
+	else:
+		draw_texture_rect(tx, Rect2(-ww / 2, -hh2 + h * 0.04, ww, hh2), false, Color(1, 1, 1, al))
 
 func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts = PackedVector2Array()

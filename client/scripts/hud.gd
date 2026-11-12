@@ -405,11 +405,20 @@ func refresh() -> void:
 		s.mx = float(Data.D.skills[c][i].cd)
 		var kc: Array = d.get("kc", [])
 		s.noki = i < kc.size() and float(d.get("ki", 0)) < float(kc[i])
+	if skills.size() > 6:
+		var u: SkillBtn = skills[6]
+		u.visible = int(d.get("usk", 0)) == 1
+		u.tex = Data.tex(Data.A.get("myth", {}).get("book", ""))
+		u.big = true
+		u.locked = false
+		u.mx = 45.0
+		var kc2: Array = d.get("kc", [])
+		u.noki = kc2.size() > 6 and float(d.get("ki", 0)) < float(kc2[6])
 
 func _process(_dt: float) -> void:
 	if game == null:
 		return
-	for i in 6:
+	for i in mini(7, skills.size()):
 		skills[i].cd = game.cds[i]
 	potb.cd = game.pot_cd
 	kpotb.cd = game.kpot_cd
@@ -763,6 +772,13 @@ func _build_controls() -> void:
 			b.pressed.connect(func(): g.do_skill(ii))
 			br.add_child(b)
 			skills.append(b)
+		var ub = SkillBtn.new()   # ô thứ 7: Thiên Địa Diệt (chỉ hiện khi đã học từ sách)
+		ub.square = true
+		ub.size = Vector2(84, 84)
+		ub.position = Vector2(760 - 190 - 7 * 92, 190 - 100)
+		ub.pressed.connect(func(): g.do_skill(6))
+		br.add_child(ub)
+		skills.append(ub)
 		for q in [[potb, 0], [kpotb, 1], [rb, 2]]:
 			var b2: SkillBtn = q[0]
 			b2.square = true
@@ -796,6 +812,13 @@ func _build_controls() -> void:
 			b.pressed.connect(func(): g.do_skill(ii))
 			br.add_child(b)
 			skills.append(b)
+		var ub2 = SkillBtn.new()   # ô thứ 7: Thiên Địa Diệt (chỉ hiện khi đã học từ sách)
+		ub2.size = Vector2(80, 80)
+		ub2.position = ac + Vector2(cos(deg_to_rad(215.0)), sin(deg_to_rad(215.0))) * 335.0 - ub2.size / 2
+		ub2.key = "" if touch else "7"
+		ub2.pressed.connect(func(): g.do_skill(6))
+		br.add_child(ub2)
+		skills.append(ub2)
 		potb.size = Vector2(72, 72)
 		potb.position = Vector2(-10, 250)
 		br.add_child(potb)

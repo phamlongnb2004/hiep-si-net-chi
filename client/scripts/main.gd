@@ -451,7 +451,7 @@ func _scroll_pass(n: Node) -> void:
 	if n is PanelContainer or n is Panel or n is ColorRect:
 		_scroll_pass_check.call_deferred(n)
 
-func _scroll_pass_check(n: Node) -> void:
+func _scroll_pass_check(n) -> void:   # không gõ kiểu: nút có thể đã bị xóa trước khi hàm hoãn chạy
 	if not is_instance_valid(n) or not n.is_inside_tree():
 		return
 	var c := n as Control

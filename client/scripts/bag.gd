@@ -73,7 +73,7 @@ func _cell(sz := 74) -> PanelContainer:
 	return p
 
 func _item_cell(it: Dictionary, selected: bool, equipped := false) -> PanelContainer:
-	var own = Data.can_wear(it, game.cls()) or str(it.get("slot", "")) == "egg"
+	var own = Data.can_wear(it, game.cls()) or str(it.get("slot", "")) in ["egg", "book"]
 	var better = own and not equipped and str(it.get("slot", "")) != "egg" and Data.score(it) > Data.score(game.me_data.eq.get(it.slot))
 	return ItemCell.make(it, selected, own, better)
 
@@ -223,6 +223,9 @@ func _render_detail(d: Dictionary) -> void:
 		bp.pressed.connect(func(): game.open_npc.emit("pets"))
 		detail.add_child(bp)
 		return
+	if str(it.slot) == "book":
+		_render_book(d, it)
+		return
 	var nm = UI.label(Data.item_name(it), 22, Data.rar_color(r2) if r2 > 0 else UI.INK, "bold")
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail.add_child(nm)
@@ -230,7 +233,10 @@ func _render_detail(d: Dictionary) -> void:
 	detail.add_child(UI.label("%s · %s · Cấp %d" % [Data.D.rar[r2].n, Data.SLOT_N[it.slot], int(it.lvl)], 16, Color("5a6b8c"), "semi"))
 	var lv_ok = int(d.get("lv", 1)) >= Data.req_lv(it)
 	detail.add_child(UI.label("Cần cấp %d để mặc" % Data.req_lv(it) + ("" if lv_ok else " (bạn chưa đủ cấp)"), 16, UI.INK if lv_ok else Color("d9345a"), "semi"))
-	if str(it.slot) in Data.FREE:
+	if Data.is_myth(it):
+		detail.add_child(UI.label("✦ Thần Thoại · phái nào cũng mặc được · rơi từ Hỗn Mang Ma Thần", 16, Color("ff2e63"), "semi"))
+		detail.add_child(UI.label("Mặc 1 món: hào quang nhẹ · mặc từ 3 món: hào quang thần thánh đầy đủ", 14, Color("5a6b8c"), "semi"))
+	elif str(it.slot) in Data.FREE:
 		detail.add_child(UI.label("Mọi phái đều dùng được" + (" · chỉ rơi từ trùm" if str(it.slot) == "wing" else ""), 16, Color("2fa84f"), "semi"))
 	else:
 		detail.add_child(UI.label("Phái: " + str(Data.D.cls.get(it.get("cls", ""), {}).get("n", "?")) + ("" if own else " (bạn không mặc được)"), 16, UI.INK if own else Color("d9345a"), "semi"))
@@ -271,6 +277,35 @@ func _render_detail(d: Dictionary) -> void:
 	else:
 		detail.add_child(UI.label("Bán ở Thương Nhân Giáp trong Làng: %s vàng." % UI.fmt(price), 13, Color("5a6b8c"), "semi"))
 
+## sách kĩ năng Thiên Địa Diệt: học ngay trong túi (cần cấp 100, mỗi nhân vật học 1 lần)
+func _render_book(d: Dictionary, it: Dictionary) -> void:
+	var nm = UI.label(Data.item_name(it), 22, Data.rar_color(4), "bold")
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_child(nm)
+	detail.add_child(UI.label("Thần Thoại · Sách kĩ năng · rơi từ Hỗn Mang Ma Thần", 16, Color("5a6b8c"), "semi"))
+	var ds = UI.label("Thiên Địa Diệt: gọi cột thánh quang giáng xuống mục tiêu, 700% sát thương vùng rộng và làm choáng 1,5 giây. Hồi chiêu 45 giây. Ô kỹ năng thứ 7 (phím 7).", 16, UI.INK, "body")
+	ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_child(ds)
+	detail.add_child(UI.label("Phái nào cũng học được · Giao dịch được", 15, Color("2fa84f"), "semi"))
+	var lv_ok = int(d.get("lv", 1)) >= 100
+	var learned = int(d.get("usk", game.me_data.get("usk", 0))) == 1
+	detail.add_child(UI.label("Đã học kĩ năng này" if learned else ("Cần cấp 100 để học" + ("" if lv_ok else " (bạn chưa đủ cấp)")), 16, Color("5a6b8c") if learned else (UI.INK if lv_ok else Color("d9345a")), "semi"))
+	var row = UI.hbox(8)
+	detail.add_child(row)
+	var bl = UI.button("Đã học" if learned else ("Học" if lv_ok else "Chưa đủ cấp"), UI.GREEN, 18)
+	bl.disabled = learned or not lv_ok
+	var iid = it.id
+	bl.pressed.connect(func(): Net.send({"t": "usebook", "id": iid}); sel = {})
+	row.add_child(bl)
+	var bt = UI.button("Chắc chắn vứt?" if arm_toss == str(iid) else "Vứt", Color("e0565b"), 18)
+	bt.pressed.connect(func():
+		if arm_toss != str(iid):
+			arm_toss = str(iid)
+			render()
+			return
+		Net.send({"t": "toss", "id": iid}); sel = {}; arm_toss = "")
+	row.add_child(bt)
+
 func _render_char(d: Dictionary) -> void:
 	var left = UI.vbox(10)
 	body.add_child(left)
@@ -283,6 +318,7 @@ func _render_char(d: Dictionary) -> void:
 	var h = Hero.new()
 	h.cls = game.cls()
 	h.look = game.me.look
+	h.myth = game.me.myth
 	h.wing = int(d.eq.wing.r) if d.eq.get("wing") is Dictionary else -1
 	h.show_name = false
 	h.position = Vector2(110, 230)

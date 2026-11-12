@@ -74,5 +74,8 @@ for (const f of fs.readdirSync(path.join(root, 'tools', 'site'))) fs.copyFileSyn
   for (const k of ['pot', 'stone', 'gold', 'book']) cp(path.join(A, 'hud', 'ui', k + '.webp'), path.join(O, k + '.webp'));
   // vật phẩm khác (bình 3 cỡ, bùa) và trứng thú cưng: trang quản trị dùng admin-icons/misc/*, admin-icons/egg/<loài>.webp
   for (const k of ['pot0', 'pot1', 'pot2', 'kpot0', 'kpot1', 'kpot2', 'charm']) cp(path.join(A, 'hud', 'ui', k + '.webp'), path.join(O, 'misc', k + '.webp'));
+  // đồ Thần Thoại và sách Thiên Địa Diệt (2.12.0)
+  cp(path.join(A, 'myth', 'book.webp'), path.join(O, 'misc', 'book_usk.webp'));
+  for (const k of ['hat', 'armor', 'cape', 'gloves', 'boots', 'neck', 'ring', 'earring', 'belt', 'charm']) cp(path.join(A, 'myth', k + '.webp'), path.join(O, 'myth', k + '.webp'));
   if (fs.existsSync(path.join(A, 'egg'))) for (const sp of fs.readdirSync(path.join(A, 'egg'))) cp(path.join(A, 'egg', sp, '0.webp'), path.join(O, 'egg', sp + '.webp')); }
 console.log('Đã tạo', path.relative(root, out), (html.length / 1048576).toFixed(2) + ' MB', 'máy chủ:', server || '(cùng địa chỉ trang)');

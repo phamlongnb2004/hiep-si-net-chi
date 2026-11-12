@@ -61,7 +61,7 @@ var move_to = -1.0
 var npc_go = ""
 var send_t = 0.0
 var atk_t = 0.0
-var cds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var cds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var gcd = 0.0
 var pot_cd = 0.0
 var kpot_cd = 0.0
@@ -220,12 +220,13 @@ func _set_me(d: Dictionary, full: bool) -> void:
 	if world:
 		world.hatch = me_data.get("hatch") if me_data.get("hatch") is Dictionary else null
 	var sc: Array = me_data.get("cds", [])
-	for i in mini(6, sc.size()):
+	for i in mini(7, sc.size()):
 		cds[i] = float(sc[i])
 	gcd = float(me_data.get("gcd", 0))
 	pot_cd = max(pot_cd, float(me_data.get("potCd", 0)))
 	kpot_cd = max(kpot_cd, float(me_data.get("kpCd", 0)))
 	me.look = _look(me_data)
+	me.myth = myth_bits(me_data)
 	var wg = me_data.get("eq", {}).get("wing") if me_data.get("eq") is Dictionary else null
 	me.wing = int(wg.get("r", 0)) if wg is Dictionary else -1
 	me.title = str(me_data.get("title", ""))
@@ -234,12 +235,25 @@ func _set_me(d: Dictionary, full: bool) -> void:
 	if full:
 		bag_changed.emit()
 
+## đồ Thần Thoại đang mặc (giống máy chủ sim.js mythN): bit 1 áo, 2 mũ, 4 áo choàng, (số món << 3)
+func myth_bits(d: Dictionary) -> int:
+	var eq: Dictionary = d.get("eq", {}) if d.get("eq") is Dictionary else {}
+	var b = 0
+	var n = 0
+	for s in eq:
+		if Data.is_myth(eq[s]):
+			n += 1
+	if Data.is_myth(eq.get("armor")): b |= 1
+	if Data.is_myth(eq.get("hat")): b |= 2
+	if Data.is_myth(eq.get("cape")): b |= 4
+	return b | (n << 3)
+
 func _look(d: Dictionary) -> int:
 	var eq: Dictionary = d.get("eq", {}) if d.get("eq") is Dictionary else {}
 	var c = str(d.get("cls", ""))
 	var tf = func(s: String) -> int:
 		var it = eq.get(s)
-		return clampi(int(it.get("tier", 0)), 0, 3) if it is Dictionary and str(it.get("cls", "")) == c else -1
+		return clampi(int(it.get("tier", 0)), 0, 3) if it is Dictionary and (str(it.get("cls", "")) == c or Data.is_myth(it)) else -1
 	return (tf.call("armor") + 1) + 5 * (tf.call("hat") + 1) + 25 * (tf.call("cape") + 1)
 
 func _build_map(m: Dictionary) -> void:
@@ -350,6 +364,7 @@ func _snap(m: Dictionary) -> void:
 		h.wing = int(q[13]) if q.size() > 13 else -1
 		h.title = str(q[14]) if q.size() > 14 else ""
 		h.deb = int(q[15]) if q.size() > 15 else 0
+		h.myth = int(q[16]) if q.size() > 16 else 0
 	for id in heroes.keys():
 		if not seen.has(id):
 			heroes[id].queue_free()
@@ -620,7 +635,15 @@ func do_skill(i: int) -> void:
 	if not can_act():
 		return
 	var sk: Array = me_data.get("sk", [])
-	var S: Dictionary = Data.D.skills[cls()][i]
+	if i == 6:   # Thiên Địa Diệt: kĩ năng học từ sách của Hỗn Mang Ma Thần (mọi phái)
+		if int(me_data.get("usk", 0)) != 1:
+			log_line.emit("Chưa học Thiên Địa Diệt. Sách rơi từ Hỗn Mang Ma Thần, cần cấp 100.", Color("ffb347"))
+			return
+		sk = sk.duplicate()
+		while sk.size() < 7:
+			sk.append(0)
+		sk[6] = 1
+	var S: Dictionary = Data.D.skills[cls()][i] if i < 6 else USK_S
 	if i >= sk.size() or int(sk[i]) == 0:
 		log_line.emit("Chưa học " + str(S.n) + (" (cần cấp %d)" % int(S.req) if int(me_data.get("lv", 1)) < int(S.req) else " — mua sách ở Thương Nhân trong Làng"), Color("ffb347"))
 		return
@@ -642,6 +665,8 @@ func do_skill(i: int) -> void:
 	Net.send(msg)
 	_swing(me)
 	fx.skill(cls(), i, me, aim, tg, me.face)
+
+const USK_S := {"n": "Thiên Địa Diệt", "cd": 45, "req": 100}
 
 func _ki_cost(i: int) -> float:
 	var kc: Array = me_data.get("kc", [])
@@ -807,8 +832,14 @@ func _auto_tick(dt: float) -> void:
 	if a.get("skill", true) and nav.is_empty() and absf(dx) < rng and absf(dy) < 90 and climb.is_empty():
 		var sk: Array = me_data.get("sk", [])
 		var kc: Array = me_data.get("kc", [])
-		for k in 6:
-			var i = (auto_sk + k) % 6
+		var nsk = 7 if int(me_data.get("usk", 0)) == 1 else 6
+		if nsk == 7:
+			sk = sk.duplicate()
+			while sk.size() < 7:
+				sk.append(0)
+			sk[6] = 1
+		for k in nsk:
+			var i = (auto_sk + k) % nsk
 			if i < sk.size() and int(sk[i]) == 1 and cds[i] <= 0.05 and gcd <= 0.05 and (i >= kc.size() or ki >= float(kc[i])):
 				do_skill(i)
 				auto_sk = i + 1
@@ -1008,7 +1039,7 @@ func _process(dt: float) -> void:
 	pot_cd = max(0.0, pot_cd - dt)
 	kpot_cd = max(0.0, kpot_cd - dt)
 	roll_cd = max(0.0, roll_cd - dt)
-	for i in 6:
+	for i in 7:
 		cds[i] = max(0.0, cds[i] - dt)
 	for mo in mons.values():
 		mo.focused = mo == focus
@@ -1222,7 +1253,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		match ev.keycode:
 			KEY_W, KEY_UP, KEY_SPACE, KEY_K: jump()
-			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6: do_skill(ev.keycode - KEY_1)
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7: do_skill(ev.keycode - KEY_1)
 			KEY_Q: do_pot()
 			KEY_R: do_kpot()
 			KEY_L: do_roll()

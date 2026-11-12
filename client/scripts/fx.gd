@@ -127,6 +127,10 @@ func skill(cls: String, i: int, who: Node2D, aim: float, tgt: Node2D, face: int)
 		shake = max(shake, 0.18)
 	var fl = cos(aim) < 0
 	var tp: Vector2 = tgt.position if tgt else p + Vector2(cos(aim) * 240, 0)
+	if i == 6:   # Thiên Địa Diệt (sách của Hỗn Mang Ma Thần): cột thánh quang giáng xuống mục tiêu
+		vfx("usk_divine", tp + Vector2(0, 10), 420)
+		shake = max(shake, 0.35)
+		return
 	match cls + str(i):
 		"sword0", "fighter0": spr(im, p + Vector2(cos(aim) * 55, -26), 120, 0.32, "pop", {"flip": fl})
 		"sword1": spr(im, p + Vector2(0, -14), 160, 0.45, "grow")

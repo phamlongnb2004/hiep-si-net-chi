@@ -59,6 +59,10 @@ func run() -> void:
 		await preview_pets()
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "myth":
+		await preview_myth()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_PREVIEW") == "climb":
 		await preview_climb()
 		get_tree().quit()
@@ -455,6 +459,50 @@ func preview_jump() -> void:
 		await shot("jump-%d" % k)
 
 
+## xem thử đồ Thần Thoại: so bộ Huyền Thoại / Thần Thoại đứng, đi, đánh, nhảy, ngã, leo; 1 món và 3 món (không cần máy chủ)
+func preview_myth() -> void:
+	var cv = CanvasLayer.new()
+	cv.layer = 100
+	get_tree().root.add_child(cv)
+	var bg = ColorRect.new()
+	bg.color = Color("2a3d5c")
+	bg.size = Vector2(1400, 900)
+	cv.add_child(bg)
+	var root = Node2D.new()
+	cv.add_child(root)
+	var cl = ["sword", "archer", "mage", "fighter"]
+	for r in 4:
+		for c in 10:
+			var h = Hero.new()
+			h.cls = cl[r]
+			h.look = 124
+			h.myth = 0 if c == 0 else (7 | (10 << 3))
+			if c == 8:
+				h.myth = 1 | (1 << 3)
+			if c == 9:
+				h.myth = 6 | (3 << 3)
+				h.wing = 3
+			h.moving = c == 2
+			if c == 3:
+				h.swing = 0.6
+			if c == 4:
+				h.jump_force = 2
+				h.air = true
+			if c == 5:
+				h.die_force = 0
+			if c == 6:
+				h.die_force = 3
+			if c == 7:
+				h.climb = true
+				h.moving = true
+			h.nm = ""
+			h.position = Vector2(70 + c * 128, 190 + r * 205)
+			h.scale = Vector2(1.2, 1.2)
+			root.add_child(h)
+	for k in 2:
+		await wait(0.3)
+		await shot("myth-%d" % k)
+
 ## xem thử dáng leo thang: 4 lớp x 5 bộ áo, kèm mũ/áo choàng/cánh khác nhau (không cần máy chủ)
 func preview_climb() -> void:
 	var cv = CanvasLayer.new()
@@ -756,6 +804,53 @@ func perf_test() -> void:
 			await wait(0.4)
 			print("SHOPDRAG start=", start, " scroll=", sc2.scroll_vertical, " max=", sc2.get_v_scroll_bar().max_value)
 		await shot("shop")
+	if OS.get_environment("HSNC_MYTH") != "":
+		# đồ Thần Thoại + sách Thiên Địa Diệt + Hỗn Mang Ma Thần (cần lệnh devmyth/devwb2 của máy chủ thử)
+		Net.send({"t": "devmyth"})
+		await wait(1.5)
+		main.open_bag()
+		main.bag.tab = "bag"
+		main.bag.render()
+		await wait(0.6)
+		await shot("myth-bag")
+		for it in g.me_data.get("inv", []):
+			if str(it.slot) == "book":
+				main.bag.sel = {"from": "inv", "id": it.id}
+		main.bag.render()
+		await wait(0.4)
+		await shot("myth-book")
+		for it in g.me_data.get("inv", []).duplicate():
+			if Data.is_myth(it) and str(it.slot) == "armor":
+				main.bag.sel = {"from": "inv", "id": it.id}
+		main.bag.render()
+		await wait(0.4)
+		await shot("myth-item")
+		for it in g.me_data.get("inv", []).duplicate():
+			if Data.is_myth(it):
+				Net.send({"t": "equip", "id": it.id})
+				await wait(0.4)
+			elif str(it.slot) == "book":
+				Net.send({"t": "usebook", "id": it.id})
+				await wait(0.4)
+		await wait(1.0)
+		main.bag.tab = "char"
+		main.bag.render()
+		await wait(0.6)
+		await shot("myth-char")
+		main.bag.close()
+		Net.send({"t": "devwb2", "hp": 400000, "dx": int(OS.get_environment("HSNC_WBDX")) if OS.get_environment("HSNC_WBDX") != "" else 420})
+		if OS.get_environment("HSNC_NOHUD") != "":
+			main.hud.visible = false
+		await wait(2.0)
+		await shot("myth-boss")
+		for k in 4:
+			await wait(0.7)
+			await shot("myth-boss-%d" % k)
+		g.do_skill(6)
+		await wait(0.5)
+		await shot("myth-usk")
+		await wait(4.0)
+		await shot("myth-boss2")
 	if OS.get_environment("HSNC_PETBAG") != "":
 		Net.send({"t": "devpet", "sp": "fire"})
 		await wait(1.5)

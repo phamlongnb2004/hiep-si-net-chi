@@ -14,7 +14,7 @@ const NOUN := {
 	"fighter": {"hat": "Khăn Đầu", "armor": "Võ Phục", "cape": "Khăn Choàng", "weapon": "Găng Vuốt"}}
 const NOUN2 := {"sword": ["Giày Sắt", "Găng Sắt"], "archer": ["Giày Lá", "Bao Tay Cung"], "mage": ["Hài Phép", "Găng Phép"], "fighter": ["Giày Võ", "Bao Tay Võ"]}
 const SLOTS := ["hat", "armor", "cape", "weapon", "boots", "gloves", "neck", "wing", "ring", "earring", "belt", "charm"]
-const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh", "ring": "Nhẫn", "earring": "Khuyên tai", "belt": "Đai lưng", "charm": "Bùa hộ mệnh", "egg": "Trứng"}
+const SLOT_N := {"hat": "Mũ", "armor": "Áo", "cape": "Áo choàng", "weapon": "Vũ khí", "boots": "Giày", "gloves": "Găng", "neck": "Dây chuyền", "wing": "Cánh", "ring": "Nhẫn", "earring": "Khuyên tai", "belt": "Đai lưng", "charm": "Bùa hộ mệnh", "egg": "Trứng", "book": "Sách kĩ năng"}
 const FREE := ["neck", "wing", "ring", "earring", "belt", "charm"]   # trang sức, cánh: mọi phái đều dùng được
 const ACC_NAME := {"neck": ["Dây Chuyền Đồng", "Dây Chuyền Lam Ngọc", "Dây Chuyền Tử Tinh", "Dây Chuyền Thái Dương"], "wing": ["Cánh Thiên Thần", "Cánh Băng Tinh", "Cánh Ma Tinh", "Cánh Phượng Hoàng"]}
 ## đồ theo bậc cấp (giống shared/rules.js): 10 bậc, tên bộ theo phái + hậu tố độ hiếm
@@ -45,7 +45,7 @@ static func req_lv(it: Dictionary) -> int:
 
 ## món đồ này nhân vật phái c có mặc được không
 func can_wear(it: Dictionary, c: String) -> bool:
-	return str(it.get("slot", "")) in FREE or str(it.get("cls", "")) == c
+	return str(it.get("slot", "")) in FREE or str(it.get("cls", "")) == c or is_myth(it)
 
 func noun(c: String, slot: String) -> String:
 	if slot == "boots":
@@ -219,7 +219,7 @@ func sell_price(it: Dictionary) -> int:
 	# 75% giá cửa hàng của món cùng cấp; đồ hiếm và đồ đã rèn bán cao hơn (khớp shared/rules.js sellPrice)
 	var lv = float(it.lvl)
 	var shop = round((25.0 + lv * 9.0) * (1.0 + lv / 3.0) * 3.5 * float(cfg.get("shopMul", 1.0)))
-	var rm = [1.0, 1.3, 1.7, 2.2][clampi(int(it.r), 0, 3)]
+	var rm = [1.0, 1.3, 1.7, 2.2, 6.0][clampi(int(it.r), 0, 4)]
 	return int(round(shop * 0.75 * rm * (1.0 + 0.15 * float(it.get("up", 0)))))
 
 ## so mã đồ an toàn: đồ rơi mang mã số, đồ cửa hàng mang mã chữ ("s…"); so int với String trong GDScript là lỗi
@@ -266,8 +266,12 @@ func forge_info(it: Dictionary) -> Dictionary:
 	return {"L": L, "rate": clampi(int(rate[min(L - 1, rate.size() - 1)]) + int(cfg.get("forgeBonus", 0)), 1, 100), "stones": L + 1,
 		"gold": int(round((40.0 + lv * 6.0) * (1.0 + lv / 3.0) * pow(L, 1.6) * 1.5)), "drop": 0 if L <= 4 else (1 if L <= 9 else 2)}
 
+## đồ Thần Thoại (phái nào cũng mặc, rơi từ Hỗn Mang Ma Thần)
+func is_myth(it) -> bool:
+	return it is Dictionary and int(it.get("r", 0)) == 4 and int(it.get("uni", 0)) == 1
+
 func rar_color(r: int) -> Color:
-	return Color.html(str(D.rar[clampi(r, 0, 3)].c))
+	return Color.html(str(D.rar[clampi(r, 0, D.rar.size() - 1)].c))
 
 func item_name(it: Dictionary) -> String:
 	return ("+%d " % int(it.up) if int(it.get("up", 0)) > 0 else "") + str(it.get("name", ""))
@@ -279,6 +283,10 @@ func item_icon(it: Dictionary) -> Texture2D:
 	var sl = str(it.get("slot", ""))
 	if sl == "egg":
 		return tex(A.get("egg", {}).get(str(it.get("sp", "fire")), {}).get("icon", ""))
+	if sl == "book":
+		return tex(A.get("myth", {}).get("book", ""))
+	if is_myth(it):
+		return tex(A.get("myth", {}).get("icon", {}).get(sl, ""))
 	# đồ theo bậc cấp (có trường b): ảnh riêng theo bậc
 	if it.has("b") and sl != "wing":
 		var b = clampi(int(it.b), 0, 9)

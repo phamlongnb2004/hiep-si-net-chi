@@ -181,6 +181,9 @@ func render() -> void:
 	var wbb = UI.button("Gọi Ma Long", UI.RED, 16)
 	wbb.pressed.connect(func(): _send({"cmd": "worldboss"}))
 	r4.add_child(wbb)
+	var wb2 = UI.button("Gọi Hỗn Mang", Color("8a1538"), 16)
+	wb2.pressed.connect(func(): _send({"cmd": "worldboss2"}))
+	r4.add_child(wb2)
 	# thông báo
 	var r5 = _row("Thông báo toàn máy chủ")
 	var an = _edit("Nội dung thông báo", 560, 200)

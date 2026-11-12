@@ -8,7 +8,13 @@ static func make(it: Dictionary, selected := false, own := true, better := false
 	var s = UI.box(Color.WHITE.lerp(Data.rar_color(r), 0.18 if r > 0 else 0.0), Data.rar_color(r) if r > 0 else Color("b8c4dc"), 12, 4 if selected else 2, false)
 	if selected:
 		s.border_color = UI.BLUE
+	var myth = r >= 4
+	if myth:
+		s.bg_color = Color("3a0d1c")
+		s.border_color = Color(0, 0, 0, 0) if not selected else UI.BLUE
 	p.add_theme_stylebox_override("panel", s)
+	if myth:
+		p.add_child(MythFrame.new())
 	var t = TextureRect.new()
 	t.texture = Data.item_icon(it)
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -16,12 +22,16 @@ static func make(it: Dictionary, selected := false, own := true, better := false
 	if not own:
 		t.modulate = Color(1, 1, 1, 0.55)
 	p.add_child(t)
+	if myth:
+		var mo = MythFrame.new()
+		mo.over = true
+		p.add_child(mo)
 	var up = int(it.get("up", 0))
 	if up > 0:
 		var g = GlowFrame.new()
 		g.up = up
 		p.add_child(g)
-	var lv = UI.label("Trứng" if str(it.get("slot", "")) == "egg" else "Lv.%d" % int(it.get("lvl", 1)), 12, UI.INK, "bold")
+	var lv = UI.label("Trứng" if str(it.get("slot", "")) == "egg" else "Lv.%d" % int(it.get("lvl", 1)), 12, Color("ffe7a0") if myth else UI.INK, "bold")
 	lv.size_flags_vertical = Control.SIZE_SHRINK_END
 	lv.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	p.add_child(lv)
