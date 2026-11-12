@@ -718,6 +718,32 @@ func perf_test() -> void:
 	g.bag_full.connect(func(): print("BAGFULL"); shot("bagfull"))
 	Data.hitch_watch = OS.get_environment("HSNC_LATE") != ""
 	await shot("perf-0")
+	if OS.get_environment("HSNC_PETUI") != "":
+		# 3 pet giả: chuồng pet phải cuộn xuống được bằng lăn chuột
+		var L = []
+		for i in 3:
+			L.append({"id": "p%d" % i, "sp": ["wolf", "fire", "ice"][i], "name": "Pet %d" % i, "star": 2 + i, "lv": 10 + i * 20, "exp": 5, "need": 100, "stage": i, "st": {"maxHp": 500, "atk": 20, "def": 10, "aspd": 1.1, "crit": 0.1}, "pt": {"hp": 3}, "rn": 0})
+		g.me_data["pets"] = L
+		g.me_data["petOn"] = "p0"
+		main.npc.open("pets")
+		await wait(0.6)
+		await shot("pet-0")
+		var sc: ScrollContainer = main.npc.body.get_parent()
+		var vp = get_viewport()
+		for k in 12:
+			var ev = InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_WHEEL_DOWN
+			ev.pressed = true
+			ev.position = sc.get_global_rect().get_center() + Vector2(120, 40)
+			ev.global_position = ev.position
+			vp.push_input(ev)
+			await wait(0.05)
+		await wait(0.4)
+		print("PETSCROLL ", sc.scroll_vertical, " / ", sc.get_v_scroll_bar().max_value)
+		g.bag_changed.emit()
+		await wait(0.3)
+		print("PETSCROLL after rerender ", sc.scroll_vertical)
+		await shot("pet-1")
 	if OS.get_environment("HSNC_UI") != "":
 		# chọn quái gần nhất bằng nút đổi mục tiêu, rồi chọn một đồ rơi giả, mở các bảng mới
 		g.next_target()

@@ -60,6 +60,7 @@ func setup(g: Game) -> void:
 	visible = false
 
 func open(id: String) -> void:
+	_last_view = ""
 	mode = id if id in ["shop", "gear"] else ("egg" if id in ["egg", "pets"] else "forge")
 	tab = {"shop": "books", "gear": "gear", "egg": "pets" if id == "pets" else "hatch"}.get(mode, "forge")
 	free_arm = ""
@@ -74,7 +75,13 @@ func open(id: String) -> void:
 func close() -> void:
 	visible = false
 
+var _last_view = ""
 func render() -> void:
+	# vẽ lại cùng một bảng (cập nhật túi/pet): giữ chỗ đang cuộn, đổi bảng thì về đầu
+	var sc: ScrollContainer = body.get_parent()
+	var view = mode + "/" + tab
+	var keep = sc.scroll_vertical if view == _last_view else 0
+	_last_view = view
 	for c in tabs.get_children():
 		tabs.remove_child(c)
 		c.queue_free()
@@ -125,6 +132,23 @@ func render() -> void:
 		"hatch": _hatch(d)
 		"pets": _pets(d)
 	UI.wrap_all(body, 200)
+	_pass_mouse(body)
+	sc.scroll_vertical = keep
+	if keep > 0:
+		_restore_scroll.call_deferred(sc, keep)
+
+func _restore_scroll(sc: ScrollContainer, v: int) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(sc):
+		sc.scroll_vertical = v
+
+## khung/ảnh không phải nút: cho thao tác cuộn (lăn chuột, kéo tay) đi qua tới ScrollContainer
+func _pass_mouse(n: Node) -> void:
+	for c in n.get_children():
+		if c is PanelContainer or c is TextureRect or c is BoxContainer or c is GridContainer:
+			if (c as Control).mouse_filter == Control.MOUSE_FILTER_STOP and not (c as Control).gui_input.get_connections().size():
+				(c as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+		_pass_mouse(c)
 
 ## bán nhiều món một lúc: chạm để đánh dấu, rồi bấm Bán (bấm 2 lần để chắc chắn)
 var sell_sel := {}

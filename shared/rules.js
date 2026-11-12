@@ -36,14 +36,14 @@ export const ELITE_CHANCE = .07;              // quái thường thỉnh thoản
 export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
 // Tham số cân bằng do admin chỉnh trên máy chủ (không cần ra bản ứng dụng mới). Mặc định = luật gốc.
 // ev: sự kiện tạm thời (x2 kinh nghiệm...), máy chủ tự tắt khi hết giờ.
-export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, lvMul: 1, mon: {}, rar: {} };
+export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, lvMul: 1, petExp: .5, mon: {}, rar: {} };
 export const TUNE = { ...TUNE_DEFAULT, mon: {}, rar: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
 // áp tham số mới (đã kiểm giới hạn) vào TUNE; trả về bản đã chuẩn hóa để lưu
 export function setTune(t) {
   const n = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
   const o = {
     exp: n(t.exp, .1, 20, 1), gold: n(t.gold, .1, 20, 1), drop: n(t.drop, .1, 10, 1), potPrice: Math.round(n(t.potPrice, 1, 100000, POT_PRICE)),
-    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), wingChance: n(t.wingChance, 0, 1, WING_CHANCE), lvMul: n(t.lvMul, .2, 10, 1), mon: {} };
+    shopMul: n(t.shopMul, .1, 20, 1), forgeBonus: n(t.forgeBonus, -50, 50, 0), eliteChance: n(t.eliteChance, 0, .5, ELITE_CHANCE), kiMul: n(t.kiMul, 0, 5, 1), ptMul: n(t.ptMul, .1, 5, 1), wingChance: n(t.wingChance, 0, 1, WING_CHANCE), lvMul: n(t.lvMul, .2, 10, 1), petExp: n(t.petExp, 0, 5, .5), mon: {} };
   for (const k in (t.mon || {})) if (D.mons[k]) { const m = t.mon[k] || {}, q = {};
     for (const f of ['hp', 'atk', 'def', 'exp', 'gold', 'drop']) { const v = n(m[f], .1, 20, 1); if (v !== 1) q[f] = v; }
     if (Object.keys(q).length) o.mon[k] = q; }
@@ -414,6 +414,9 @@ export function giftMisc() {
   return L;
 }
 export const PET_STAT = { hp: 'Máu', atk: 'Sức đánh', def: 'Giáp', aspd: 'Tốc đánh', crit: 'Chí mạng' };
+// pet nhận kinh nghiệm như tự đánh quái ngang cấp mình (quái cao cấp hơn không cho pet lên vọt), nhân TUNE.petExp (mặc định 0,5)
+export const PET_EXP = .5;
+export const petExpGain = (e, petLv, monLv) => Math.max(1, Math.round(e * Math.min(1, expNeed(petLv) / Math.max(1, expNeed(monLv))) * (TUNE.petExp != null ? TUNE.petExp : PET_EXP)));
 export const PET_MAX = 3, PET_SK_LV = [10, 40, 80], PET_SK_CD = [8, 15, 40], PET_REVIVE = 60, PET_SHARE = .1, PET_PT = 3;
 export const HATCH_MS = 24 * 3600e3, HATCH_CUT = .5, HATCH_GOLD = 2000000;
 export const STAR_MUL = [.8, .9, 1, 1.15, 1.3];
