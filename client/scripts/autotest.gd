@@ -730,11 +730,34 @@ func perf_test() -> void:
 		await shot("pet-0")
 		var sc: ScrollContainer = main.npc.body.get_parent()
 		var vp = get_viewport()
-		for k in 12:
+		if OS.get_environment("HSNC_DRAG") != "":
+			# kéo tay (cảm ứng): nhấn trên thẻ pet, kéo lên 300px rồi thả
+			var t0 = InputEventScreenTouch.new()
+			t0.index = 0
+			t0.pressed = true
+			var dy0 = float(OS.get_environment("HSNC_DRAGY")) if OS.get_environment("HSNC_DRAGY") != "" else 450.0
+			t0.position = Vector2(1100, dy0)
+			Input.parse_input_event(t0)
+			await wait(0.05)
+			for k in 15:
+				var dg = InputEventScreenDrag.new()
+				dg.index = 0
+				dg.position = Vector2(1100, dy0 - (k + 1) * 20)
+				dg.relative = Vector2(0, -20)
+				Input.parse_input_event(dg)
+				await wait(0.03)
+			var t1 = InputEventScreenTouch.new()
+			t1.index = 0
+			t1.pressed = false
+			t1.position = Vector2(1100, 150)
+			Input.parse_input_event(t1)
+			await wait(0.5)
+			print("PETDRAG ", sc.scroll_vertical, " touch=", DisplayServer.is_touchscreen_available())
+		for k in (0 if OS.get_environment("HSNC_DRAG") != "" else 12):
 			var ev = InputEventMouseButton.new()
 			ev.button_index = MOUSE_BUTTON_WHEEL_DOWN
 			ev.pressed = true
-			ev.position = sc.get_global_rect().get_center() + Vector2(120, 40)
+			ev.position = Vector2(1100, 400)
 			ev.global_position = ev.position
 			vp.push_input(ev)
 			await wait(0.05)
