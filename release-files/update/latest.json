@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.11.3",
-  "min": "2.9.0",
+  "version": "2.12.0",
+  "min": "2.12.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "9107d94d72c8601ffcb2e457f29dbf4157975e322520282102baa7f69a5cc126",
-   "size": 85623668
+   "sha256": "c6a6212c61068a108e2d1edf8c9e95760c1667d7c3b49978ecdae3a75daccbdb",
+   "size": 91161719
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "7c708a7091b0223b46c0fdc84969671c6c32a926b0a8cad0c0dd3238acb7df12",
-   "size": 89845651
+   "sha256": "b406097e7d57f7d4ba985bbda0066e336c35caba6ab5ba140863c337f128eb6b",
+   "size": 96046660
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "c702a088c259e87547154aa4fe4272bb07883995a268a39bb5afbd377f497666",
-   "size": 87852075
+   "sha256": "06ce62cfb75f588242143ed232143e1fc4eed8fae9b0a411196de77e17a57502",
+   "size": 93840038
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,18 +25,18 @@
   }
  },
  "assets": {
-  "version": 35,
-  "min_app": "2.11.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-35.pck",
-  "sha256": "dbab7c34abddcb80816814aeae2c74f9d6378bd250e75e3334ef4e3766d2720c",
-  "size": 63301292
+  "version": 36,
+  "min_app": "2.12.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-36.pck",
+  "sha256": "efb9097cd8670df4ffe89162e90b86c286fe0b25defeddedeb3c9873bc056c37",
+  "size": 69566716
  },
  "changelog": [
-  "Mục Thú cưng trong Hành Trang: xem pet, chỉ số, kỹ năng; chọn trạng thái Đi theo / Tấn công / Bảo vệ / Về nhà",
-  "Lệnh chat cho pet: ditheo, tancong, baove, venha (pet sẽ nhắn lại bạn)",
-  "Sửa các chỗ trên 5 bản đồ mới không nhảy lên được (auto bị kẹt)",
-  "Kéo tay cuộn được mọi bảng trên điện thoại, kể cả khi bắt đầu kéo trên nút",
-  "Sửa hình vách đất ở các bản đồ mới"
+  "Trùm thế giới mới: Hỗn Mang Ma Thần — mỗi giờ giáng thế ở 1 khu bất kì của 1 bản đồ có quái (ngoài Làng), không báo vị trí, phải tự đi tìm",
+  "Cực kì mạnh: không có cấp, máu khổng lồ, 5 chiêu hủy diệt; ít hơn 3 người cùng đánh thì có Khiên Hỗn Mang (chỉ nhận 15% sát thương), dưới 30% máu nổi giận",
+  "Người đánh đòn cuối nhận: Sách Thiên Địa Diệt (80%) hoặc 1 món đồ Thần Thoại ngẫu nhiên (20%)",
+  "Sách Thiên Địa Diệt: phái nào cũng học được (cấp 100), giao dịch được — kĩ năng thứ 7 (phím 7): cột thánh quang 700% sát thương + choáng 1,5 giây",
+  "Đồ Thần Thoại: phái nào cũng mặc, mặc vào đổi hẳn dáng nhân vật (cả khi chạy, nhảy, ngã, leo), 1-2 món hào quang nhẹ, từ 3 món hào quang thần thánh đầy đủ; khung ô đồ lấp lánh"
  ],
- "updated": "2026-11-12T16:31:34.685Z"
+ "updated": "2026-11-12T18:06:46.522Z"
 }
