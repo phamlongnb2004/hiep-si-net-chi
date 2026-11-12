@@ -109,6 +109,7 @@ export class MapInst {
     const r = R.dmgToMon(rng, raw, m.def * gd, o.pet ? o.pet : f.crit + R.buffMul(f.buffs, 'crit'), o.dot, o.pet ? 0 : f.pen);
     if (m.t.world && m.guard > 0) r.d = Math.max(1, Math.round(r.d * .15)); // khiên khi còn rồng con
     m.hp -= r.d; m.calm = 0;
+    if (o.pet) { if (!m.pdmg) m.pdmg = new Map(); m.pdmg.set(c.id, (m.pdmg.get(c.id) || 0) + Math.min(r.d, m.hp + r.d)); } // máu pet tự đánh mất (pet chỉ nhận kinh nghiệm theo phần này)
     if (m.lh[m.lh.length - 1] !== c.id) { m.lh.push(c.id); if (m.lh.length > 30) m.lh.shift(); }
     // cá nóc phồng gai: đánh vào bị dội lại một phần sát thương
     if (m.guard > 0 && ab && ab.k === 'spike' && !o.dot && !o.ref) this.hurt(c, r.d * ab.ref, { noDodge: true, flat: true });
@@ -257,6 +258,7 @@ export class MapInst {
     m.dead = true; m.respawn = R.respawnTime(rng, m.type); m.state = 'idle'; m.kx = 0; m.vx = 0; m.br = null; m.stun = 0; m.slow = 0; m.pois = null; m.tgt = 0;
     m.cast = null; m.guard = 0; m.dashT = 0;
     const dmg = new Map(m.dmg), lh = m.lh.slice(); m.dmg.clear(); m.lh = [];
+    const pdmg = m.pdmg || null; m.pdmg = null;
     const ab = m.t.ab;
     if (ab && ab.k === 'boom') { // nấm ma: chết thì nổ bào tử
       const x = m.x, y = m.y, atk = m.atk; this.ev.push(['tg', 'c', Math.round(x), ab.r, Math.round(y), ab.delay]);
@@ -283,8 +285,8 @@ export class MapInst {
       ch.gold += gg;
       let up = R.addExp(ch, ee), pe = 0;
       // pet đang ra trận (còn tỉnh) nhận kinh nghiệm như chủ; chủ hưởng ké một phần kinh nghiệm của pet
-      const pt = c.pet && c.pet.faint <= 0 ? ch.pets.find(q => q.id === ch.petOn) : null;
-      if (pt) { pe = R.petExpGain(ee, pt.lv, m.type, m.lv, m.el); const st0 = R.petStage(pt.lv), pu = R.petAddExp(rng, pt, pe, ch.lv + 5); up += R.addExp(ch, Math.max(1, Math.round(ee * R.PET_SHARE)));
+      const ps = pdmg ? Math.min(1, (pdmg.get(c.id) || 0) / Math.max(1, m.hpMax)) : 0, pt = ps > 0 && c.pet && c.pet.faint <= 0 ? ch.pets.find(q => q.id === ch.petOn) : null;
+      if (pt) { pe = R.petExpGain(e * ps, pt.lv, m.type, m.lv, m.el); const st0 = R.petStage(pt.lv), pu = R.petAddExp(rng, pt, pe, ch.lv + 5); up += R.addExp(ch, Math.max(1, Math.round(ee * R.PET_SHARE)));
         if (pu) { this.syncPet(c, true); this.ev.push(['plv', c.id, pt.lv, R.petStage(pt.lv) !== st0 ? 1 : 0]); this.h.log(c, pt.name + ' lên cấp ' + pt.lv + (R.PET_SK_LV.includes(pt.lv) ? ' · mở kỹ năng ' + R.PET_SP[pt.sp].sk[R.PET_SK_LV.indexOf(pt.lv)] : '') + (R.petStage(pt.lv) !== st0 ? ' · tiến hóa!' : ''), '#7dffb0'); } }
       this.h.send(c, { t: 'gain', m: m.id, exp: ee, gold: gg, pct: share ? Math.round(k * 100) : 0, pexp: pe });
       if (up) { refreshStats(c.f, ch, false); this.ev.push(['lv', c.id, ch.lv]); this.h.log(c, 'Lên cấp ' + ch.lv + ' · +' + up * R.PT_PER_LV + ' điểm tiềm năng (Túi đồ → Chỉ số)', '#ffd23f'); }
