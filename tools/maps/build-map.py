@@ -9,12 +9,13 @@ C = json.load(open(f'{H}/maps-b1.json'))[MID]
 OUT = f'/tmp/hsnc-build/{MID}'; os.makedirs(OUT, exist_ok=True)
 run = lambda *a: json.loads(subprocess.check_output(['python3', *a]).decode().strip().splitlines()[-1])
 meta = {'mon': {}, 'fx': {}}
-for sp, (src, body, acts) in C['mons'].items():
+for sp, mv in C['mons'].items():
+    src, body, acts = mv[:3]; xo = ['--keep-holes'] if len(mv) > 3 and mv[3].get('keepHoles') else []
     # src: tên trong file m0x_<src>_<act>.png ; body: chiều cao khung gốc (px) ; acts: danh sách động tác, cái đầu là gốc
-    first = run(f'{R}/tools/cut-sheet.py', f'{SRC}/{MID}_{src}_{acts[0]}.png', f'{OUT}/{sp}', acts[0], '--h', str(body))
+    first = run(f'{R}/tools/cut-sheet.py', f'{SRC}/{MID}_{src}_{acts[0]}.png', f'{OUT}/{sp}', acts[0], '--h', str(body), *xo)
     cx = {acts[0]: first['cx']}
     for a in acts[1:]:
-        cx[a] = run(f'{R}/tools/cut-sheet.py', f'{SRC}/{MID}_{src}_{a}.png', f'{OUT}/{sp}', a, '--scale', str(first['sc']))['cx']
+        cx[a] = run(f'{R}/tools/cut-sheet.py', f'{SRC}/{MID}_{src}_{a}.png', f'{OUT}/{sp}', a, '--scale', str(first['sc']), *xo)['cx']
     meta['mon'][sp] = {'dir': sp, 'acts': acts, 'cx': cx, 'body': body}
 for nm, (src, ground, h) in C['fx'].items():
     if not os.path.exists(f'{SRC}/{MID}_fx_{src}.png'): print('thiếu hiệu ứng', nm); continue

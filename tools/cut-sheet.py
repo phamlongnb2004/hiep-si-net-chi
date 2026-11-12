@@ -17,6 +17,7 @@ ap.add_argument('--cols', type=int, default=4); ap.add_argument('--rows', type=i
 ap.add_argument('--h', type=float, default=160, help='chiều cao khung đích (px)')
 ap.add_argument('--scale', type=float, default=0, help='hệ số thu cố định (giữ cùng cỡ thân giữa các bảng)')
 ap.add_argument('--white', type=int, default=236)
+ap.add_argument('--keep-holes', action='store_true', help='giữ vùng trắng bị bao kín (nhân vật lông trắng)')
 ap.add_argument('--keep-fx', action='store_true', help='giữ cả mảnh rời (hiệu ứng), không chỉ khối lớn nhất')
 a = ap.parse_args()
 
@@ -35,7 +36,7 @@ for r in range(a.rows):
         # khoảng trắng bị bao kín (giữa đuôi và thân...) cũng là nền: vùng trắng tinh, đủ lớn
         vw = (cell.min(axis=2) > 243) & ((cell.max(axis=2) - cell.min(axis=2)) < 10)
         lab3, n3 = ndimage.label(vw)
-        if n3:
+        if n3 and not a.keep_holes:
             sz3 = ndimage.sum(vw, lab3, range(1, n3 + 1))
             holes = [i + 1 for i, s3 in enumerate(sz3) if s3 > cell.shape[0] * cell.shape[1] * 0.004]
             fg &= ~ndimage.binary_dilation(np.isin(lab3, holes), iterations=1)
