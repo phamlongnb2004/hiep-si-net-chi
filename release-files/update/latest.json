@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.10.3",
+  "version": "2.11.0",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "1ae4788ff4e0a81be269692f38081f47b6b945010fd8f78c7b98209f086c7621",
-   "size": 71826718
+   "sha256": "abcc817e7506b23f187909d099e72d257baf399be5e977c0565d170946701296",
+   "size": 85612188
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "74327c175f0af270f90fca616b3e56dc66be72a2c30faf8545a380de99d34355",
-   "size": 101200884
+   "sha256": "0be48f78f06c5b51feacb727e0445c5242f193eed8e2ac5cbcbea67ea63a7785",
+   "size": 89833214
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "604bcd138d5dcfe543534398a0fc4c9761e4d97516903cf9649e92e5c472a58e",
-   "size": 74097025
+   "sha256": "319ce13c33374af8560985fd1c2c97aa115bf843110b315169102318555095d1",
+   "size": 87839356
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,16 +25,17 @@
   }
  },
  "assets": {
-  "version": 33,
-  "min_app": "2.9.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-33.pck",
-  "sha256": "ac5c7d86b5dd6bcbbf43c7d7c3ec4e73e600c1f06a1ffe12d4e7f337dd278fa8",
-  "size": 48879164
+  "version": 34,
+  "min_app": "2.11.0",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-34.pck",
+  "sha256": "5d29d8a86ac409e6d7b7f0a5c7bbde1fce56fc7aef44636cda34672f8f1a129d",
+  "size": 63300972
  },
  "changelog": [
-  "Thương Nhân Giáp có thẻ \"Bán đồ\": chạm chọn nhiều món (hoặc Chọn hết / Chọn đồ thường) rồi bán một lần.",
-  "Ma Long Hắc Vực giờ có sức mạnh cố định, siêu mạnh, không phụ thuộc bản đồ xuất hiện; đồ rơi theo cấp người kết liễu.",
-  "Quản trị tặng được mọi vật phẩm (bình máu/KI các cỡ, bùa, trứng…) và cho trứng nở ngay."
+  "5 bản đồ mới nối tiếp Đầm Lầy: Rừng Trúc Mây, Sa Mạc Cát Vàng, Hẻm Núi Đá Đỏ, Thung Lũng Anh Đào, Rừng Nấm Phát Sáng (cấp 40-55)",
+  "15 loại quái mới, có quái bay, quái phun độc, quái lao tới, quái gọi đồng bọn",
+  "5 hang trùm mới mở theo giờ: Vương Gấu Trúc, Bọ Cạp Hoàng Đế, Golem Núi Đỏ, Hồ Ly Chín Đuôi, Mẹ Nấm Cổ Thụ, mỗi trùm 3 chiêu riêng",
+  "Cần ứng dụng 2.11.0 để vào các bản đồ mới"
  ],
- "updated": "2026-11-12T06:33:55.211Z"
+ "updated": "2026-11-12T11:56:50.370Z"
 }
