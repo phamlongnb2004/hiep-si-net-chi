@@ -96,6 +96,19 @@ export function itemName(slot, c, rk, lvl) {
   return NOUN[c][slot] + ' ' + BAND_SET[c][b] + RAR_SUF[rk];
 }
 export const CLS_KEYS = ['sword', 'archer', 'mage', 'fighter'];
+/* ---------- Thần Thoại (r=4, chỉ rơi từ Hỗn Mang Ma Thần): phái nào cũng mặc (uni), không có vũ khí ---------- */
+export const MYTH = 4;
+export const MYTH_SLOTS = ['hat', 'armor', 'cape', 'gloves', 'boots', 'neck', 'ring', 'earring', 'belt', 'charm'];
+export const MYTH_NAME = { hat: 'Thánh Quan', armor: 'Thánh Giáp', cape: 'Thánh Bào', gloves: 'Thánh Thủ', boots: 'Thánh Ngoa', neck: 'Thánh Liên', ring: 'Thánh Giới', earring: 'Thánh Hoàn', belt: 'Thánh Đai', charm: 'Thánh Phù' };
+export const isMyth = it => !!(it && it.r === MYTH && it.uni);
+// sách Thiên Địa Diệt: vật phẩm trong túi, giao dịch được, cần cấp USK.req để học (dùng)
+export const USK = { n: 'Thiên Địa Diệt', req: 100, cd: 45, d: 'Gọi cột thánh quang giáng xuống, 700% sát thương vùng rộng và làm choáng 1,5 giây. Phái nào cũng học được.' };
+export const newBook = id => ({ id, slot: 'book', k: 'usk', name: 'Sách ' + USK.n, r: MYTH, col: '#ff2e63', lvl: USK.req, st: {}, tier: MYTH, cls: '' });
+export function genMythic(rng, lvl, id, want) {
+  const slot = MYTH_SLOTS.includes(want) ? want : MYTH_SLOTS[Math.floor(rng() * MYTH_SLOTS.length)], b = baseStats(slot, lvl, MYTH), st = {};
+  for (const k in b) st[k] = Math.max(1, Math.round(b[k] * (1 + rng() * .15)));
+  return { id, slot, cls: '', uni: 1, tier: MYTH, style: 0, col: D.rar[MYTH].c, r: MYTH, lvl, b: band(lvl), name: MYTH_NAME[slot] + ' Hỗn Mang', st };
+}
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const ri = (rng, a, b) => Math.floor(a + rng() * (b - a + 1));
@@ -110,7 +123,7 @@ const expOld = l => 30 * Math.pow(l, 1.45) * expMul(l);
 export const expNeed = l => Math.floor(Math.max(expOld(l), (6 + 2.2 * l) * monCurve(l, 4)) * (TUNE.lvMul || 1));
 export const itemStat = (it, k) => Math.round(((it.st && it.st[k]) || 0) * (1 + .12 * (it.up || 0)));
 // bán cho Thương Nhân Giáp: 75% giá đồ thường cùng cấp trong cửa hàng; đồ hiếm trở lên cao hơn một chút
-export const SELL_RAR = [1, 1.3, 1.7, 2.2];
+export const SELL_RAR = [1, 1.3, 1.7, 2.2, 6];
 export const sellPrice = it => Math.round(Math.round((25 + it.lvl * 9) * (1 + it.lvl / 3) * 3.5 * TUNE.shopMul) * .75 * (SELL_RAR[it.r] || 1) * (1 + .15 * (it.up || 0)));
 export const score = it => it ? itemStat(it, 'atk') * 2 + itemStat(it, 'def') * 1.5 + itemStat(it, 'hp') * .1 + itemStat(it, 'spd') * .6 : 0;
 /* ---------- điểm tiềm năng: mỗi lần lên cấp được PT_PER_LV điểm, người chơi tự cộng vào chỉ số ----------
@@ -128,7 +141,7 @@ export const ptFree = ch => Math.max(0, ptTotal(ch) - ptUsed(ch));
 // tẩy điểm: lần đầu miễn phí, sau đó tốn vàng theo cấp
 export const resetCost = ch => (ch.ptReset | 0) < 1 ? 0 : 200 * ch.lv;
 // KI: kỹ năng tốn KI, đánh thường không tốn; KI tự hồi (nhanh gấp đôi trong vùng an toàn)
-export const KI_BASE = [8, 14, 20, 26, 32, 40], KI_REGEN = .04;
+export const KI_BASE = [8, 14, 20, 26, 32, 40, 80], KI_REGEN = .04;
 export const kiCost = (lv, i) => Math.round((KI_BASE[i] || 20) * (1 + (lv - 1) * .025) * TUNE.kiMul);
 // chỉ số gốc của nhân vật (chưa tính bùa tạm thời)
 export function stats(ch) {
@@ -195,14 +208,16 @@ export function shopItem(c, slot, rk, lvl, id) {
 export function fixItem(it, cls) {
   if (!it) return;
   if (it.slot === 'egg') { it.cls = ''; it.tier = 3; if (!PET_SP[it.sp]) it.sp = 'fire'; return; }
+  if (it.slot === 'book') { it.cls = ''; it.tier = MYTH; it.k = 'usk'; return; }
+  if (it.uni && it.r === MYTH) { it.cls = ''; it.tier = MYTH; return; }
   if (isFree(it.slot)) { it.cls = ''; it.tier = clamp(it.r | 0, 0, 3); return; }
   if (!D.sets[it.cls]) it.cls = D.sets[it.wk] ? it.wk : cls;
   it.tier = clamp(it.r | 0, 0, 3); if (it.slot === 'weapon') it.wk = it.cls;
 }
-export const validItem = it => !!(it && typeof it === 'object' && (SLOTS.includes(it.slot) || it.slot === 'egg') && it.st && typeof it.name === 'string' && D.rar[it.r] && typeof it.col === 'string' && /^#[0-9a-fA-F]{6}$/.test(it.col));
+export const validItem = it => !!(it && typeof it === 'object' && (SLOTS.includes(it.slot) || it.slot === 'egg' || it.slot === 'book') && it.st && typeof it.name === 'string' && D.rar[it.r] && typeof it.col === 'string' && /^#[0-9a-fA-F]{6}$/.test(it.col));
 // chỉ số lớn nhất có thể có của một món (để đánh dấu bản lưu bất thường, không sửa)
 export function maxItemStat(it) {
-  const m = D.rar[3].m * 1.25, base = 3 + (it.lvl || 1) * 1.4;
+  const m = D.rar[Math.max(3, Math.min(MYTH, it.r | 0))].m * 1.25, base = 3 + (it.lvl || 1) * 1.4;
   return { atk: Math.round(base * 1.3 * m) + 1, def: Math.round(base * m) + 1, hp: Math.round(base * 5 * m) + 1, spd: Math.round((2 + (it.lvl || 1) * .3) * m) + 1 };
 }
 
@@ -309,6 +324,9 @@ export const SKILL_FX = {
     [{ aoe: { at: 'self', r: 250, m: 3.0, stun: 1.5, kb: 330 } }],
     [{ buff: { id: 'rage', t: 12, atk: 1.6, spd: 1.25, crit: .2 } }]]
 };
+// Thiên Địa Diệt (sách rơi từ Hỗn Mang Ma Thần): chiêu thứ 7, phái nào cũng học, cột thánh quang 700% sát thương vùng rộng + choáng
+export const USK_FX = [{ aoe: { at: 'tgt', d: 300, r: 260, m: 7, stun: 1.5, kb: 200 } }];
+for (const k in SKILL_FX) SKILL_FX[k][6] = USK_FX;
 // đánh thường theo phái
 export const BASIC = {
   sword: { melee: { r: 85, half: 1.2, m: 1, kb: 150 } },
@@ -372,7 +390,8 @@ export function normalizeChar(d) {
   if (!PET_MODES[c.petMode]) c.petMode = 'protect';
   c.hatch = c.hatch && PET_SP[c.hatch.sp] && +c.hatch.end > 0 ? { sp: c.hatch.sp, start: +c.hatch.start || 0, end: +c.hatch.end, cut: c.hatch.cut ? 1 : 0 } : null;
   // đồ khác phái đang mặc (bản cũ): đưa vào túi giống gear.js
-  for (const k of SLOTS) { const it = c.eq[k]; if (it && !isFree(k) && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }
+  for (const k of SLOTS) { const it = c.eq[k]; if (it && !isFree(k) && !isMyth(it) && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }
+  c.usk = c.usk ? 1 : 0; c.uskl = Math.max(1, Math.min(SKILL_MAX, c.uskl | 0 || 1));
   let n = 1; const seen = new Set();
   for (const it of [...c.inv, ...SLOTS.map(k => c.eq[k]).filter(Boolean)]) { if (it.id == null || seen.has(it.id)) it.id = 'o' + (n++); seen.add(it.id); }
   return c;
@@ -413,6 +432,8 @@ export function giftMisc() {
   L.push({ k: 'gold', n: 'Vàng', max: 1e10, icon: 'admin-icons/gold.webp' });
   L.push({ k: 'exp', n: 'Kinh nghiệm', max: 1e12 });
   for (const sp of PET_KEYS) L.push({ k: 'egg:' + sp, n: eggName(sp), max: 30, egg: sp, icon: 'admin-icons/egg/' + sp + '.webp' });
+  L.push({ k: 'book:usk', n: 'Sách ' + USK.n, max: 10, book: 1, icon: 'admin-icons/misc/book_usk.webp' });
+  for (const sl of MYTH_SLOTS) L.push({ k: 'myth:' + sl, n: MYTH_NAME[sl] + ' Hỗn Mang (Thần Thoại)', max: 10, myth: sl, icon: 'admin-icons/myth/' + sl + '.webp' });
   return L;
 }
 // trạng thái pet (như đệ tử Ngọc Rồng): đi theo (không đánh), tấn công (đánh mọi quái quanh chủ), bảo vệ (đánh quái đang đánh chủ), về nhà (cất pet)

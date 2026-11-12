@@ -299,7 +299,7 @@ const VIEWS = {
         ins.forEach(i => i.addEventListener('input', upd)); upd(); RW[k] = ins;
         rows.push(h('tr', null, h('td', null, h('b', null, n), h('div', { class: 'note' }, 'Gốc: ' + RT.w[k].join(' / ') + '%')), ...ins.map(i => h('td', null, i)), sumEl)); }
       body.append(card(['gem', 'c-sun', 'Độ hiếm khi đồ rơi ra (%)'], h('p', { class: 'note' }, 'Khi một món đã rơi ra, tỉ lệ món đó thuộc từng độ hiếm. Ô "x Tỉ lệ rơi đồ" chỉ đổi số lần rơi, còn bảng này đổi độ hiếm. Áp dụng ngay sau khi Lưu thay đổi.'),
-        h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Nguồn'), ...RT.rar.map(n => h('th', null, n)), h('th', null, '')), rows)))); }
+        h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Nguồn'), ...RT.rar.slice(0, 4).map(n => h('th', null, n)), h('th', null, '')), rows)))); }
     const M = {}, tb = h('tbody');
     for (const [k, m] of Object.entries(r.mons)) {
       const o = t.mon[k] || {}; M[k] = {};

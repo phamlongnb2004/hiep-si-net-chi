@@ -12,6 +12,7 @@ export const OPS = {
   equip(c, m) {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
     const it = ch.inv[i]; if (it.slot === 'egg') return { ok: false, msg: 'Mang trứng tới Bà Ấp Trứng trong Làng để ấp.' };
+    if (it.slot === 'book') return OPS.usebook(c, m);
     if (!own(ch, it)) return { ok: false, msg: 'Không cùng phái.' };
     if (ch.lv < R.reqLv(it)) return { ok: false, msg: 'Cần đạt cấp ' + R.reqLv(it) + ' để mặc món này.' };
     const old = ch.eq[it.slot]; ch.eq[it.slot] = it; ch.inv.splice(i, 1); if (old) ch.inv.push(old);
@@ -25,7 +26,7 @@ export const OPS = {
   sell(c, m) {
     const ch = c.ch, i = findInv(ch, m.id); if (i < 0) return { ok: false, msg: 'Không có món này.' };
     if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Mang đồ tới Thương Nhân Giáp trong Làng để bán.' };
-    if (ch.inv[i].slot === 'egg') return { ok: false, msg: 'Không bán được trứng cho cửa hàng.' };
+    if (ch.inv[i].slot === 'egg' || ch.inv[i].slot === 'book') return { ok: false, msg: 'Không bán được món này cho cửa hàng.' };
     const g = R.sellPrice(ch.inv[i]); ch.gold += g; ch.inv.splice(i, 1); return { ok: true, gold: g };
   },
   // bán nhiều món một lần ở Thương Nhân Giáp (bỏ qua trứng)
@@ -33,7 +34,7 @@ export const OPS = {
     const ch = c.ch; if (!nearNpc(c, 'gear')) return { ok: false, msg: 'Mang đồ tới Thương Nhân Giáp trong Làng để bán.' };
     const ids = Array.isArray(m.ids) ? m.ids.slice(0, R.INV_MAX).map(String) : [];
     let n = 0, g = 0;
-    for (const id of ids) { const i = findInv(ch, id); if (i < 0 || ch.inv[i].slot === 'egg') continue; g += R.sellPrice(ch.inv[i]); ch.inv.splice(i, 1); n++; }
+    for (const id of ids) { const i = findInv(ch, id); if (i < 0 || ch.inv[i].slot === 'egg' || ch.inv[i].slot === 'book') continue; g += R.sellPrice(ch.inv[i]); ch.inv.splice(i, 1); n++; }
     if (!n) return { ok: false, msg: 'Chưa chọn món nào để bán.' };
     ch.gold += g; return { ok: true, gold: g, msg: 'Đã bán ' + n + ' món, nhận ' + g + ' vàng.' };
   },
@@ -120,6 +121,14 @@ export const OPS = {
     ch.gold -= S.price; ch.books[i] = 1;
     return { ok: true, msg: 'Mua sách ' + S.n + ' (' + S.price + ' vàng)' + (ch.lv < S.req ? '. Đạt cấp ' + S.req + ' để học.' : '. Bấm Học ngay!') };
   },
+  // học Thiên Địa Diệt từ sách (cấp USK.req, mất sách); phím 7
+  usebook(c, m) {
+    const ch = c.ch, i = findInv(ch, m.id); if (i < 0 || ch.inv[i].slot !== 'book') return { ok: false, msg: 'Không có sách này.' };
+    if (ch.usk) return { ok: false, msg: 'Bạn đã học ' + R.USK.n + ' rồi. Có thể giao dịch sách cho người khác.' };
+    if (ch.lv < R.USK.req) return { ok: false, msg: 'Cần đạt cấp ' + R.USK.req + ' để học ' + R.USK.n + '.' };
+    ch.inv.splice(i, 1); ch.usk = 1; ch.uskl = 1;
+    return { ok: true, msg: 'Đã học ' + R.USK.n + '! Ô kỹ năng thứ 7 (phím 7).' };
+  },
   learn(c, m) {
     const ch = c.ch, i = m.i | 0, S = D.skills[ch.cls][i]; if (!S || !ch.books[i] || ch.sk[i] || ch.lv < S.req) return { ok: false };
     ch.sk[i] = 1; return { ok: true, msg: 'Đã học kỹ năng ' + S.n + '. Phím ' + (i + 1) + '.' };
@@ -129,7 +138,7 @@ export const OPS = {
     let it = null, eq = false;
     if (m.slot && R.SLOTS.includes(m.slot) && ch.eq[m.slot] && (m.id == null || String(ch.eq[m.slot].id) === String(m.id))) { it = ch.eq[m.slot]; eq = true; }
     else { const i = findInv(ch, m.id); if (i >= 0) it = ch.inv[i]; }
-    if (!it || it.slot === 'egg') return { ok: false, msg: 'Không có món này.' };
+    if (!it || it.slot === 'egg' || it.slot === 'book') return { ok: false, msg: 'Không có món này.' };
     const f = R.forgeInfo(it);
     if ((it.up || 0) >= D.forge.max) return { ok: false, msg: 'Đã rèn tối đa.' };
     if (ch.gold < f.gold || ch.stones < f.stones) return { ok: false, msg: 'Thiếu vàng hoặc đá cường hóa.' };

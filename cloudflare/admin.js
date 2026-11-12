@@ -341,7 +341,7 @@ const ACT = {
     const MISC = R.giftMisc(), mi = Object.assign({}, b.misc && typeof b.misc === 'object' ? b.misc : {});
     for (const k of ['pots', 'stones', 'gold', 'exp']) if (b[k] && mi[k] == null) mi[k] = b[k];
     const n = k => { const d = MISC.find(x => x.k === k); return d ? int(mi[k] || 0, 0, d.max) : 0; };
-    const eggN = MISC.filter(x => x.egg).reduce((a, x) => a + n(x.k), 0);
+    const eggN = MISC.filter(x => x.egg || x.book || x.myth).reduce((a, x) => a + n(x.k), 0);
     const make = g => {
       const slot = String(g.slot), cls = R.isFree(slot) ? R.CLS_KEYS[0] : String(g.cls), r = int(g.r, 0, 3), lvl = int(g.lvl, 1, R.MAX_LV);
       if (!R.CLS_KEYS.includes(cls) || !R.SLOTS.includes(slot)) bad('Món đồ không hợp lệ.');
@@ -363,6 +363,8 @@ const ACT = {
       for (const x of MISC) {
         const q = n(x.k); if (!q) continue;
         if (x.egg) { for (let i = 0; i < q; i++) ch.inv.push(R.newEgg(x.egg, 'e' + Date.now().toString(36) + rnd(4))); got.push(q + ' ' + x.n.toLowerCase()); }
+        else if (x.book) { for (let i = 0; i < q; i++) ch.inv.push(R.newBook('b' + Date.now().toString(36) + rnd(4))); got.push(q + ' ' + x.n); }
+        else if (x.myth) { for (let i = 0; i < q; i++) ch.inv.push(R.genMythic(Math.random, Math.max(60, Math.min(R.MAX_LV, ch.lv | 0)), 'y' + Date.now().toString(36) + rnd(4), x.myth)); got.push(q + ' ' + x.n); }
         else if (x.k === 'exp') { R.addExp(ch, q); got.push(q + ' kinh nghiệm'); }
         else if (x.max === R.POT_MAX) { const add = Math.max(0, Math.min(q, R.POT_MAX - (ch[x.k] | 0))); ch[x.k] = (ch[x.k] | 0) + add; got.push(add + ' ' + x.n.toLowerCase()); }
         else { ch[x.k] = (ch[x.k] | 0) + q; got.push(q + ' ' + x.n.toLowerCase()); }
@@ -565,6 +567,7 @@ export async function onGM(w, c, m) {
       for (let i = 0; i < n; i++) I.addMon(String(m.type), lv, c.f.x + c.f.face * (120 + i * 50), true);
       log({ type: m.type, lv, n }); return reply(true, 'Đã gọi ' + n + ' ' + R.D.mons[m.type].n + ' cấp ' + lv + '.');
     }
+    case 'worldboss2': { if (!I || !I.M.spots || !I.M.spots.length || I.M.village) return reply(false, 'Đứng ở bản đồ săn quái.'); const old = w.wb2 && w.wb2.get(c.srv); if (old && old.m && !old.m.dead) return reply(false, 'Hỗn Mang Ma Thần đang có ở ' + old.inst.M.name + ' khu ' + old.inst.khu + '.'); if (!w.wb2) w.wb2 = new Map(); w.wb2Spawn(c.srv, c.map, I.khu, c.f.x + c.f.face * 450); w.wb2.get(c.srv).born = Date.now(); log({ map: c.map }); return reply(true, 'Đã gọi Hỗn Mang Ma Thần.'); }
     case 'worldboss': { if (!I || !I.M.spots || !I.M.spots.length) return reply(false, 'Đứng ở bản đồ săn quái.'); const old = w.wb && w.wb.get(c.srv); if (old && old.m && !old.m.dead) return reply(false, 'Boss đang có ở ' + old.inst.M.name + '.'); if (!w.wb) w.wb = new Map(); w.wbSpawn(c.srv, c.map, I.khu, c.f.x + c.f.face * 400); log({ map: c.map }); return reply(true, 'Đã gọi Ma Long Hắc Vực.'); }
     case 'killall': { if (!I) return reply(false, ''); let n = 0; for (const q of I.mons) if (!q.dead) { I.kill(q, null); n++; } log({ n }); return reply(true, 'Đã dọn ' + n + ' quái (không rơi đồ).'); }
     case 'give': {

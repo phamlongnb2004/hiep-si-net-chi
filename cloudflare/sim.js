@@ -14,10 +14,12 @@ const OWN_T = 30, DROP_LIFE = 75, PICK_R = 40, VR = 80; // VR: chênh độ cao 
 // trạng thái chiến đấu của một người chơi (không lưu xuống cơ sở dữ liệu)
 export function makeFighter(ch) {
   const s = R.stats(ch);
-  return Object.assign(s, { hp: s.maxHp, ki: s.maxKi, lsAcc: 0, kiWarn: 0, buffs: [], cds: [0, 0, 0, 0, 0, 0], gcd: 0, atkCd: 0, potCd: 0, kpCd: 0, dead: 0, combo: 0, comboT: 0,
+  return Object.assign(s, { hp: s.maxHp, ki: s.maxKi, lsAcc: 0, kiWarn: 0, buffs: [], cds: [0, 0, 0, 0, 0, 0, 0], gcd: 0, atkCd: 0, potCd: 0, kpCd: 0, dead: 0, combo: 0, comboT: 0,
     x: 0, y: 0, face: 1, air: 0, mv: 0, sw: 0, moveAt: 0, dashT: 0, dashLen: 0, pois: null, slowT: 0, slowM: 1, stunT: 0 });
 }
-export const lookN = ch => { const t = it => it && it.cls === ch.cls ? clamp(it.tier | 0, 0, 3) : -1; return (t(ch.eq.armor) + 1) + 5 * (t(ch.eq.hat) + 1) + 25 * (t(ch.eq.cape) + 1); };
+// Thần Thoại đang mặc (ứng dụng 2.12+): bit 1 áo, 2 mũ, 4 áo choàng; số món Thần Thoại << 3 (1 món: hiệu ứng nhẹ, từ 3 món: đầy đủ)
+export const mythN = ch => { let b = 0, n = 0; for (const k of R.SLOTS) if (R.isMyth(ch.eq[k])) n++; if (R.isMyth(ch.eq.armor)) b |= 1; if (R.isMyth(ch.eq.hat)) b |= 2; if (R.isMyth(ch.eq.cape)) b |= 4; return b | (n << 3); };
+export const lookN = ch => { const t = it => it && (it.cls === ch.cls || R.isMyth(it)) ? clamp(it.tier | 0, 0, 3) : -1; return (t(ch.eq.armor) + 1) + 5 * (t(ch.eq.hat) + 1) + 25 * (t(ch.eq.cape) + 1); };
 export function refreshStats(f, ch, keepRatio) {
   const s = R.stats(ch), ratio = f.maxHp > 1 ? f.hp / f.maxHp : 1, kr = f.maxKi > 1 ? f.ki / f.maxKi : 1;
   Object.assign(f, s); f.hp = keepRatio ? Math.max(1, Math.round(f.maxHp * ratio)) : f.maxHp; f.ki = keepRatio ? f.maxKi * kr : f.maxKi;
@@ -109,6 +111,7 @@ export class MapInst {
     const r = R.dmgToMon(rng, raw, m.def * gd, o.pet ? o.pet : f.crit + R.buffMul(f.buffs, 'crit'), o.dot, o.pet ? 0 : f.pen);
     if (m.t.world && m.guard > 0) r.d = Math.max(1, Math.round(r.d * .15)); // khiên khi còn rồng con
     m.hp -= r.d; m.calm = 0;
+    if (m.t.world2) { if (!m.hits) m.hits = new Map(); m.hits.set(c.id, Date.now()); }
     if (o.pet) { if (!m.pdmg) m.pdmg = new Map(); m.pdmg.set(c.id, (m.pdmg.get(c.id) || 0) + Math.min(r.d, m.hp + r.d)); } // máu pet tự đánh mất (pet chỉ nhận kinh nghiệm theo phần này)
     if (m.lh[m.lh.length - 1] !== c.id) { m.lh.push(c.id); if (m.lh.length > 30) m.lh.shift(); }
     // cá nóc phồng gai: đánh vào bị dội lại một phần sát thương
@@ -187,15 +190,16 @@ export class MapInst {
     this.ev.push(['a', c.id, +aim.toFixed(2), big]);
   }
   skill(c, m) {
-    const f = c.f, ch = c.ch, i = m.i | 0, S = D.skills[ch.cls][i]; if (!S || f.dead > 0 || f.stunT > 0) return;
-    if (!ch.sk[i]) return this.h.log(c, 'Chưa học ' + S.n + (ch.lv < S.req ? ' (cần cấp ' + S.req + ')' : ' — mua sách ở Thương Nhân trong Làng'), '#ffb347');
+    const f = c.f, ch = c.ch, i = m.i | 0, S = i === 6 ? R.USK : D.skills[ch.cls][i]; if (!S || f.dead > 0 || f.stunT > 0) return;
+    if (i === 6 && !ch.usk) return this.h.log(c, 'Chưa học ' + S.n + '. Sách rơi từ Hỗn Mang Ma Thần, cần cấp ' + S.req + '.', '#ffb347');
+    if (i !== 6 && !ch.sk[i]) return this.h.log(c, 'Chưa học ' + S.n + (ch.lv < S.req ? ' (cần cấp ' + S.req + ')' : ' — mua sách ở Thương Nhân trong Làng'), '#ffb347');
     if (f.cds[i] > .05 || f.gcd > .05) return;
     const cost = R.kiCost(ch.lv, i);
     if (f.ki < cost) { if (f.kiWarn <= 0) { f.kiWarn = 2; this.h.log(c, 'Không đủ KI (cần ' + cost + '). Chờ KI hồi hoặc cộng điểm vào KI.', '#7fc8ff'); } return; }
     f.ki -= cost; f.cds[i] = S.cd; f.gcd = D.world.gcd;
     const tgt = this.findTarget(f, m.tg | 0, 460), aim = tgt ? Math.atan2(tgt.y - f.y, tgt.x - f.x) : (f.face > 0 ? 0 : Math.PI); if (tgt) f.lastTgt = tgt.id;
     f.face = Math.cos(aim) >= 0 ? 1 : -1;
-    const sx = f.x; this.run(c, R.skillFx(ch.cls, i, ch.skl[i]), aim, tgt, 0);
+    const sx = f.x; this.run(c, R.skillFx(ch.cls, i, i === 6 ? ch.uskl : ch.skl[i]), aim, tgt, 0);
     this.ev.push(['s', c.id, i, +aim.toFixed(2), tgt ? tgt.id : 0, Math.round(sx)]);
     // chiêu lướt: ứng dụng tự lướt (bản 2.9.7+ gửi dp:1); bản cũ vẫn cần máy chủ báo vị trí
     if (f.x !== sx && !m.dp) this.sendPos(c, { dash: 1 });
@@ -294,13 +298,22 @@ export class MapInst {
     }
     const ch = best.ch, got = [];
     // trùm cấp cố định: đồ rơi theo cấp người kết liễu (không rơi đồ cấp 80 cho người cấp thấp)
+    if (m.t.world2) { // Hỗn Mang Ma Thần: đòn cuối nhận 80% sách Thiên Địa Diệt hoặc 20% một món Thần Thoại (vào thẳng túi, túi đầy thì rơi xuống đất)
+      const id = 'w' + Date.now().toString(36) + (this.seq++), it = rng() < (R.TUNE.wb2Book != null ? R.TUNE.wb2Book : .8) ? R.newBook(id) : R.genMythic(rng, clamp(ch.lv, 60, R.MAX_LV), id);
+      if (ch.inv.length < R.INV_MAX) { ch.inv.push(it); this.h.dirty(best); }
+      else { const o = { id: this.seq++, k: 'item', item: it, x: m.x, y: m.y, life: DROP_LIFE * 4, own: best.id, ownT: 600 }; o.y = this.fY(o.x, m.y); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]); }
+      this.fx('usk_divine', m.x, m.y, 420); this.later(2.5, () => { m.gone = true; });
+      this.h.log(best, 'Bạn kết liễu ' + m.t.n + ' và nhận ' + it.name + '!' + (ch.inv.length >= R.INV_MAX ? ' (túi đầy, đồ rơi dưới chân)' : ''), '#ff2e63');
+      if (this.h.glog) this.h.glog('drop', best, 'Kết liễu ' + m.t.n + ', nhận ' + it.name);
+      if (this.h.wb2) this.h.wb2(this, 'dead', best, it);
+    } else
     for (const d of R.monDrops(rng, m.type, m.t.fixLv ? Math.min(m.lv, ch.lv + 3) : m.lv, ch.cls, () => 'i' + Date.now().toString(36) + (this.seq++), m.el)) {
       const o = { id: this.seq++, k: d.k, n: d.n, item: d.item, x: clamp(m.x + rand(-34, 34) * (m.t.boss ? 2.5 : 1), 40, this.M.w - 40), y: 0, life: DROP_LIFE, own: best.id, ownT: OWN_T };
       o.y = this.fY(o.x, m.y); this.drops.push(o); this.ev.push(['d', this.dropInfo(o)]);
       if (d.item) got.push(d.item.name);
       if (d.item && d.item.r >= 2 && this.h.glog) this.h.glog('drop', best, 'Rơi ' + d.item.name + ' (' + D.rar[d.item.r].n + ') từ ' + m.t.n + ' cấp ' + m.lv + (m.el ? ' tinh anh' : ''));
     }
-    if (m.t.world) { // Boss Hoang Dã: đòn cuối nhận 1 quả trứng (vào thẳng túi đồ), boss tan thành tro
+    if (m.t.world && !m.t.world2) { // Boss Hoang Dã: đòn cuối nhận 1 quả trứng (vào thẳng túi đồ), boss tan thành tro
       const sp = R.PET_KEYS[Math.floor(rng() * R.PET_KEYS.length)], egg = R.newEgg(sp, 'e' + Date.now().toString(36) + (this.seq++));
       ch.inv.push(egg); this.fx('ml_ash', m.x, m.y - 90, 300); this.fx('egg_glow', m.x, m.y, 160);
       this.h.log(best, 'Bạn nhận được ' + egg.name + '! Mang tới Bà Ấp Trứng trong Làng để ấp.', '#ffd23f');
@@ -365,7 +378,7 @@ export class MapInst {
     if (f.dead > 0) { f.dead -= dt; if (f.dead <= 0) { f.dead = 0; f.hp = f.maxHp; f.ki = f.maxKi; f.pois = null; f.slowT = 0; f.stunT = 0; f.buffs = []; c.meDirty = true;
       if (this.h.home && this.mi !== 0) this.later(0, () => this.h.home(c)); else { const v = this.M.village ? this.M.spawn.x : this.M.spawn.x; f.x = v; f.y = this.gY(f.x); this.sendPos(c, { respawn: 1 }); } } return; }
     f.atkCd = Math.max(0, f.atkCd - dt); f.gcd = Math.max(0, f.gcd - dt); f.potCd = Math.max(0, f.potCd - dt); f.kpCd = Math.max(0, (f.kpCd || 0) - dt); f.rollCd = Math.max(0, (f.rollCd || 0) - dt); f.dashT = Math.max(0, f.dashT - dt);
-    for (let i = 0; i < 6; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
+    for (let i = 0; i < 7; i++) if (f.cds[i] > 0) f.cds[i] = Math.max(0, f.cds[i] - dt);
     const nb = f.buffs.length; f.buffs = f.buffs.filter(b => (b.t -= dt) > 0); if (f.buffs.length !== nb) c.meDirty = true;
     f.comboT -= dt; if (f.comboT <= 0) f.combo = 0;
     f.kiWarn -= dt;
@@ -557,11 +570,21 @@ export class MapInst {
   }
   /* ---------- Boss Hoang Dã: nổi giận, khiên khi còn rồng con, hồi máu khi không ai đánh ---------- */
   tickWorld(m, dt) {
+    if (m.t.world2) return this.tickWorld2(m, dt);
     if (!m.rage && m.hp < m.hpMax * .6) { m.rage = 1; m.atk *= 1.25; this.ev.push(['bs', m.id, 'roar', 1.2, 'Nổi giận']); this.fx('ml_rage', m.x, m.y - 100, 320); }
     const mini = this.mons.some(o => o.temp && !o.dead && o.type === 'dragonling');
     m.guard = mini ? 1 : 0;
     if (m.rage && (this.tk % 30) === 0) this.fx('ml_rage', m.x, m.y - 100, 320);
     if ((m.calm = (m.calm || 0) + dt) > 20 && m.hp < m.hpMax) m.hp = Math.min(m.hpMax, m.hp + m.hpMax * .02 * dt);
+  }
+  // Hỗn Mang Ma Thần: ít hơn t.solo người đánh trong 20 giây -> khiên (chỉ nhận 15% sát thương), dưới 30% máu nổi điên, lâu không ai đánh thì hồi máu
+  tickWorld2(m, dt) {
+    const now = Date.now(); let n = 0; if (m.hits) for (const [id, at] of m.hits) { if (now - at > 20e3) m.hits.delete(id); else n++; }
+    const was = m.guard > 0; m.guard = n < (m.t.solo || 3) ? 1 : 0;
+    if (m.guard && !was && n > 0 && (m.soloAt || 0) < now - 15e3) { m.soloAt = now; for (const id of m.hits.keys()) { const c = this.players.get(id); if (c) this.h.log(c, m.t.n + ' quá mạnh: cần ít nhất ' + (m.t.solo || 3) + ' người cùng đánh mới phá được khiên.', '#ff6b8a'); } }
+    if (!m.rage && m.hp < m.hpMax * .3) { m.rage = 1; m.atk *= 1.4; this.ev.push(['bs', m.id, 'rage', 1.2, 'Nộ Thần']); this.fx('cg_rage', m.x, m.y, 380); }
+    if (m.rage && (this.tk % 25) === 0) this.fx('cg_rage', m.x, m.y, 380);
+    if ((m.calm = (m.calm || 0) + dt) > 15 && m.hp < m.hpMax) m.hp = Math.min(m.hpMax, m.hp + m.hpMax * .01 * dt);
   }
   /* ---------- PET: theo chủ, tự đánh quái, kỹ năng mở ở cấp 10/40/80, ngất 1 phút rồi tự hồi sinh ---------- */
   syncPet(c, keep) {
@@ -638,7 +661,7 @@ export class MapInst {
   // ảnh chụp trạng thái gửi 10 lần/giây
   snap(extra) {
     const p = [];
-    for (const c of this.players.values()) { if (c.hidden) continue; const f = c.f, ch = c.ch; p.push([c.id, Math.round(f.x), Math.round(f.y), f.face, f.mv, f.atkCd > 0 ? 1 : 0, ch.cls, ch.lv, ch.name, +(f.hp / f.maxHp).toFixed(3), f.dead > 0 ? 1 : 0, lookN(ch), f.air, ch.eq.wing ? ch.eq.wing.r | 0 : -1, ch.title && ch.title.until > Date.now() ? ch.title.n : '', (f.stunT > 0 ? 1 : 0) | (f.slowT > 0 ? 2 : 0) | (f.pois ? 4 : 0)]); }
+    for (const c of this.players.values()) { if (c.hidden) continue; const f = c.f, ch = c.ch; p.push([c.id, Math.round(f.x), Math.round(f.y), f.face, f.mv, f.atkCd > 0 ? 1 : 0, ch.cls, ch.lv, ch.name, +(f.hp / f.maxHp).toFixed(3), f.dead > 0 ? 1 : 0, lookN(ch), f.air, ch.eq.wing ? ch.eq.wing.r | 0 : -1, ch.title && ch.title.until > Date.now() ? ch.title.n : '', (f.stunT > 0 ? 1 : 0) | (f.slowT > 0 ? 2 : 0) | (f.pois ? 4 : 0), mythN(ch)]); }
     if (extra) p.push(...extra);
     const m = [];
     for (const q of this.mons) m.push([q.id, Math.round(q.x), Math.round(q.y), Math.max(0, Math.round(q.hp)), q.face,

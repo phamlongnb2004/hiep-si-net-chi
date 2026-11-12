@@ -12,6 +12,7 @@ const TICK_MS = 100;
 const NEW_MAPS = 13, NEW_MAPS_APP = '2.11.0'; // Rừng Trúc Mây trở đi
 const APP_MIN = '2.9.0'; // 2.9.0: Boss Hoang Dã, trứng, pet, Bà Ấp Trứng (bản cũ không vẽ được pet, không có ô trứng)
 const ARENA_SLOTS = ['12:00', '19:00', '21:00'], ARENA_DUR = 30, ARENA_LEAVE = 40000; // khu trùm: khung giờ mặc định, số phút mở, giây ở lại nhặt đồ sau khi hạ trùm
+const WB2_EVERY = 60 * 60e3, WB2_LIFE = 30 * 60e3; // Hỗn Mang Ma Thần: mỗi giờ, ở lại 30 phút
 const KHU_MAX = 15, KHU_SHOW = 10, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
 const MAX_SAVE = 300 * 1024;
 const TOKEN_IDLE = 30 * 86400e3; // phiên đăng nhập hết hạn sau 30 ngày không dùng
@@ -385,7 +386,7 @@ export class World extends DurableObject {
       if (k1 && sn.p.length) { const v2 = sn.p.filter(q => inst.players.has(q[0])); if (v2.length) { if (!byMap.has(k)) byMap.set(k, []); byMap.get(k).push(...v2); } }
     }
     const now = Date.now();
-    if (++this._tk % 10 === 0) { adminTick(this); this.arenaTick(now); try { this.wbTick(now); } catch (e) { console.error(e); } }
+    if (++this._tk % 10 === 0) { adminTick(this); this.arenaTick(now); try { this.wbTick(now); } catch (e) { console.error(e); } try { this.wb2Tick(now); } catch (e) { console.error(e); } }
     for (const c of this.clients.values()) {
       if (!c.v2 && c.map >= 0) this.sendTo(c, { t: 'ps', p: (byMap.get(c.srv * 100 + c.map) || []).filter(s => s[0] !== c.id) });
       if (c.pending && now - c.lastSave > SAVE_EVERY) this.writeSave(c);
@@ -482,7 +483,40 @@ export class World extends DurableObject {
   }
   hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (k, c, d) => glog(this, k, c, d), ann: (inst, text) => this.srvAnn(inst.srv, text),
     home: c => { if (this.clients.get(c.id) === c && c.ch) { this.enterMap(c, R.D.maps.findIndex(M => M.village), null); this.sendTo(c, { t: 'log', text: 'Bạn đã hồi sinh ở Làng.', col: '#8fb4ff' }); c.meDirty = true; } },
-    wb: (inst, k, c, egg) => { if (k === 'dead') this.srvAnn(inst.srv, '🐉 ' + c.ch.name + ' đã kết liễu Ma Long Hắc Vực tại ' + inst.M.name + ' và nhận ' + egg.name + '!'); } }; }
+    wb: (inst, k, c, egg) => { if (k === 'dead') this.srvAnn(inst.srv, '🐉 ' + c.ch.name + ' đã kết liễu Ma Long Hắc Vực tại ' + inst.M.name + ' và nhận ' + egg.name + '!'); },
+    wb2: (inst, k, c, it) => { if (k === 'dead') this.srvAnn(inst.srv, '☠ ' + c.ch.name + ' đã kết liễu Hỗn Mang Ma Thần tại ' + inst.M.name + ' (khu ' + inst.khu + ') và nhận ' + it.name + '!'); } }; }
+  /* ---------- Hỗn Mang Ma Thần: mỗi giờ một lần mỗi máy chủ, 1 khu ngẫu nhiên của 1 bản đồ có quái (ngoài Làng), không báo vị trí ---------- */
+  wb2Spawn(srv, mi, khu, x) {
+    const M = R.D.maps[mi], inst = this.instOf(srv, mi, khu); inst.keep = true;
+    if (x == null) { const sp = M.spots[Math.floor(Math.random() * M.spots.length)]; x = sp.x + sp.w / 2; }
+    const m = inst.addMon('chaosgod', R.D.mons.chaosgod.fixLv || R.MAX_LV, x, false); m.noRe = true;
+    m.x0 = Math.max(60, x - 600); m.x1 = Math.min(M.w - 60, x + 600);
+    this.wb2.set(srv, { srv, inst, m, end: Date.now() + WB2_LIFE });
+    this.srvAnn(srv, '☠ Hỗn Mang Ma Thần đã giáng thế ở một nơi nào đó! Hãy tìm và hợp sức hạ nó (cần ít nhất 3 người).');
+    return m;
+  }
+  wb2Tick(now) {
+    if (!this.wb2) this.wb2 = new Map();
+    const srvs = new Set([...this.clients.values()].filter(c => c.v2 && c.ch).map(c => c.srv));
+    for (const srv of srvs) {
+      let W = this.wb2.get(srv);
+      if (!W) { W = { next: now + (5 + Math.random() * 10) * 60e3 }; this.wb2.set(srv, W); }
+      if (W.m) {
+        const m = W.m, gone = !W.inst.mons.includes(m);
+        if (m.dead || gone || now > W.end) {
+          if (!m.dead && !gone) { m.gone = true; this.srvAnn(srv, '☠ Hỗn Mang Ma Thần đã rời đi vì không ai hạ được nó.'); }
+          W.inst.keep = false; this.gcInst(W.inst);
+          this.wb2.set(srv, { next: W.born + WB2_EVERY > now + 5 * 60e3 ? W.born + WB2_EVERY : now + 5 * 60e3 });
+        }
+        continue;
+      }
+      if (now >= W.next) {
+        const ml = this.wb && this.wb.get(srv), busy = ml && ml.m && !ml.m.dead ? ml.inst.mi : -1;
+        const L = this.wbMaps().filter(i => i !== busy), mi = L[Math.floor(Math.random() * L.length)];
+        this.wb2Spawn(srv, mi, 1 + Math.floor(Math.random() * KHU_SHOW)); this.wb2.get(srv).born = now;
+      }
+    }
+  }
   /* ---------- Boss Hoang Dã (Ma Long Hắc Vực): ~30 phút/lần mỗi máy chủ, bản đồ săn + khu ngẫu nhiên ---------- */
   wbMaps() { return R.D.maps.map((M, i) => i).filter(i => { const M = R.D.maps[i]; return !M.village && !M.arena && M.spots && M.spots.length; }); }
   wbSpawn(srv, mi, khu, x) {
@@ -546,7 +580,7 @@ export class World extends DurableObject {
     const ch = c.ch, f = c.f;
     const o = { lv: ch.lv, exp: ch.exp, need: R.expNeed(ch.lv), gold: ch.gold, pots: ch.pots, kpots: ch.kpots | 0, potS: ch.potS | 0, potL: ch.potL | 0, kpotS: ch.kpotS | 0, kpotL: ch.kpotL | 0, charms: ch.charms | 0, skl: ch.skl, stones: ch.stones, kills: ch.kills, sk: ch.sk, books: ch.books, map: ch.map,
       hp: Math.round(f.hp), maxHp: f.maxHp, atk: f.atk, def: f.def, spd: f.spd, crit: f.crit, dead: f.dead > 0 ? 1 : 0, deadT: f.dead > 0 ? Math.ceil(f.dead) : 0, rvCost: R.reviveCost(),
-      ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5].map(i => R.kiCost(ch.lv, i)),
+      ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5, 6].map(i => R.kiCost(ch.lv, i)), usk: ch.usk ? 1 : 0, uskl: ch.uskl | 0 || 1,
       cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), kpCd: +(f.kpCd || 0).toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })),
       stun: f.stunT > 0 ? +f.stunT.toFixed(1) : 0, slow: f.slowT > 0 ? f.slowM : 1, pois: f.pois ? 1 : 0, title: ch.title && ch.title.until > Date.now() ? ch.title.n : '' };
     if (full) Object.assign(o, { name: ch.name, cls: ch.cls, inv: ch.inv, eq: ch.eq, pets: ch.pets.map(p => ({ ...p, st: R.petStats(p), stage: R.petStage(p.lv), need: R.expNeed(p.lv) })), petOn: ch.petOn || '', petMode: ch.petMode || 'protect', hatch: ch.hatch || null, now: Date.now() });
