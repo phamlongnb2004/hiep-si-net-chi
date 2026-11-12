@@ -286,13 +286,22 @@ const VIEWS = {
       h('div', { class: 'row', style: 'margin-top:8px' }, field('x Giá đồ cửa hàng', G.shopMul), field('Cộng tỉ lệ rèn (%)', G.forgeBonus), field('Tỉ lệ quái tinh anh (0–0,5)', G.eliteChance)),
       h('div', { class: 'row', style: 'margin-top:8px' }, field('x KI kỹ năng tốn (0 = không tốn)', G.kiMul), field('x Sức mạnh mỗi điểm tiềm năng', G.ptMul), field('Tỉ lệ rơi cánh mỗi lần hạ trùm (0,015 = 1,5%)', G.wingChance)),
       h('div', { class: 'row', style: 'margin-top:8px' }, field('x Kinh nghiệm cần để lên cấp (2 = lên cấp chậm gấp đôi)', G.lvMul))));
+    // tỉ lệ rơi đồ thật mỗi lần hạ (đã nhân x Tỉ lệ rơi đồ toàn game và hệ số rơi của quái)
+    const RT = r.rates || { itemDrop: .25, eliteCap: .3, eliteMul: 1.2 }, pc = v => (Math.round(Math.min(.95, v) * 1000) / 10).toLocaleString('vi-VN') + '%';
+    const dropTxt = (m, mul) => { const d = m.drop * (t.drop || 1) * mul;
+      if (m.boss) return 'Rơi đồ: chắc chắn 1 món + ' + pc(d) + ' món thứ 2';
+      return d ? 'Rơi đồ: ' + pc(d * RT.itemDrop) + ' · tinh anh ' + pc(Math.min(RT.eliteCap, m.drop * RT.eliteMul) * (t.drop || 1) * mul) : 'Không rơi đồ'; };
+    if (RT.w) { const pct = v => v.toLocaleString('vi-VN') + '%', row = (n, a) => h('tr', null, h('td', null, h('b', null, n)), ...a.map(v => h('td', null, pct(v))));
+      body.append(card(['gem', 'c-sun', 'Độ hiếm khi đồ rơi ra'], h('p', { class: 'note' }, 'Khi đã rơi ra một món, tỉ lệ món đó là từng độ hiếm (cố định trong mã, hệ số rơi đồ không đổi các con số này).'),
+        h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Nguồn'), ...RT.rar.map(n => h('th', null, n))),
+          row('Quái thường', RT.w.mob), row('Quái tinh anh', RT.w.elite), row('Trùm', RT.w.boss), row('Cánh (từ trùm)', RT.w.wing))))); }
     const M = {}, tb = h('tbody');
     for (const [k, m] of Object.entries(r.mons)) {
       const o = t.mon[k] || {}; M[k] = {};
       const cells = ['hp', 'atk', 'def', 'exp', 'gold', 'drop'].map(f => { const i = num(o[f] || 1, { min: .1, max: 20 }); i.style.width = '76px'; M[k][f] = i; return h('td', null, i); });
-      tb.append(h('tr', null, h('td', null, h('b', null, m.n), m.boss ? h('span', { class: 'pill warn' }, ' Trùm') : '', h('div', { class: 'note' }, (m.boss ? 'Máu ' + m.hp + ' · Công ' + m.atk + ' · KN ' + m.exp : 'Máu, công, KN theo cấp quái') + ' · Rơi ' + Math.round(m.drop * 100) + '%')), cells));
+      tb.append(h('tr', null, h('td', null, h('b', null, m.n), m.boss ? h('span', { class: 'pill warn' }, ' Trùm') : '', h('div', { class: 'note' }, (m.boss ? 'Máu ' + m.hp + ' · Công ' + m.atk + ' · KN ' + m.exp : 'Máu, công, KN theo cấp quái') + ' · ' + dropTxt(m, o.drop || 1))), cells));
     }
-    body.append(card(['sword', 'c-red', 'Từng loại quái (hệ số nhân)'], h('div', { class: 'scroll' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Quái'), ...['Máu', 'Công', 'Thủ', 'Kinh nghiệm', 'Vàng', 'Rơi đồ'].map(x => h('th', null, x)))), tb))));
+    body.append(card(['sword', 'c-red', 'Từng loại quái (hệ số nhân)'], h('p', { class: 'note' }, 'Các ô là hệ số nhân, 1 = như gốc (2 = gấp đôi). Dòng chữ dưới tên quái là tỉ lệ rơi đồ thật mỗi lần hạ.'), h('div', { class: 'scroll', style: 'max-height:70vh' }, h('table', null, h('thead', null, h('tr', null, h('th', { style: 'position:sticky;top:0;z-index:1;background:#fbf6ec' }, 'Quái'), ...['x Máu', 'x Công', 'x Thủ', 'x Kinh nghiệm', 'x Vàng', 'x Rơi đồ'].map(x => h('th', { style: 'position:sticky;top:0;z-index:1;background:#fbf6ec' }, x)))), tb))));
     if (!ro) body.append(h('div', { class: 'row' },
       h('button', { class: 'btn green', onclick: async () => {
         const tune = Object.fromEntries(Object.entries(G).map(([k, i]) => [k, +i.value])); tune.mon = {};
