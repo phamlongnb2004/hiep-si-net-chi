@@ -679,10 +679,11 @@ func open_khu(m: Dictionary) -> void:
 	g.add_theme_constant_override("v_separation", 10)
 	v.add_child(g)
 	var cur = int(m.get("cur", 1))
+	var soft = int(m.get("soft", max(1, mx - 2)))
 	for e in m.get("list", []):
 		var k = int(e[0])
 		var n = int(e[1])
-		var col = UI.GOLD if k == cur else (UI.RED if n >= mx else (Color("ffd98a") if n >= mx * 0.7 else UI.GREEN))
+		var col = UI.GOLD if k == cur else (UI.RED if n >= soft else (Color("ffd98a") if n >= ceili(mx * 0.45) else UI.GREEN))
 		var b = UI.button("Khu %d\n%d/%d" % [k, n, mx], col, 17)
 		b.custom_minimum_size = Vector2(96, 70)
 		b.disabled = k == cur or n >= mx

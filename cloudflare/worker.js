@@ -420,7 +420,15 @@ export class World extends DurableObject {
   khuN(srv, mi, k) { const i = this.insts.get(srv * 10000 + mi * 100 + k); return i ? i.players.size : 0; }
   khuMax() { return Math.max(1, Math.min(100, (this.cfg && this.cfg.khuMax) | 0 || KHU_MAX)); }
   // chọn khu: giữ số khu mong muốn nếu còn chỗ, không thì khu nhỏ nhất còn chỗ
-  pickKhu(srv, mi, want) { const mx = this.khuMax(); if (want && want <= KHU_CAP && this.khuN(srv, mi, want) < mx) return want; for (let k = 1; k <= KHU_CAP; k++) if (this.khuN(srv, mi, k) < mx) return k; return KHU_CAP; }
+  // ngưỡng tự xếp khu: khu có từ (tối đa - 2) người (mặc định 13/15) coi như gần đầy, người mới vào bản đồ tự sang khu sau
+  khuSoft() { const mx = this.khuMax(); return mx > 4 ? mx - 2 : mx; }
+  pickKhu(srv, mi, want) {
+    const mx = this.khuMax(), soft = this.khuSoft();
+    if (want && want <= KHU_CAP && this.khuN(srv, mi, want) < soft) return want;
+    for (let k = 1; k <= KHU_CAP; k++) if (this.khuN(srv, mi, k) < soft) return k;
+    for (let k = 1; k <= KHU_CAP; k++) if (this.khuN(srv, mi, k) < mx) return k;
+    return KHU_CAP;
+  }
   /* ---------- khu trùm: mở theo khung giờ (giờ Việt Nam), mỗi khu một con trùm, hạ xong là đóng tới khung sau ---------- */
   arenaCfg() { const a = this.cfg.arena || {}; return { on: a.on !== false, slots: Array.isArray(a.slots) && a.slots.length ? a.slots : ARENA_SLOTS, dur: a.dur || ARENA_DUR }; }
   // trả { open, start, end, next } cho bản đồ khu trùm mi lúc now
@@ -470,7 +478,7 @@ export class World extends DurableObject {
     const mx = this.khuMax(); let hi = 0; for (const i of this.insts.values()) if (i.srv === c.srv && i.mi === c.map && i.players.size) hi = Math.max(hi, i.khu);
     const n = Math.min(KHU_CAP, Math.max(KHU_SHOW, hi + 1)), list = [];
     for (let k = 1; k <= n; k++) list.push([k, this.khuN(c.srv, c.map, k)]);
-    return { t: 'khu', cur: c.inst ? c.inst.khu : 1, max: mx, list };
+    return { t: 'khu', cur: c.inst ? c.inst.khu : 1, max: mx, soft: this.khuSoft(), list };
   }
   hooks() { return { send: (c, o) => this.sendTo(c, o), dirty: c => { c.dirty = true; c.bagDirty = true; }, log: (c, text, col) => this.sendTo(c, { t: 'log', text, col }), glog: (k, c, d) => glog(this, k, c, d), ann: (inst, text) => this.srvAnn(inst.srv, text),
     home: c => { if (this.clients.get(c.id) === c && c.ch) { this.enterMap(c, R.D.maps.findIndex(M => M.village), null); this.sendTo(c, { t: 'log', text: 'Bạn đã hồi sinh ở Làng.', col: '#8fb4ff' }); c.meDirty = true; } },
@@ -526,7 +534,7 @@ export class World extends DurableObject {
       mi = 4; x = 5180;
     }
     tradeCancel(this, c, 'Đổi bản đồ, giao dịch bị hủy.');
-    const want = khu || (c.inst ? c.inst.khu : 1);
+    const want = khu || 1; // đổi bản đồ: luôn ưu tiên khu 1, gần đầy thì tự sang khu sau
     if (c.inst) { c.inst.leave(c); this.gcInst(c.inst); }
     if (c.map >= 0) this.toMap(c, c.map, { t: 'gone', id: c.id }, c);
     mi = Math.max(0, Math.min(R.D.maps.length - 1, mi | 0)); c.ch.map = mi; c.map = mi;

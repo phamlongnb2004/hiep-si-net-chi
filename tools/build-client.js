@@ -71,5 +71,8 @@ for (const f of fs.readdirSync(path.join(root, 'tools', 'site'))) fs.copyFileSyn
   for (const cls of ['sword', 'archer', 'mage', 'fighter']) for (let b = 0; b < 10; b++) for (const k of ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves']) cp(path.join(A, 'gear2', cls, String(b), k + '.webp'), path.join(O, 'gear2', cls, String(b), k + '.webp'));
   for (const k of ['neck', 'ring', 'earring', 'belt', 'charm']) for (let b = 0; b < 10; b++) cp(path.join(A, 'acc2', k, b + '.webp'), path.join(O, 'acc2', k, b + '.webp'));
   for (const cls of ['sword', 'archer', 'mage', 'fighter']) for (let i = 0; i < 6; i++) cp(path.join(A, 'hud', 'skills', cls, i + '.webp'), path.join(O, 'skills', cls, i + '.webp'));
-  for (const k of ['pot', 'stone', 'gold', 'book']) cp(path.join(A, 'hud', 'ui', k + '.webp'), path.join(O, k + '.webp')); }
+  for (const k of ['pot', 'stone', 'gold', 'book']) cp(path.join(A, 'hud', 'ui', k + '.webp'), path.join(O, k + '.webp'));
+  // vật phẩm khác (bình 3 cỡ, bùa) và trứng thú cưng: trang quản trị dùng admin-icons/misc/*, admin-icons/egg/<loài>.webp
+  for (const k of ['pot0', 'pot1', 'pot2', 'kpot0', 'kpot1', 'kpot2', 'charm']) cp(path.join(A, 'hud', 'ui', k + '.webp'), path.join(O, 'misc', k + '.webp'));
+  if (fs.existsSync(path.join(A, 'egg'))) for (const sp of fs.readdirSync(path.join(A, 'egg'))) cp(path.join(A, 'egg', sp, '0.webp'), path.join(O, 'egg', sp + '.webp')); }
 console.log('Đã tạo', path.relative(root, out), (html.length / 1048576).toFixed(2) + ' MB', 'máy chủ:', server || '(cùng địa chỉ trang)');

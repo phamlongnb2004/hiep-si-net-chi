@@ -165,6 +165,7 @@ function chart(hist) {
   for (const [k, lab] of [[0, '24 giờ trước'], [1, 'bây giờ']]) { const t = mk('text', { x: k ? W - P : P, y: H - 4, 'text-anchor': k ? 'end' : 'start', fill: '#5a6b8c', 'font-size': 11, 'font-weight': 800 }); t.textContent = lab; }
   return svg;
 }
+const hatchLeft = ms => { const m = Math.ceil(ms / 60000); return m >= 60 ? Math.floor(m / 60) + ' giờ ' + (m % 60) + ' phút' : m + ' phút'; };
 const charName = c => (c.name || '?') + ' · ' + (CLS[c.cls] || c.cls || '') + ' · Cấp ' + (c.lv | 0);
 function evRow(e) { return h('tr', null, h('td', null, dt(e.at)), h('td', null, h('span', { class: 'pill ' + (e.kind === 'cheat' || e.kind === 'ban' ? 'off' : e.kind === 'drop' ? 'warn' : 'blue') }, KIND_N[e.kind] || e.kind)), h('td', null, e.name || ''), h('td', null, e.detail || '')); }
 
@@ -198,6 +199,17 @@ const VIEWS = {
         : h('tr', null, h('td', null, 'Không tìm thấy.'))))); };
     q.onkeydown = e => { if (e.key === 'Enter') search(); };
     body.append(card(['search', 'c-sky', 'Tìm người chơi'], h('div', { class: 'row' }, h('label', { style: 'flex:1' }, 'Tìm', q), h('button', { class: 'btn', onclick: search }, 'Tìm'))), card(null, res));
+    // trứng đang ấp: quản trị cho nở ngay từng người
+    const hb = h('div', null, h('p', { class: 'note' }, 'Đang tải…'));
+    const loadHatch = async () => { const r = await run('hatching'); if (!r) return; const now = Date.now();
+      hb.replaceChildren(r.list.length ? h('div', { class: 'scroll' }, h('table', null,
+        h('tr', null, h('th', null, 'Nhân vật'), h('th', null, 'Tài khoản'), h('th', null, 'Máy chủ'), h('th', null, 'Trứng'), h('th', null, 'Còn lại'), h('th', null, '')),
+        r.list.map(x => h('tr', null, h('td', null, h('b', null, x.name || '?'), ' · Cấp ' + (x.lv | 0), x.online ? h('span', { class: 'pill on' }, ' Online') : ''), h('td', null, h('a', { href: '#', onclick: e => { e.preventDefault(); openPlayer(x.uid); } }, x.user || ('#' + x.uid))),
+          h('td', null, 'S' + x.srv), h('td', null, x.egg || x.sp), h('td', null, x.end <= now ? h('span', { class: 'pill on' }, 'Đã nở, chờ nhận') : hatchLeft(x.end - now)),
+          h('td', null, x.end > now ? h('button', { class: 'btn sm green', disabled: !can('owner'), onclick: async () => { if (await confirmBox('Nở ngay', 'Cho trứng của ' + (x.name || x.user) + ' nở ngay?', 'Nở ngay', 'green')) { await run('hatch_skip', { uid: x.uid, srv: x.srv }, 'Đã cho nở.'); loadHatch(); } } }, 'Nở ngay') : null)))))
+        : h('p', { class: 'empty' }, 'Không có ai đang ấp trứng.')); };
+    body.append(card(['gem', 'c-sun', 'Trứng đang ấp (bỏ qua thời gian ấp)'], h('div', { class: 'row', style: 'margin-bottom:8px' }, h('button', { class: 'btn sm sky', onclick: loadHatch }, 'Tải lại')), hb));
+    loadHatch();
     search(); q.focus();
   },
   async online(body) {
@@ -364,7 +376,7 @@ VIEWS.items = async function (body) {
   // vật phẩm khác + sách
   const misc = card(['box', 'c-sun', 'Vật phẩm khác']);
   misc.append(h('div', { class: 'cat' }, C.misc.map(m => { const i = inp({ type: 'number', min: 0, value: G.misc[m.k] || 0 }); i.oninput = () => G.misc[m.k] = Math.max(0, +i.value || 0);
-    return h('div', { class: 'gi' }, m.icon && m.k !== 'exp' ? h('img', { src: m.icon, alt: '' }) : badge('star', 'c-sky'), h('b', null, m.n), m.k === 'pots' ? h('span', { class: 'note' }, 'Tối đa mang ' + C.max.pots + ' bình') : null, i); })));
+    return h('div', { class: 'gi' }, m.icon && m.k !== 'exp' ? h('img', { src: m.icon, alt: '', onerror: e => e.target.replaceWith(badge(m.egg ? 'gem' : 'box', 'c-sun')) }) : badge('star', 'c-sky'), h('b', null, m.n), m.k === 'pots' ? h('span', { class: 'note' }, 'Tối đa mang ' + C.max.pots + ' bình') : null, i); })));
   body.append(misc);
   const bcls = G.to ? [G.to.cls] : Object.keys(C.cls);
   const bk = card(['scroll', 'c-mint', 'Sách kỹ năng' + (G.to ? ' (phái ' + C.cls[G.to.cls] + ')' : '')]);
@@ -457,6 +469,10 @@ function charCard(uid, c, p, reload) {
     const cls = h('select', null, Object.entries(CLS).map(([k, n]) => h('option', { value: k, selected: k === c.cls }, n))), slot = h('select', null, Object.entries(SLOT).map(([k, n]) => h('option', { value: k }, n))),
       r = h('select', null, RAR.map((n, i) => h('option', { value: i }, n))), lvl = inp({ type: 'number', min: 1, max: 100, value: Math.max(1, Math.floor(c.lv / 5) * 5) }), up = inp({ type: 'number', min: 0, max: 15, value: 0 });
     el.append(h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', onclick: () => giftTo(uid, c.srv, c) }, icon('gift'), 'Tặng vật phẩm…')));
+    const hl = c.hatch ? c.hatch.end - Date.now() : 0;
+    el.append(h('h3', null, 'Ấp trứng'), c.hatch ? h('div', { class: 'row' }, h('span', { class: 'chip' }, 'Đang ấp ' + (c.hatch.egg || c.hatch.sp || '') + ' · ' + (hl > 0 ? 'còn ' + hatchLeft(hl) : 'đã nở, chờ nhận')),
+      hl > 0 ? h('button', { class: 'btn sm green', onclick: async () => { if (await confirmBox('Nở ngay', 'Bỏ qua thời gian ấp, cho trứng nở ngay?', 'Nở ngay', 'green')) { await run('hatch_skip', { uid, srv: c.srv }, 'Đã cho nở.'); reload(); } } }, 'Nở ngay') : null)
+      : h('p', { class: 'note' }, 'Không có trứng đang ấp.'));
     const snapsBox = h('div');
     el.append(h('h3', null, 'Khôi phục'), h('div', { class: 'row' },
       h('button', { class: 'btn sm sky', onclick: async () => { const s = await run('snaps', { uid }); if (!s) return; const l = s.list.filter(x => x.srv === c.srv);

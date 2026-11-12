@@ -10,7 +10,7 @@ const BOOT_HASH = '8589c830546d707be0f730af2652f3faeea08b28318a5973c78fbd9d79e4c
 const ROLE = { viewer: 1, gm: 2, owner: 3 };
 const ROLE_N = { viewer: 'Chỉ xem', gm: 'GM hỗ trợ', owner: 'Chủ' };
 const NEED = { // quyền tối thiểu cho mỗi thao tác
-  me: 1, overview: 1, catalog: 1, give: 3, hatch_skip: 3, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
+  me: 1, overview: 1, catalog: 1, give: 3, hatch_skip: 3, hatching: 1, players: 1, player: 1, online: 1, logs: 1, snaps: 1, tune_get: 1, admins: 1, cfg_get: 1,
   ban: 2, unban: 2, mute: 2, kick: 2, announce: 2,
   // đụng tới tài sản/tài khoản người chơi: chỉ chủ (GM có lạm quyền cũng không tự làm giàu hay chiếm tài khoản được)
   char_edit: 3, item_add: 3, item_del: 3, restore: 3, reset_pw: 3, maint: 3, event: 3, event_stop: 3, servers_set: 3, app_cfg: 3, arena_now: 3, tune_set: 3, tune_reset: 3,
@@ -249,7 +249,8 @@ function kickUser(w, uid, msg, code) {
   for (const c of [...w.clients.values()]) if (c.uid === uid) { w.sendTo(c, { t: 'err', code: code || 'kick', msg }); try { c.ws.close(code === 'ban' ? 4008 : 4010, code || 'kick'); } catch (e) {} w.drop(c); }
 }
 const userRow = (w, uid) => { const u = w.one('SELECT id, username, created, banned_until, ban_reason, muted_until, last_login, last_ip FROM users WHERE id=?', uid | 0); if (!u) bad('Không có tài khoản.'); return u; };
-const charSummary = d => ({ name: d.name, cls: d.cls, lv: d.lv, exp: d.exp, gold: d.gold, stones: d.stones, pots: d.pots, kills: d.kills, map: d.map, inv: d.inv || [], eq: d.eq || {}, sk: d.sk, bad: d.bad || null, charms: d.charms | 0, hatch: d.hatch || null, pets: (d.pets || []).map(p => ({ sp: p.sp, name: p.name, lv: p.lv, star: p.star })) });
+const eggN = sp => { try { return R.eggName(sp); } catch (e) { return String(sp || ''); } };
+const charSummary = d => ({ name: d.name, cls: d.cls, lv: d.lv, exp: d.exp, gold: d.gold, stones: d.stones, pots: d.pots, kills: d.kills, map: d.map, inv: d.inv || [], eq: d.eq || {}, sk: d.sk, bad: d.bad || null, charms: d.charms | 0, hatch: d.hatch ? { ...d.hatch, egg: eggN(d.hatch.sp) } : null, pets: (d.pets || []).map(p => ({ sp: p.sp, name: p.name, lv: p.lv, star: p.star })) });
 
 const ACT = {
   async me(w, A) { return { user: A.user, role: A.role, roleName: ROLE_N[A.role], uid: A.uid, servers: w.servers().map(x => ({ id: x.id, name: x.name })) }; },
@@ -383,6 +384,15 @@ const ACT = {
     const d = editChar(w, A, uid, srv, 'Tặng vật phẩm', ch => { got = apply(ch); });
     tell(uid, srv, got);
     return { ok: true, n: 1, got, char: charSummary(d) };
+  },
+  // mọi nhân vật đang ấp trứng (trang Người chơi): để quản trị bỏ qua thời gian ấp cho từng người
+  async hatching(w) {
+    const L = new Map();
+    for (const r of w.sql.exec("SELECT c.user_id AS uid, c.srv AS srv, c.data AS data, u.username AS user FROM chars c JOIN users u ON u.id=c.user_id WHERE json_extract(c.data,'$.hatch.end') IS NOT NULL").toArray()) {
+      try { const d = JSON.parse(r.data); if (d.hatch) L.set(r.uid + ':' + r.srv, { uid: r.uid, srv: r.srv, user: r.user, name: d.name, lv: d.lv, sp: d.hatch.sp, egg: eggN(d.hatch.sp), end: d.hatch.end }); } catch (e) {}
+    }
+    for (const c of w.clients.values()) if (c.v2 && c.ch) { const k = c.uid + ':' + c.srv; if (c.ch.hatch) L.set(k, { uid: c.uid, srv: c.srv, user: c.user, name: c.ch.name, lv: c.ch.lv, sp: c.ch.hatch.sp, egg: eggN(c.ch.hatch.sp), end: c.ch.hatch.end, online: 1 }); else L.delete(k); }
+    return { list: [...L.values()].sort((a, b) => a.end - b.end) };
   },
   // bỏ qua thời gian ấp trứng (chỉ quản trị): trứng nở ngay, người chơi tới Bà Ấp Trứng để nhận
   async hatch_skip(w, A, b) {
