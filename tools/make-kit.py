@@ -86,4 +86,5 @@ if os.path.exists(src('props')) and PROPS:
         nm, h = spec.split(':'); h = float(h)
         im = save('ai', f'{TH}_{nm}', im, 520, 86); A['ai'][f'{TH}_{nm}']['h'] = h; A['ai'][f'{TH}_{nm}']['w'] = round(h * im.width / im.height, 1)
 json.dump(A, open(f'{C}/assets.json', 'w'), ensure_ascii=False, separators=(',', ':'))
-print(json.dumps(res), {k: A['side'][k] for k in A['side'] if k.endswith(TH) or k.endswith(TH + 'cave')})
+print({k: A['side'][k] for k in A['side'] if k.endswith(TH) or k.endswith(TH + 'cave')})
+print(json.dumps(res))

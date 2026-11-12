@@ -1,0 +1,258 @@
+{
+ "m02": {
+  "theme": "desert",
+  "props": "tree0:300,tree1:220,bush:80,rock:85,deco0:150,deco1:100,sign:95,gate:240",
+  "mons": {
+   "dscorp": [
+    "scorp",
+    140,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "dcamel": [
+    "camel",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "dmummy": [
+    "mummy",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "scorpking": [
+    "boss",
+    290,
+    [
+     "idle",
+     "move",
+     "s1",
+     "s2",
+     "s3"
+    ]
+   ]
+  },
+  "h": {
+   "dscorp": 70,
+   "dcamel": 100,
+   "dmummy": 90,
+   "scorpking": 200
+  },
+  "fx": {
+   "desert_sting": [
+    "sting",
+    false,
+    230
+   ],
+   "desert_sandstorm": [
+    "sandstorm",
+    true,
+    260
+   ],
+   "desert_erupt": [
+    "erupt",
+    true,
+    220
+   ]
+  }
+ },
+ "m03": {
+  "theme": "canyon",
+  "props": "tree0:320,tree1:240,bush:85,rock:90,deco0:120,deco1:110,sign:95,gate:240",
+  "mons": {
+   "ceagle": [
+    "eagle",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "clizard": [
+    "lizard",
+    140,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "cpebble": [
+    "pebble",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "redgolem": [
+    "boss",
+    290,
+    [
+     "idle",
+     "move",
+     "s1",
+     "s2",
+     "s3"
+    ]
+   ]
+  },
+  "h": {
+   "ceagle": 85,
+   "clizard": 72,
+   "cpebble": 88,
+   "redgolem": 235
+  },
+  "fx": {
+   "canyon_boulder": [
+    "boulder",
+    true,
+    240
+   ],
+   "canyon_quake": [
+    "quake",
+    true,
+    200
+   ],
+   "canyon_shards": [
+    "shards",
+    false,
+    220
+   ]
+  }
+ },
+ "m04": {
+  "theme": "sakura",
+  "props": "tree0:320,tree1:220,bush:85,rock:80,deco0:110,deco1:120,sign:95,gate:240",
+  "mons": {
+   "sfox": [
+    "ffox",
+    140,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "spixie": [
+    "pixie",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "sncat": [
+    "ncat",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "ninetail": [
+    "boss",
+    290,
+    [
+     "idle",
+     "move",
+     "s1",
+     "s2",
+     "s3"
+    ]
+   ]
+  },
+  "h": {
+   "sfox": 78,
+   "spixie": 70,
+   "sncat": 86,
+   "ninetail": 225
+  },
+  "fx": {
+   "sakura_petals": [
+    "petals",
+    true,
+    220
+   ],
+   "sakura_foxfire": [
+    "foxfire",
+    false,
+    200
+   ],
+   "sakura_smoke": [
+    "smoke",
+    true,
+    190
+   ]
+  }
+ },
+ "m05": {
+  "theme": "glow",
+  "props": "tree0:320,tree1:150,bush:100,rock:80,deco0:110,deco1:170,sign:95,gate:240",
+  "mons": {
+   "ggnome": [
+    "gnome",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "gfly": [
+    "firefly",
+    150,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "gsnail": [
+    "gsnail",
+    140,
+    [
+     "move",
+     "atk"
+    ]
+   ],
+   "shroommom": [
+    "boss",
+    290,
+    [
+     "idle",
+     "move",
+     "s1",
+     "s2",
+     "s3"
+    ]
+   ]
+  },
+  "h": {
+   "ggnome": 76,
+   "gfly": 72,
+   "gsnail": 74,
+   "shroommom": 240
+  },
+  "fx": {
+   "glow_spore": [
+    "spore",
+    false,
+    230
+   ],
+   "glow_sprout": [
+    "sprout",
+    true,
+    190
+   ],
+   "glow_roots": [
+    "roots",
+    true,
+    200
+   ]
+  }
+ }
+}
