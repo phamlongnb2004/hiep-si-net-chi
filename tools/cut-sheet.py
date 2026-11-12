@@ -32,6 +32,13 @@ for r in range(a.rows):
         lab, n = ndimage.label(white)
         border = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
         fg = ~np.isin(lab, list(border))
+        # khoảng trắng bị bao kín (giữa đuôi và thân...) cũng là nền: vùng trắng tinh, đủ lớn
+        vw = (cell.min(axis=2) > 243) & ((cell.max(axis=2) - cell.min(axis=2)) < 10)
+        lab3, n3 = ndimage.label(vw)
+        if n3:
+            sz3 = ndimage.sum(vw, lab3, range(1, n3 + 1))
+            holes = [i + 1 for i, s3 in enumerate(sz3) if s3 > cell.shape[0] * cell.shape[1] * 0.004]
+            fg &= ~ndimage.binary_dilation(np.isin(lab3, holes), iterations=1)
         fg = ndimage.binary_opening(fg, iterations=1)
         lab2, n2 = ndimage.label(fg)
         if n2:

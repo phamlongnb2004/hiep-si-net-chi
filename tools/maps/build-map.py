@@ -17,6 +17,7 @@ for sp, (src, body, acts) in C['mons'].items():
         cx[a] = run(f'{R}/tools/cut-sheet.py', f'{SRC}/{MID}_{src}_{a}.png', f'{OUT}/{sp}', a, '--scale', str(first['sc']))['cx']
     meta['mon'][sp] = {'dir': sp, 'acts': acts, 'cx': cx, 'body': body}
 for nm, (src, ground, h) in C['fx'].items():
+    if not os.path.exists(f'{SRC}/{MID}_fx_{src}.png'): print('thiếu hiệu ứng', nm); continue
     os.makedirs(f'{OUT}/fx', exist_ok=True)
     run(f'{R}/tools/cut-fx.py', f'{SRC}/{MID}_fx_{src}.png', f'{OUT}/fx/{nm}', '--h', str(h), *(['--ground'] if ground else []))
     meta['fx'][nm] = {}
