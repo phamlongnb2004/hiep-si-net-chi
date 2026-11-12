@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.11.0",
+  "version": "2.11.1",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "abcc817e7506b23f187909d099e72d257baf399be5e977c0565d170946701296",
-   "size": 85612188
+   "sha256": "8564fb2747222f6af23765f24d2f6a68a32196427cc63b34231a5a5f1c2a8eb9",
+   "size": 85612737
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "0be48f78f06c5b51feacb727e0445c5242f193eed8e2ac5cbcbea67ea63a7785",
+   "sha256": "7f3eab16978d02620e6aa16083f9a6189ff08b3651c3f14bd733244afcdf38ee",
    "size": 89833214
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "319ce13c33374af8560985fd1c2c97aa115bf843110b315169102318555095d1",
-   "size": 87839356
+   "sha256": "c2c47608691e575c0eed67de562ec3f5cbeec1d017dfc69dd21ec862d253246a",
+   "size": 87839852
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -32,10 +32,10 @@
   "size": 63300972
  },
  "changelog": [
-  "5 bản đồ mới nối tiếp Đầm Lầy: Rừng Trúc Mây, Sa Mạc Cát Vàng, Hẻm Núi Đá Đỏ, Thung Lũng Anh Đào, Rừng Nấm Phát Sáng (cấp 40-55)",
-  "15 loại quái mới, có quái bay, quái phun độc, quái lao tới, quái gọi đồng bọn",
-  "5 hang trùm mới mở theo giờ: Vương Gấu Trúc, Bọ Cạp Hoàng Đế, Golem Núi Đỏ, Hồ Ly Chín Đuôi, Mẹ Nấm Cổ Thụ, mỗi trùm 3 chiêu riêng",
-  "Cần ứng dụng 2.11.0 để vào các bản đồ mới"
+  "Nhặt đồ: đi ngang không tự nhặt nữa, bấm vào món đồ để nhặt",
+  "Bật Auto và chọn Tự nhặt đồ rơi thì đi gần đồ của mình sẽ tự nhặt; đồ người khác chờ hết thời gian khóa",
+  "Bảng đổi khu: khu từ 13 người hiện màu đỏ, khu đông vừa màu vàng",
+  "Đổi bản đồ luôn vào khu 1, khu gần đầy thì tự sang khu sau"
  ],
- "updated": "2026-11-12T11:56:50.370Z"
+ "updated": "2026-11-12T13:22:38.856Z"
 }
