@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.11.2",
+  "version": "2.11.3",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "7caca9d450a4d2950ce62a99fefcce3ec9c503b2a7a616fe19dafe1060ae00ac",
-   "size": 85616056
+   "sha256": "9107d94d72c8601ffcb2e457f29dbf4157975e322520282102baa7f69a5cc126",
+   "size": 85623668
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "7603c47c6435f62b3ada7edb077f06b74832cc169d7cd4d4065dd80630a5b156",
-   "size": 89837310
+   "sha256": "7c708a7091b0223b46c0fdc84969671c6c32a926b0a8cad0c0dd3238acb7df12",
+   "size": 89845651
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "389756bb88d2a1a74e88ba0ce793ff9499d67816139b842510c48e90aefa7d49",
-   "size": 87843094
+   "sha256": "c702a088c259e87547154aa4fe4272bb07883995a268a39bb5afbd377f497666",
+   "size": 87852075
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,17 +25,18 @@
   }
  },
  "assets": {
-  "version": 34,
+  "version": 35,
   "min_app": "2.11.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-34.pck",
-  "sha256": "5d29d8a86ac409e6d7b7f0a5c7bbde1fce56fc7aef44636cda34672f8f1a129d",
-  "size": 63300972
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-35.pck",
+  "sha256": "dbab7c34abddcb80816814aeae2c74f9d6378bd250e75e3334ef4e3766d2720c",
+  "size": 63301292
  },
  "changelog": [
-  "Chuồng pet và các bảng NPC kéo tay cuộn được trên điện thoại",
-  "Pet lên cấp chậm hơn: pet nhận kinh nghiệm theo cấp của pet",
-  "Nhặt đồ: bấm vào món đồ để nhặt; bật Auto + Tự nhặt đồ rơi thì đi gần tự nhặt",
-  "Bảng đổi khu: khu từ 13 người màu đỏ, đông vừa màu vàng"
+  "Mục Thú cưng trong Hành Trang: xem pet, chỉ số, kỹ năng; chọn trạng thái Đi theo / Tấn công / Bảo vệ / Về nhà",
+  "Lệnh chat cho pet: ditheo, tancong, baove, venha (pet sẽ nhắn lại bạn)",
+  "Sửa các chỗ trên 5 bản đồ mới không nhảy lên được (auto bị kẹt)",
+  "Kéo tay cuộn được mọi bảng trên điện thoại, kể cả khi bắt đầu kéo trên nút",
+  "Sửa hình vách đất ở các bản đồ mới"
  ],
- "updated": "2026-11-12T13:48:12.400Z"
+ "updated": "2026-11-12T16:31:34.685Z"
 }
