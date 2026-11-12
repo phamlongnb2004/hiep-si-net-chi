@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.11.1",
+  "version": "2.11.2",
   "min": "2.9.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "8564fb2747222f6af23765f24d2f6a68a32196427cc63b34231a5a5f1c2a8eb9",
-   "size": 85612737
+   "sha256": "7caca9d450a4d2950ce62a99fefcce3ec9c503b2a7a616fe19dafe1060ae00ac",
+   "size": 85616056
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "7f3eab16978d02620e6aa16083f9a6189ff08b3651c3f14bd733244afcdf38ee",
-   "size": 89833214
+   "sha256": "7603c47c6435f62b3ada7edb077f06b74832cc169d7cd4d4065dd80630a5b156",
+   "size": 89837310
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "c2c47608691e575c0eed67de562ec3f5cbeec1d017dfc69dd21ec862d253246a",
-   "size": 87839852
+   "sha256": "389756bb88d2a1a74e88ba0ce793ff9499d67816139b842510c48e90aefa7d49",
+   "size": 87843094
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -32,10 +32,10 @@
   "size": 63300972
  },
  "changelog": [
-  "Nhặt đồ: đi ngang không tự nhặt nữa, bấm vào món đồ để nhặt",
-  "Bật Auto và chọn Tự nhặt đồ rơi thì đi gần đồ của mình sẽ tự nhặt; đồ người khác chờ hết thời gian khóa",
-  "Bảng đổi khu: khu từ 13 người hiện màu đỏ, khu đông vừa màu vàng",
-  "Đổi bản đồ luôn vào khu 1, khu gần đầy thì tự sang khu sau"
+  "Chuồng pet và các bảng NPC kéo tay cuộn được trên điện thoại",
+  "Pet lên cấp chậm hơn: pet nhận kinh nghiệm theo cấp của pet",
+  "Nhặt đồ: bấm vào món đồ để nhặt; bật Auto + Tự nhặt đồ rơi thì đi gần tự nhặt",
+  "Bảng đổi khu: khu từ 13 người màu đỏ, đông vừa màu vàng"
  ],
- "updated": "2026-11-12T13:22:38.856Z"
+ "updated": "2026-11-12T13:48:12.400Z"
 }
