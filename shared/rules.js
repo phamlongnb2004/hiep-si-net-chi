@@ -36,8 +36,8 @@ export const ELITE_CHANCE = .07;              // quái thường thỉnh thoản
 export const ELITE = { hp: 3, atk: 1.6, def: 1.5, exp: 3, gold: 3, drop: 2.5, dropMax: .6 };
 // Tham số cân bằng do admin chỉnh trên máy chủ (không cần ra bản ứng dụng mới). Mặc định = luật gốc.
 // ev: sự kiện tạm thời (x2 kinh nghiệm...), máy chủ tự tắt khi hết giờ.
-export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, lvMul: 1, mon: {} };
-export const TUNE = { ...TUNE_DEFAULT, mon: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
+export const TUNE_DEFAULT = { exp: 1, gold: 1, drop: 1, potPrice: POT_PRICE, shopMul: 1, forgeBonus: 0, eliteChance: ELITE_CHANCE, kiMul: 1, ptMul: 1, wingChance: WING_CHANCE, lvMul: 1, mon: {}, rar: {} };
+export const TUNE = { ...TUNE_DEFAULT, mon: {}, rar: {}, ev: { exp: 1, gold: 1, drop: 1, until: 0, name: '' } };
 // áp tham số mới (đã kiểm giới hạn) vào TUNE; trả về bản đã chuẩn hóa để lưu
 export function setTune(t) {
   const n = (v, lo, hi, d) => { v = +v; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
@@ -47,6 +47,11 @@ export function setTune(t) {
   for (const k in (t.mon || {})) if (D.mons[k]) { const m = t.mon[k] || {}, q = {};
     for (const f of ['hp', 'atk', 'def', 'exp', 'gold', 'drop']) { const v = n(m[f], .1, 20, 1); if (v !== 1) q[f] = v; }
     if (Object.keys(q).length) o.mon[k] = q; }
+  // tỉ lệ độ hiếm khi đồ rơi ra (%), theo nguồn: mob/elite/boss/wing; chỉ lưu nguồn khác mặc định
+  o.rar = {};
+  for (const k in RAR_W) { const a = t.rar && t.rar[k]; if (!Array.isArray(a) || a.length !== RAR_W[k].length) continue;
+    const v = a.map(x => n(x, 0, 100, 0)), sum = v.reduce((x, y) => x + y, 0); if (!(sum > 0)) continue;
+    const q = v.map(x => Math.round(x / sum * 100000) / 1000); if (q.some((x, i) => Math.abs(x - RAR_W[k][i]) > 1e-6)) o.rar[k] = q; }
   Object.assign(TUNE, o); return o;
 }
 const mt = (type, f) => (TUNE.mon[type] && TUNE.mon[type][f]) || 1;
@@ -77,6 +82,7 @@ export const isFree = slot => FREE_SLOTS.includes(slot);
 export const W_WING = [60, 28, 10, 2];
 // 2.9.3: đồ tốt khó rơi hơn (thường / hiếm / sử thi / huyền thoại)
 export const W_MOB = [90, 9, .9, .1], W_BOSS = [52, 38, 8.5, 1.5], W_ELITE = [72, 23, 4.4, .6];
+export const RAR_W = { mob: W_MOB, elite: W_ELITE, boss: W_BOSS, wing: W_WING };
 export const SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'wing', 'ring', 'earring', 'belt', 'charm'];
 // ô đồ rơi từ quái thường / bán ở cửa hàng (cánh thì không)
 export const DROP_SLOTS = ['hat', 'armor', 'cape', 'weapon', 'boots', 'gloves', 'neck', 'ring', 'earring', 'belt', 'charm'], DROP_SLOT_W = [1, 1, 1, 1, 1, 1, .6, .5, .5, .5, .5];
@@ -168,8 +174,8 @@ function makeItem(id, slot, c, rk, lvl, st) {
 // mode: false/'mob' quái thường, true/'boss' trùm, 'elite' tinh anh
 export function genItem(rng, lvl, mode, cls, id) {
   const c = rng() < .75 && D.sets[cls] ? cls : CLS_KEYS[ri(rng, 0, CLS_KEYS.length - 1)];
-  const ws = mode === 'elite' ? W_ELITE : (mode === true || mode === 'boss') ? W_BOSS : W_MOB;
-  const wing = mode === 'wing', rk = pickW(rng, wing ? W_WING : ws), slot = wing ? 'wing' : DROP_SLOTS[pickW(rng, DROP_SLOT_W)], b = baseStats(slot, lvl, rk), st = {};
+  const src = mode === 'wing' ? 'wing' : mode === 'elite' ? 'elite' : (mode === true || mode === 'boss') ? 'boss' : 'mob', ws = (TUNE.rar && TUNE.rar[src]) || RAR_W[src];
+  const wing = mode === 'wing', rk = pickW(rng, ws), slot = wing ? 'wing' : DROP_SLOTS[pickW(rng, DROP_SLOT_W)], b = baseStats(slot, lvl, rk), st = {};
   for (const k in b) st[k] = Math.max(1, Math.round(b[k] * (.8 + rng() * .45)));
   const it = makeItem(id, slot, c, rk, lvl, st);
   if (rng() < LOCK_CHANCE) it.lock = 1;

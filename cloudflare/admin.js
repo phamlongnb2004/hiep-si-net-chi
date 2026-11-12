@@ -486,7 +486,7 @@ const ACT = {
   async tune_get(w) {
     return { tune: { ...R.TUNE, ev: undefined }, def: R.TUNE_DEFAULT,
       // để trang Cân bằng hiện tỉ lệ rơi thật (quái thường chỉ rơi đồ ITEM_DROP × "drop" của quái)
-      rates: { itemDrop: R.ITEM_DROP, eliteCap: .3, eliteMul: 1.2, w: { mob: R.W_MOB, elite: R.W_ELITE, boss: R.W_BOSS, wing: R.W_WING }, rar: R.D.rar.map(x => x.n) },
+      rates: { itemDrop: R.ITEM_DROP, eliteCap: .3, eliteMul: 1.2, w: R.RAR_W, rar: R.D.rar.map(x => x.n) },
       mons: Object.fromEntries(Object.entries(R.D.mons).map(([k, m]) => [k, { n: m.n, hp: m.hp, atk: m.atk, def: m.def, exp: m.exp, gold: m.gold, drop: m.drop, boss: !!m.boss }])) };
   },
   async tune_set(w, A, b) { const t = R.setTune(b.tune || {}); setCfg(w, 'tune', t); w.broadcastCfg(); return { ok: true, tune: t }; },

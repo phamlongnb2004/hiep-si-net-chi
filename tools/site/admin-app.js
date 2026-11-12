@@ -291,10 +291,15 @@ const VIEWS = {
     const dropTxt = (m, mul) => { const d = m.drop * (t.drop || 1) * mul;
       if (m.boss) return 'Rơi đồ: chắc chắn 1 món + ' + pc(d) + ' món thứ 2';
       return d ? 'Rơi đồ: ' + pc(d * RT.itemDrop) + ' · tinh anh ' + pc(Math.min(RT.eliteCap, m.drop * RT.eliteMul) * (t.drop || 1) * mul) : 'Không rơi đồ'; };
-    if (RT.w) { const pct = v => v.toLocaleString('vi-VN') + '%', row = (n, a) => h('tr', null, h('td', null, h('b', null, n)), ...a.map(v => h('td', null, pct(v))));
-      body.append(card(['gem', 'c-sun', 'Độ hiếm khi đồ rơi ra'], h('p', { class: 'note' }, 'Khi đã rơi ra một món, tỉ lệ món đó là từng độ hiếm (cố định trong mã, hệ số rơi đồ không đổi các con số này).'),
-        h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Nguồn'), ...RT.rar.map(n => h('th', null, n))),
-          row('Quái thường', RT.w.mob), row('Quái tinh anh', RT.w.elite), row('Trùm', RT.w.boss), row('Cánh (từ trùm)', RT.w.wing))))); }
+    // tỉ lệ độ hiếm khi đồ rơi ra: chỉnh được (%), tổng mỗi dòng tự quy về 100%
+    const RW = {};
+    if (RT.w) { const SRC = [['mob', 'Quái thường'], ['elite', 'Quái tinh anh'], ['boss', 'Trùm'], ['wing', 'Cánh (từ trùm)']], rows = [];
+      for (const [k, n] of SRC) { const cur = (t.rar && t.rar[k]) || RT.w[k], sumEl = h('td', { class: 'note' }), ins = cur.map(v => { const i = num(v, { step: .01, min: 0, max: 100 }); i.style.width = '86px'; return i; });
+        const upd = () => { const sm = ins.reduce((a, i) => a + (+i.value || 0), 0); sumEl.textContent = 'Tổng ' + (Math.round(sm * 1000) / 1000).toLocaleString('vi-VN') + '%' + (Math.abs(sm - 100) > .001 ? ' (sẽ tự quy về 100%)' : ''); };
+        ins.forEach(i => i.addEventListener('input', upd)); upd(); RW[k] = ins;
+        rows.push(h('tr', null, h('td', null, h('b', null, n), h('div', { class: 'note' }, 'Gốc: ' + RT.w[k].join(' / ') + '%')), ...ins.map(i => h('td', null, i)), sumEl)); }
+      body.append(card(['gem', 'c-sun', 'Độ hiếm khi đồ rơi ra (%)'], h('p', { class: 'note' }, 'Khi một món đã rơi ra, tỉ lệ món đó thuộc từng độ hiếm. Ô "x Tỉ lệ rơi đồ" chỉ đổi số lần rơi, còn bảng này đổi độ hiếm. Áp dụng ngay sau khi Lưu thay đổi.'),
+        h('div', { class: 'scroll' }, h('table', null, h('tr', null, h('th', null, 'Nguồn'), ...RT.rar.map(n => h('th', null, n)), h('th', null, '')), rows)))); }
     const M = {}, tb = h('tbody');
     for (const [k, m] of Object.entries(r.mons)) {
       const o = t.mon[k] || {}; M[k] = {};
@@ -304,7 +309,7 @@ const VIEWS = {
     body.append(card(['sword', 'c-red', 'Từng loại quái (hệ số nhân)'], h('p', { class: 'note' }, 'Các ô là hệ số nhân, 1 = như gốc (2 = gấp đôi). Dòng chữ dưới tên quái là tỉ lệ rơi đồ thật mỗi lần hạ.'), h('div', { class: 'scroll', style: 'max-height:70vh' }, h('table', null, h('thead', null, h('tr', null, h('th', { style: 'position:sticky;top:0;z-index:1;background:#fbf6ec' }, 'Quái'), ...['x Máu', 'x Công', 'x Thủ', 'x Kinh nghiệm', 'x Vàng', 'x Rơi đồ'].map(x => h('th', { style: 'position:sticky;top:0;z-index:1;background:#fbf6ec' }, x)))), tb))));
     if (!ro) body.append(h('div', { class: 'row' },
       h('button', { class: 'btn green', onclick: async () => {
-        const tune = Object.fromEntries(Object.entries(G).map(([k, i]) => [k, +i.value])); tune.mon = {};
+        const tune = Object.fromEntries(Object.entries(G).map(([k, i]) => [k, +i.value])); tune.mon = {}; tune.rar = {}; for (const k in RW) tune.rar[k] = RW[k].map(i => +i.value || 0);
         for (const k in M) { const o = {}; for (const f in M[k]) if (+M[k][f].value !== 1) o[f] = +M[k][f].value; if (Object.keys(o).length) tune.mon[k] = o; }
         if (await confirmBox('Lưu cân bằng', 'Áp dụng ngay cho mọi người chơi. Quái đang sống giữ chỉ số cũ tới khi hồi sinh.', 'Lưu', 'green')) { await run('tune_set', { tune }, 'Đã lưu cân bằng.'); layout(); }
       } }, 'Lưu thay đổi'),
