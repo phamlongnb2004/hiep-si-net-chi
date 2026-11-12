@@ -16,6 +16,12 @@ for sp, mv in C['mons'].items():
     cx = {acts[0]: first['cx']}
     for a in acts[1:]:
         cx[a] = run(f'{R}/tools/cut-sheet.py', f'{SRC}/{MID}_{src}_{a}.png', f'{OUT}/{sp}', a, '--scale', str(first['sc']), *xo)['cx']
+    if len(mv) > 3 and mv[3].get('flip'):  # AI vẽ quay trái: lật từng khung cho quay phải
+        from PIL import Image
+        for a in acts:
+            for i in range(8):
+                fp = f'{OUT}/{sp}/{a}{i}.webp'; Image.open(fp).transpose(Image.FLIP_LEFT_RIGHT).save(fp, quality=88)
+            cx[a] = round(1 - cx[a], 4)
     meta['mon'][sp] = {'dir': sp, 'acts': acts, 'cx': cx, 'body': body}
 for nm, (src, ground, h) in C['fx'].items():
     if not os.path.exists(f'{SRC}/{MID}_fx_{src}.png'): print('thiếu hiệu ứng', nm); continue
