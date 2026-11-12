@@ -35,6 +35,10 @@ func run() -> void:
 		await tour(OS.get_environment("HSNC_TOUR_USER"), OS.get_environment("HSNC_TOUR_ACT"))
 		get_tree().quit()
 		return
+	if OS.get_environment("HSNC_PREVIEW") == "navcheck":
+		load("res://tools/check_nav.gd").run()
+		get_tree().quit()
+		return
 	if OS.get_environment("HSNC_PREVIEW") == "climbbig":
 		await preview_big()
 		get_tree().quit()
@@ -718,6 +722,40 @@ func perf_test() -> void:
 	g.bag_full.connect(func(): print("BAGFULL"); shot("bagfull"))
 	Data.hitch_watch = OS.get_environment("HSNC_LATE") != ""
 	await shot("perf-0")
+	if OS.get_environment("HSNC_SHOPDRAG") != "":
+		# kéo tay cuộn bảng Thương Nhân: bắt đầu trên chữ, rồi bắt đầu trên nút "Đã học"
+		main.npc.open("shop")
+		await wait(0.8)
+		var sc2: ScrollContainer = main.npc.body.get_parent()
+		var btn: Control = null
+		for b in main.npc.body.find_children("*", "Button", true, false):
+			btn = b
+			break
+		var xf = get_viewport().get_screen_transform()
+		for start in [xf * Vector2(sc2.get_global_rect().position.x + 260, sc2.get_global_rect().get_center().y), xf * (btn.get_global_rect().get_center() if btn else Vector2.ZERO)]:
+			sc2.scroll_vertical = 0
+			await wait(0.2)
+			var t0 = InputEventScreenTouch.new()
+			t0.index = 0
+			t0.pressed = true
+			t0.position = start
+			Input.parse_input_event(t0)
+			await wait(0.05)
+			for k in 12:
+				var dg = InputEventScreenDrag.new()
+				dg.index = 0
+				dg.position = start - Vector2(0, (k + 1) * 15)
+				dg.relative = Vector2(0, -15)
+				Input.parse_input_event(dg)
+				await wait(0.03)
+			var t1 = InputEventScreenTouch.new()
+			t1.index = 0
+			t1.pressed = false
+			t1.position = start - Vector2(0, 180)
+			Input.parse_input_event(t1)
+			await wait(0.4)
+			print("SHOPDRAG start=", start, " scroll=", sc2.scroll_vertical, " max=", sc2.get_v_scroll_bar().max_value)
+		await shot("shop")
 	if OS.get_environment("HSNC_PETBAG") != "":
 		Net.send({"t": "devpet", "sp": "fire"})
 		await wait(1.5)

@@ -53,6 +53,8 @@ class Bg extends Control:
 
 func _ready() -> void:
 	get_tree().set_auto_accept_quit(true)
+	# kéo tay để cuộn trên điện thoại: khung/nền không bấm được nằm trong vùng cuộn phải cho thao tác đi qua
+	get_tree().node_added.connect(_scroll_pass)
 	get_tree().set_quit_on_go_back(false)
 	ui_layer = CanvasLayer.new()
 	ui_layer.layer = 20
@@ -416,6 +418,51 @@ func _on_msg(m: Dictionary) -> void:
 		"chat":
 			if hud:
 				hud.chat(m)
+
+# kéo tay bắt đầu trên một nút nằm trong vùng cuộn: ScrollContainer không nhận được thao tác (nút giữ lại),
+# nên tự cuộn vùng đó theo ngón tay; nhả tay ngoài nút thì nút không bị bấm nhầm
+var _drag_sc: ScrollContainer = null
+var _drag_mode := 0
+var _drag_acc := 0.0
+func _input(ev: InputEvent) -> void:
+	if ev is InputEventScreenTouch and ev.index == 0:
+		_drag_mode = 0
+		_drag_sc = null
+		_drag_acc = 0.0
+	elif ev is InputEventScreenDrag and ev.index == 0:
+		if _drag_mode == 0:
+			_drag_mode = 2
+			var h: Node = get_viewport().gui_get_hovered_control()
+			while h and not (h is BaseButton):
+				h = h.get_parent() if h.get_parent() is Control else null
+			if h:
+				var p = h.get_parent()
+				while p and not (p is ScrollContainer):
+					p = p.get_parent()
+				if p:
+					_drag_sc = p
+					_drag_mode = 1
+		if _drag_mode == 1 and is_instance_valid(_drag_sc):
+			_drag_acc += absf(ev.relative.y)
+			if _drag_acc > 8.0:
+				_drag_sc.scroll_vertical -= int(round(ev.relative.y))
+
+func _scroll_pass(n: Node) -> void:
+	if n is PanelContainer or n is Panel or n is ColorRect:
+		_scroll_pass_check.call_deferred(n)
+
+func _scroll_pass_check(n: Node) -> void:
+	if not is_instance_valid(n) or not n.is_inside_tree():
+		return
+	var c := n as Control
+	if c.mouse_filter != Control.MOUSE_FILTER_STOP or c.gui_input.get_connections().size() > 0:
+		return
+	var p = c.get_parent()
+	while p:
+		if p is ScrollContainer:
+			c.mouse_filter = Control.MOUSE_FILTER_PASS
+			return
+		p = p.get_parent()
 
 func _notification(what: int) -> void:
 	# nút Quay lại trên Android: mở bảng tùy chọn thay vì thoát ngay
