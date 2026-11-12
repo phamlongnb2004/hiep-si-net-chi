@@ -15,6 +15,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('sheet'); ap.add_argument('out'); ap.add_argument('prefix')
 ap.add_argument('--cols', type=int, default=4); ap.add_argument('--rows', type=int, default=2)
 ap.add_argument('--h', type=float, default=160, help='chiều cao khung đích (px)')
+ap.add_argument('--scale', type=float, default=0, help='hệ số thu cố định (giữ cùng cỡ thân giữa các bảng)')
 ap.add_argument('--white', type=int, default=236)
 ap.add_argument('--keep-fx', action='store_true', help='giữ cả mảnh rời (hiệu ứng), không chỉ khối lớn nhất')
 a = ap.parse_args()
@@ -58,7 +59,7 @@ right = max(b[2] - cx for cx, b in zip(cxs, boxes))
 cxm = float(np.median(cxs))
 L = max(cxm - min(b[0] for b in boxes), 1); R = max(max(b[2] for b in boxes) - cxm, 1)
 fw, fh = int(L + R + 6), int(h_all + 2)
-scale = a.h / fh
+scale = a.scale or a.h / fh
 import os
 os.makedirs(a.out, exist_ok=True)
 for i, (c, b) in enumerate(zip(cells, boxes)):
@@ -69,4 +70,4 @@ for i, (c, b) in enumerate(zip(cells, boxes)):
     canvas.alpha_composite(src, (max(-10**6, ox), oy))
     out = canvas.resize((max(1, round(fw * scale)), max(1, round(fh * scale))), Image.LANCZOS)
     out.save(f'{a.out}/{a.prefix}{i}.webp', quality=88)
-print(json.dumps({'w': round(fw * scale, 1), 'h': round(fh * scale, 1), 'cx': round((L + 3) / fw, 4), 'n': len(cells)}))
+print(json.dumps({'w': round(fw * scale, 1), 'h': round(fh * scale, 1), 'cx': round((L + 3) / fw, 4), 'n': len(cells), 'sc': round(scale, 5)}))

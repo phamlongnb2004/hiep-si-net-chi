@@ -341,12 +341,12 @@ func tour_maps(g: Game) -> void:
 		for sp in M.spots:
 			for k in int(sp.cnt):
 				var x = float(sp.x) + float(sp.w) / 2 if int(sp.cnt) == 1 else float(sp.x) + 80 + (float(sp.w) - 160) * (k + 0.5) / float(sp.cnt)
-				mons.append({"id": 900000 + n, "type": sp.mon, "lv": int(sp.lv[0]), "hpMax": 100, "hp": 100, "x": x, "y": Data.ground_y(M, x)})
+				mons.append({"id": 900000 + n, "type": sp.mon, "lv": int(sp.lv[0]), "hpMax": 100, "hp": 100, "x": x, "y": float(M.plats[int(sp.p)][1]) if sp.has("p") else Data.ground_y(M, x)})
 				n += 1
 		g._build_map({"m": i, "k": 1, "x": float(M.w) / 2, "y": Data.ground_y(M, float(M.w) / 2), "mons": mons, "drops": []})
 		g.warping = true
 		g.me.visible = false
-		await wait(2.0)
+		await wait(float(OS.get_environment("HSNC_MAPWAIT")) if OS.get_environment("HSNC_MAPWAIT") != "" else 2.0)
 		await shot("map%02d" % i)
 
 ## thử leo thang / qua cầu / xuống vực ở Rừng Tuyết (bắt đầu ở cổng Hang Sói, x 3400, tầng 360)
@@ -858,6 +858,8 @@ func perf_test() -> void:
 			Net.prof_b = 0; Net.prof_n = 0; Net.prof_t = {}; Net.prof_tx = {}
 		if OS.get_environment("HSNC_AUTO") != "":
 			print("AUTO me=%d,%d focus=%s fx=%s skip=%d nav=%s ph=%d kills=%s" % [g.me.position.x, g.me.position.y, str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), str(g.nav.get("act", "")) + "@" + str(int(g.nav.get("x", 0))), g.nav_phase, str(g.me_data.get("exp"))])
+		if OS.get_environment("HSNC_SHOTEVERY") != "" and i % int(OS.get_environment("HSNC_SHOTEVERY")) == 0:
+			await shot("t%02d" % i)
 		if i == 2 and OS.get_environment("HSNC_DIE") != "":
 			Net.send({"t": "devdie"})
 		if i == 4:

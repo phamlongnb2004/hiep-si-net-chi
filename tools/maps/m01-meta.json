@@ -1,0 +1,6 @@
+{"mon": {
+ "bmonkey": {"dir": "monkey", "acts": ["move", "atk"], "cx": {"move": 0.4918, "atk": 0.4472}, "body": 150},
+ "bpanda": {"dir": "panda", "acts": ["move", "atk"], "cx": {"move": 0.4923, "atk": 0.5}, "body": 150},
+ "bviper": {"dir": "viper", "acts": ["move", "atk"], "cx": {"move": 0.488, "atk": 0.445}, "body": 110},
+ "pandaking": {"dir": "boss", "acts": ["idle", "move", "s1", "s2", "s3"], "cx": {"idle": 0.5006, "move": 0.4993, "s1": 0.4846, "s2": 0.4628, "s3": 0.522}, "body": 290}},
+ "fx": {"bamboo_smash": {}, "bamboo_spikes": {}, "bamboo_roll": {}}}

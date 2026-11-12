@@ -6,18 +6,23 @@ class_name World
 const GY := 600.0
 const GRD_H := 250.0
 const SKY := {"grass": ["7cc8ff", "d9f1ff"], "snow": ["a9cbe6", "eef6fb"], "lava": ["3a1414", "a2462a"],
-	"beach": ["4fb4f5", "cdeefc"], "reef": ["1d6fa3", "5ec3d6"], "swamp": ["2a2340", "6b6a5a"], "cave": ["0d1b33", "2a4f73"]}
+	"beach": ["4fb4f5", "cdeefc"], "reef": ["1d6fa3", "5ec3d6"], "swamp": ["2a2340", "6b6a5a"], "cave": ["0d1b33", "2a4f73"],
+	"bamboo": ["5fc4f2", "d6f3ff"], "bamboocave": ["10261c", "2f5a3e"]}
 const HAZE := {"grass": Color(0.82, 0.92, 1, 0.16), "snow": Color(0.88, 0.93, 0.99, 0.2), "lava": Color(0.12, 0.02, 0.03, 0.42),
-	"beach": Color(0.9, 0.97, 1, 0.06), "reef": Color(0.1, 0.45, 0.65, 0.18), "swamp": Color(0.3, 0.55, 0.28, 0.12), "cave": Color(0.02, 0.05, 0.12, 0.3)}
+	"beach": Color(0.9, 0.97, 1, 0.06), "reef": Color(0.1, 0.45, 0.65, 0.18), "swamp": Color(0.3, 0.55, 0.28, 0.12), "cave": Color(0.02, 0.05, 0.12, 0.3),
+	"bamboo": Color(0.85, 0.97, 0.95, 0.08), "bamboocave": Color(0.02, 0.08, 0.05, 0.22)}
 ## cảnh vật của các bộ bản đồ mới (vẽ tách mảnh): cây/cao, bụi/thấp, đá/nhỏ, hiếm
 const KIT := {
 	"beach": {"tree": ["beach_tree0", "beach_tree1", "beach_tree2"], "bush": ["beach_bush", "beach_shell"], "rock": ["beach_rock", "beach_starfish"], "rare": ["beach_boat"]},
 	"reef": {"tree": ["reef_kelp0", "reef_kelp1", "reef_kelp2"], "bush": ["reef_coral", "reef_anemone"], "rock": ["reef_rock", "reef_column"], "rare": ["reef_chest"]},
 	"swamp": {"tree": ["swamp_tree0", "swamp_tree1", "swamp_tree2"], "bush": ["swamp_reeds", "swamp_mush"], "rock": ["swamp_rock", "swamp_pool"], "rare": ["swamp_sign"]},
-	"cave": {"tree": [], "bush": ["cave_shell"], "rock": ["cave_rock"], "rare": ["cave_boat"]}}
+	"cave": {"tree": [], "bush": ["cave_shell"], "rock": ["cave_rock"], "rare": ["cave_boat"]},
+	"bamboo": {"tree": ["bamboo_tree0", "bamboo_tree1", "bamboo_tree0"], "bush": ["bamboo_bush", "bamboo_lantern"], "rock": ["bamboo_rock", "bamboo_sign"], "rare": ["bamboo_shrine"]},
+	"bamboocave": {"tree": [], "bush": ["bamboo_lantern"], "rock": ["bamboo_rock"], "rare": ["bamboo_lantern"]}}
 ## cổng khu trùm theo chủ đề (bản đồ cũ mượn cổng hang, tô màu)
 const GATE := {"beach": ["beach_gate", Color.WHITE], "reef": ["reef_gate", Color.WHITE], "swamp": ["swamp_gate", Color.WHITE],
-	"grass": ["swamp_gate", Color(0.85, 1.0, 0.8)], "snow": ["swamp_gate", Color(0.8, 0.92, 1.1)], "lava": ["swamp_gate", Color(1.2, 0.6, 0.45)], "cave": ["beach_gate", Color.WHITE]}
+	"grass": ["swamp_gate", Color(0.85, 1.0, 0.8)], "snow": ["swamp_gate", Color(0.8, 0.92, 1.1)], "lava": ["swamp_gate", Color(1.2, 0.6, 0.45)], "cave": ["beach_gate", Color.WHITE],
+	"bamboo": ["bamboo_gate", Color.WHITE], "bamboocave": ["bamboo_gate", Color.WHITE]}
 ## cổng riêng của từng khu trùm (theo bản đồ đích)
 const ARENA_GATE := {7: "gate_boar", 8: "gate_wolf", 9: "gate_volcano", 10: "gate_crab", 11: "gate_turtle", 12: "gate_snake"}
 const DSC := {"house": 1.3, "npc": 0.74}
@@ -91,7 +96,7 @@ func gy(x: float) -> float:
 	return Data.ground_y(M, x)
 
 ## màu mép trên của ảnh núi xa từng vùng (đo từ ảnh side/far_*/u.webp)
-const FAR_TOP := {"grass": "#43aafd", "snow": "#449ff6", "lava": "#421a2b", "beach": "#137ef2", "reef": "#66e4f8", "swamp": "#4934a1", "cave": "#284b6f"}
+const FAR_TOP := {"grass": "#43aafd", "snow": "#449ff6", "lava": "#421a2b", "beach": "#137ef2", "reef": "#66e4f8", "swamp": "#4934a1", "cave": "#284b6f", "bamboo": "#46c2fd", "bamboocave": "#3f6538"}
 
 func _side(k: String) -> Dictionary:
 	return Data.A.get("side", {}).get(k, {})
@@ -216,9 +221,9 @@ func _draw() -> void:
 ## nước nông / bùn / dung nham, bậc nổi, cầu treo, dây leo và thang (bản đồ nhiều tầng)
 const WATER := {"beach": [Color(0.25, 0.65, 0.9, 0.55), Color(0.85, 0.97, 1, 0.9)], "reef": [Color(0.2, 0.55, 0.8, 0.45), Color(0.8, 0.95, 1, 0.8)],
 	"swamp": [Color(0.32, 0.38, 0.18, 0.75), Color(0.6, 0.75, 0.35, 0.9)], "cave": [Color(0.15, 0.35, 0.6, 0.6), Color(0.6, 0.85, 1, 0.8)],
-	"grass": [Color(0.3, 0.6, 0.9, 0.55), Color(0.85, 0.95, 1, 0.9)], "snow": [Color(0.55, 0.75, 0.95, 0.6), Color(0.95, 1, 1, 0.95)], "lava": [Color(0.3, 0.6, 0.9, 0.5), Color(1, 1, 1, 0.8)]}
+	"grass": [Color(0.3, 0.6, 0.9, 0.55), Color(0.85, 0.95, 1, 0.9)], "bamboo": [Color(0.3, 0.7, 0.75, 0.55), Color(0.85, 1, 0.95, 0.9)], "snow": [Color(0.55, 0.75, 0.95, 0.6), Color(0.95, 1, 1, 0.95)], "lava": [Color(0.3, 0.6, 0.9, 0.5), Color(1, 1, 1, 0.8)]}
 const VINE := ["reef", "swamp"]
-const LADDER := {"swamp": "ladder_bamboo", "beach": "ladder_bamboo", "reef": "ladder_bamboo"}
+const LADDER := {"bamboo": "ladder_bamboo", "bamboocave": "ladder_bamboo", "swamp": "ladder_bamboo", "beach": "ladder_bamboo", "reef": "ladder_bamboo"}
 
 func _layers(cx: float, vw: float) -> void:
 	for w in M.get("water", []):
@@ -311,7 +316,7 @@ func _bridge(pl: Array) -> void:
 	var y0: float = pl[1]
 	var x1: float = pl[2]
 	var y1: float = pl[3]
-	var sx = "_bamboo" if theme in ["beach", "reef", "swamp"] else ""
+	var sx = "_bamboo" if theme in ["beach", "reef", "swamp", "bamboo", "bamboocave"] else ""
 	var pk = _ai("bridge_plank" + sx)
 	var rp = _ai("bridge_rope" + sx)
 	var po = _ai("bridge_post" + sx)
