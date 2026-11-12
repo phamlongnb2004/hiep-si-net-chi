@@ -143,6 +143,7 @@ func _on_msg(m: Dictionary) -> void:
 				_set_cfg(m.cfg)
 			if m.get("me") is Dictionary:
 				_set_me(m.me, true)
+			sync_apick()
 		"me":
 			_set_me(m.me, int(m.get("full", 0)) == 1)
 		"map":
@@ -830,8 +831,13 @@ func _nav_go() -> void:
 			focus = f0
 			auto_climb = true
 
+## tự nhặt khi đi ngang: chỉ khi đang Auto và bật "Tự nhặt đồ rơi"; còn lại phải bấm vào đồ rồi nhặt
+func sync_apick() -> void:
+	Net.send({"t": "apick", "on": 1 if auto_on and bool(auto_cfg().get("pick", true)) else 0})
+
 func set_auto(on: bool) -> void:
 	auto_on = on
+	sync_apick()
 	auto_skip.clear()
 	nav = {}
 	nav_phase = 0

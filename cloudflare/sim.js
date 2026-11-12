@@ -349,10 +349,11 @@ export class MapInst {
     for (const c of this.players.values()) this.tickPlayer(c, dt);
     this.tickMons(dt); this.tickProjs(dt);
     if (this.mons.some(m => m.gone)) { for (const m of this.mons) if (m.gone) this.ev.push(['rm', m.id]); this.mons = this.mons.filter(m => !m.gone); }
+    // tự nhặt khi đi gần; apick 0 (bản 2.11.1+ không bật Auto + Tự nhặt): phải bấm vào đồ để nhặt
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i]; d.life -= dt; d.ownT -= dt;
       if (d.life <= 0) { this.drops.splice(i, 1); this.ev.push(['x', d.id]); continue; }
-      for (const c of this.players.values()) { if (c.f.dead > 0 || (d.ownT > 0 && d.own !== c.id)) continue; if (Math.hypot(c.f.x - d.x, c.f.y - d.y) < PICK_R + 20 && this.canTake(c, d)) { this.drops.splice(i, 1); this.pickup(c, d); break; } }
+      for (const c of this.players.values()) { if (c.apick === 0 || c.f.dead > 0 || (d.ownT > 0 && d.own !== c.id)) continue; if (Math.hypot(c.f.x - d.x, c.f.y - d.y) < PICK_R + 20 && this.canTake(c, d)) { this.drops.splice(i, 1); this.pickup(c, d); break; } }
     }
   }
   tickPlayer(c, dt) {

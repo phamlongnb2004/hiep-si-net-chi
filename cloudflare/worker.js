@@ -565,6 +565,7 @@ export class World extends DurableObject {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
     if (m.t === 'ping') return this.sendTo(c, { t: 'pong', at: m.at });
+    if (m.t === 'apick') { c.apick = m.on ? 1 : 0; return; } // tự nhặt khi đi gần: chỉ khi bật Auto + Tự nhặt (bản cũ không gửi = nhặt khi đi gần như trước)
     if (m.t === 'create') {
       if (c.ch) return;
       const name = clean(m.name, 16).trim();

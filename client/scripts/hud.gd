@@ -886,9 +886,13 @@ func open_auto() -> void:
 	v.add_child(_sep())
 	var opt = func(label: String, key: String, def: bool) -> CheckBox:
 		var c = _cb(label, bool(a.get(key, def)))
-		c.toggled.connect(func(on): a[key] = on; save.call())
+		c.toggled.connect(func(on):
+			a[key] = on
+			save.call()
+			if key == "pick":
+				game.sync_apick())
 		return c
-	v.add_child(opt.call("Tự nhặt đồ rơi", "pick", true))
+	v.add_child(opt.call("Tự nhặt đồ rơi (khi Auto, đi gần là nhặt)", "pick", true))
 	v.add_child(opt.call("Tự dùng kỹ năng đã học", "skill", true))
 	for q in [["hp", "hpPct", "Tự dùng bình máu khi máu dưới", [30, 40, 50, 60, 70], 40], ["ki", "kiPct", "Tự dùng bình KI khi KI dưới", [20, 30, 40, 50], 30]]:
 		var row = UI.hbox(10)

@@ -710,6 +710,9 @@ func perf_test() -> void:
 		Data.set_setting("ctl", OS.get_environment("HSNC_CTL"))
 		main.hud._build_controls()
 	if OS.get_environment("HSNC_AUTO") != "":
+		var ac = g.auto_cfg().duplicate()
+		ac["pick"] = OS.get_environment("HSNC_NOPICK") == ""
+		Data.set_setting("auto", ac)
 		g.set_auto(true)
 	Net.prof = OS.get_environment("HSNC_NETPROF") != ""
 	g.bag_full.connect(func(): print("BAGFULL"); shot("bagfull"))
@@ -857,7 +860,7 @@ func perf_test() -> void:
 			print("NET bytes=%d msgs=%d tx=%s" % [Net.prof_b, Net.prof_n, str(Net.prof_tx)])
 			Net.prof_b = 0; Net.prof_n = 0; Net.prof_t = {}; Net.prof_tx = {}
 		if OS.get_environment("HSNC_AUTO") != "":
-			print("AUTO me=%d,%d focus=%s fx=%s skip=%d nav=%s ph=%d kills=%s" % [g.me.position.x, g.me.position.y, str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), str(g.nav.get("act", "")) + "@" + str(int(g.nav.get("x", 0))), g.nav_phase, str(g.me_data.get("exp"))])
+			print("AUTO me=%d,%d focus=%s fx=%s skip=%d nav=%s ph=%d kills=%s" % [g.me.position.x, g.me.position.y, str(g.focus.id) if g.focus else "-", str(int(g.focus.position.x)) + "," + str(int(g.focus.position.y)) if g.focus else "", g.auto_skip.size(), str(g.nav.get("act", "")) + "@" + str(int(g.nav.get("x", 0))), g.nav_phase, str(g.me_data.get("exp"))] + " inv=%d stones=%s potS=%s drops=%d" % [g.me_data.get("inv", []).size(), str(g.me_data.get("stones")), str(g.me_data.get("potS")), g.drops.size()])
 		if OS.get_environment("HSNC_SHOTEVERY") != "" and i % int(OS.get_environment("HSNC_SHOTEVERY")) == 0:
 			await shot("t%02d" % i)
 		if i == 2 and OS.get_environment("HSNC_DIE") != "":
