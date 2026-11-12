@@ -116,7 +116,7 @@ func gy(x: float) -> float:
 	return Data.ground_y(M, x)
 
 ## màu mép trên của ảnh núi xa từng vùng (đo từ ảnh side/far_*/u.webp)
-const FAR_TOP := {"grass": "#43aafd", "snow": "#449ff6", "lava": "#421a2b", "beach": "#137ef2", "reef": "#66e4f8", "swamp": "#4934a1", "cave": "#284b6f", "bamboo": "#46c2fd", "bamboocave": "#3f6538", "desert": "#5bacfc", "desertcave": "#883e2a"}
+const FAR_TOP := {"grass": "#43aafd", "snow": "#449ff6", "lava": "#421a2b", "beach": "#137ef2", "reef": "#66e4f8", "swamp": "#4934a1", "cave": "#284b6f", "bamboo": "#46c2fd", "bamboocave": "#3f6538", "desert": "#5bacfc", "desertcave": "#883e2a", "canyon": "#9872bf", "canyoncave": "#781719"}
 
 func _side(k: String) -> Dictionary:
 	return Data.A.get("side", {}).get(k, {})
