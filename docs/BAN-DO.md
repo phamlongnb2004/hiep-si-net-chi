@@ -177,3 +177,10 @@ Dữ liệu (shared/data.json, mỗi bản đồ): `terr` mặt đất (có dố
 - Trang quản trị: "Vật phẩm khác" lấy từ `R.giftMisc()` (bình máu/KI 3 cỡ, bùa, đá, vàng, kinh nghiệm, trứng từng loài) — thêm vật phẩm mới vào hàm này là trang quản trị tự có ô tặng. `give {misc: {khóa: số}}` (vẫn nhận pots/stones/gold/exp kiểu cũ).
 - Quản trị: thẻ nhân vật hiện bùa, pet, trứng đang ấp; nút "Bỏ qua thời gian ấp" → `hatch_skip` (chỉ chủ).
 - Ma Long Hắc Vực: cấp cố định `fixLv: 80` (~3,1 triệu máu), không theo bản đồ; đồ rơi theo cấp người kết liễu (≤ cấp người đó + 3).
+
+## Đợt 1 bản đồ mới (2.11.0, dữ liệu 34)
+- 5 bản đồ + 5 hang trùm, chỉ số 13-22, nối tiếp từ cuối Đầm Lầy (cổng x 5340): Rừng Trúc Mây (40-43, trùm Vương Gấu Trúc 45), Sa Mạc Cát Vàng (43-46, Bọ Cạp Hoàng Đế 48), Hẻm Núi Đá Đỏ (46-49, Golem Núi Đỏ 51), Thung Lũng Anh Đào (49-52, Hồ Ly Chín Đuôi 54), Rừng Nấm Phát Sáng (52-55, Mẹ Nấm Cổ Thụ 57). Hang mở theo giờ, `arena.ofs` 18/21/24/27/30.
+- Chủ đề cảnh mới trong world.gd: bamboo, desert, canyon, sakura, glow (+ `<chủ đề>cave` cho hang). Mỗi chủ đề ghép từ vật thể rời AI vẽ trên nền trắng (không có ảnh vẽ cả bản đồ): side/far, mid, ground, capL, capR, plat + 8 cảnh vật ai/<chủ đề>_*.
+- Quái/trùm mới dùng mon2 (mọi động tác chung một khung, căn chân). Hiệu ứng chiêu trùm vẽ riêng ở vfx/<chủ đề>_*.
+- Công cụ: tools/cut-sheet.py (cắt bảng 4x2; --scale giữ cùng cỡ thân, --keep-holes cho nhân vật lông trắng), tools/cut-fx.py, tools/make-kit.py, tools/add-mon-art.py, tools/maps/build-map.py (cấu hình maps-b1.json), tools/maps/test-map.sh, tools/maps/doc-sheets.py, lời nhắc vẽ tools/maps/prompts-b1.js.
+- Ứng dụng cũ hơn 2.11.0 không vào được bản đồ từ chỉ số 13 (máy chủ báo cập nhật, đưa về Đầm Lầy nếu đang đứng ở bản đồ mới). Gói dữ liệu 34 chỉ cho ứng dụng 2.11.0 trở lên.

@@ -9,6 +9,7 @@ import { initSocial, onSocial, tradeCancel, friendList } from './social.js';
 import { initAdmin, adminHttp, adminTick, onGM, glog, chatLog, publicCfg, isStaff, maintOn, maintMsg, banInfo, mutedUntil } from './admin.js';
 
 const TICK_MS = 100;
+const NEW_MAPS = 13, NEW_MAPS_APP = '2.11.0'; // Rừng Trúc Mây trở đi
 const APP_MIN = '2.9.0'; // 2.9.0: Boss Hoang Dã, trứng, pet, Bà Ấp Trứng (bản cũ không vẽ được pet, không có ô trứng)
 const ARENA_SLOTS = ['12:00', '19:00', '21:00'], ARENA_DUR = 30, ARENA_LEAVE = 40000; // khu trùm: khung giờ mặc định, số phút mở, giây ở lại nhặt đồ sau khi hạ trùm
 const KHU_MAX = 15, KHU_SHOW = 10, KHU_CAP = 40; // người tối đa mỗi khu (đổi được trong Admin), số khu luôn hiện, số khu tối đa mỗi bản đồ
@@ -394,7 +395,7 @@ export class World extends DurableObject {
 
   /* ================= GIAO THỨC v2: máy chủ quyết định mọi kết quả ================= */
   openV2(ws, u, srv, url) {
-    const c = { id: this.seq++, v2: true, uid: u.id, user: u.username, srv: srv.id, ws, map: -1, ch: null, f: null, inst: null, lastChat: 0, lastSave: Date.now(), dirty: false, meDirty: false, bagDirty: false, rate: { n: 0, at: Date.now() }, app: clean(url.searchParams.get('app'), 12) };
+    const c = { id: this.seq++, v2: true, uid: u.id, user: u.username, srv: srv.id, ws, map: -1, ch: null, f: null, inst: null, lastChat: 0, lastSave: Date.now(), dirty: false, meDirty: false, bagDirty: false, rate: { n: 0, at: Date.now() }, app: clean(url.searchParams.get('app'), 12), av: clean(url.searchParams.get('v') || '', 16) };
     this.clients.set(c.id, c);
     const row = this.one('SELECT data FROM chars WHERE user_id=? AND srv=?', u.id, srv.id);
     if (row) { try { this.loadChar(c, JSON.parse(row.data)); } catch (e) { console.error('bản lưu hỏng', u.id, e); this.sendTo(c, { t: 'err', code: 'save', msg: 'Bản lưu nhân vật bị lỗi, hãy báo quản trị.' }); try { ws.close(4006, 'save'); } catch (e2) {} this.clients.delete(c.id); return; } }
@@ -518,6 +519,12 @@ export class World extends DurableObject {
   }
   // khu: số khu muốn vào; force: vào đúng khu đó dù đầy (quản trị dịch chuyển tới người chơi)
   enterMap(c, mi, x, khu, force) {
+    // bản đồ đợt 1 (chỉ số từ NEW_MAPS) cần ứng dụng 2.11.0: bản cũ không có chủ đề cảnh mới
+    if ((mi | 0) >= NEW_MAPS && verCmp(c.av || '0', NEW_MAPS_APP) < 0) {
+      this.sendTo(c, { t: 'ann', text: 'Bản đồ mới cần ứng dụng ' + NEW_MAPS_APP + ' trở lên, hãy cập nhật ứng dụng.' });
+      if (c.map >= 0 && c.map < NEW_MAPS) return;
+      mi = 4; x = 5180;
+    }
     tradeCancel(this, c, 'Đổi bản đồ, giao dịch bị hủy.');
     const want = khu || (c.inst ? c.inst.khu : 1);
     if (c.inst) { c.inst.leave(c); this.gcInst(c.inst); }
