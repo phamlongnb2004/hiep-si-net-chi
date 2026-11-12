@@ -464,6 +464,14 @@ func _send_chat(t: String) -> void:
 func chat(m: Dictionary) -> void:
 	var pre = ""
 	var col = Color("ffffff")
+	if m.get("pet"):
+		# pet nói với chủ (sau lệnh ditheo/tancong/baove/venha): dòng xanh lá + bong bóng trên đầu pet
+		add_log("[Thú cưng] %s: %s" % [m.get("n", ""), m.get("text", "")], Color("7dffb0"))
+		var pt = game.pets.get(game.my_id)
+		if pt and is_instance_valid(pt):
+			pt.say = str(m.get("text", ""))
+			pt.say_t = 5.0
+		return
 	if m.get("all"):
 		pre = "[Thế giới] "
 		col = Color("ffd23f")

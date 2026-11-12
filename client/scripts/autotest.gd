@@ -718,6 +718,24 @@ func perf_test() -> void:
 	g.bag_full.connect(func(): print("BAGFULL"); shot("bagfull"))
 	Data.hitch_watch = OS.get_environment("HSNC_LATE") != ""
 	await shot("perf-0")
+	if OS.get_environment("HSNC_PETBAG") != "":
+		Net.send({"t": "devpet", "sp": "fire"})
+		await wait(1.5)
+		main.open_bag()
+		main.bag.tab = "pet"
+		main.bag.render()
+		await wait(0.8)
+		await shot("petbag-0")
+		Net.send({"t": "pet_mode", "mode": "attack"})
+		await wait(1.5)
+		await shot("petbag-1")
+		main.bag.close()
+		Net.send({"t": "chat", "text": "bảo vệ"})
+		await wait(1.2)
+		await shot("petchat")
+		Net.send({"t": "chat", "text": "venha"})
+		await wait(1.2)
+		await shot("pethome")
 	if OS.get_environment("HSNC_PETUI") != "":
 		# 3 pet giả: chuồng pet phải cuộn xuống được bằng lăn chuột
 		var L = []

@@ -243,6 +243,8 @@ const WATER := {"beach": [Color(0.25, 0.65, 0.9, 0.55), Color(0.85, 0.97, 1, 0.9
 	"swamp": [Color(0.32, 0.38, 0.18, 0.75), Color(0.6, 0.75, 0.35, 0.9)], "cave": [Color(0.15, 0.35, 0.6, 0.6), Color(0.6, 0.85, 1, 0.8)],
 	"grass": [Color(0.3, 0.6, 0.9, 0.55), Color(0.85, 0.95, 1, 0.9)], "bamboo": [Color(0.3, 0.7, 0.75, 0.55), Color(0.85, 1, 0.95, 0.9)], "desert": [Color(0.25, 0.7, 0.8, 0.6), Color(0.85, 1, 1, 0.9)], "sakura": [Color(0.4, 0.65, 0.85, 0.55), Color(1, 0.9, 0.95, 0.9)], "glow": [Color(0.2, 0.4, 0.9, 0.55), Color(0.6, 0.9, 1, 0.95)], "snow": [Color(0.55, 0.75, 0.95, 0.6), Color(0.95, 1, 1, 0.95)], "lava": [Color(0.3, 0.6, 0.9, 0.5), Color(1, 1, 1, 0.8)]}
 const VINE := ["reef", "swamp"]
+# dải đất chủ đề mới: phần lặp xuống dưới bắt đầu từ đây (tính theo chiều cao ảnh), tránh lặp lại cỏ rủ giữa vách
+const FILL_FROM := {"bamboo": 0.66, "glow": 0.68, "sakura": 0.58, "swamp": 0.72, "reef": 0.55, "desert": 0.5}
 const LADDER := {"bamboo": "ladder_bamboo", "bamboocave": "ladder_bamboo", "sakura": "ladder_bamboo", "swamp": "ladder_bamboo", "beach": "ladder_bamboo", "reef": "ladder_bamboo"}
 
 func _layers(cx: float, vw: float) -> void:
@@ -418,10 +420,10 @@ func _tile_par(a: Dictionary, cx: float, y: float, h: float, vw: float, k: float
 	draw_set_transform(Vector2.ZERO)
 
 ## lát ảnh theo chiều ngang trong khoảng [a0, a1] (cắt ảnh ở hai đầu)
-func _tile_clip(tx: Texture2D, src: Rect2, dw: float, y: float, h: float, a0: float, a1: float, flip := false, seg := Transform2D()) -> void:
+func _tile_clip(tx: Texture2D, src: Rect2, dw: float, y: float, h: float, a0: float, a1: float, flip := false, seg := Transform2D(), ox := 0.0) -> void:
 	# lật dọc: soi gương quanh giữa dải (Godot không vẽ được hình chữ nhật âm)
 	draw_set_transform_matrix(seg * Transform2D(Vector2(1, 0), Vector2(0, -1), Vector2(0, 2 * y + h)) if flip else seg)
-	var x = floor(a0 / dw) * dw
+	var x = floor((a0 - ox) / dw) * dw + ox
 	while x < a1:
 		var l: float = max(x, a0)
 		var r: float = min(x + dw, a1)
@@ -457,14 +459,21 @@ func _ground(cx: float, cy: float, vw: float, vh: float) -> void:
 			var dw: float = h * gr.w / gr.h
 			var y: float = GY - h * float(gr.get("top", 0)) + 4
 			_tile_clip(gt, Rect2(0, 0, iw, ih), dw, y, h, a0, a1, false, seg)
-			var yb = y + h - 2
-			var bsrc = Rect2(0, ih * 0.45, iw, ih * 0.55)
-			var bh = h * 0.55
+			# phần đất lặp xuống dưới: bắt đầu dưới mép cỏ rủ (dải đất mới có cỏ/rêu rủ sâu hơn), bỏ vài hàng điểm ảnh
+			# sát đáy ảnh (viền mờ gây vạch ngang); hàng đầu trùng đúng phần dưới của dải trên nên không lộ đường nối
+			var fs: float = FILL_FROM.get(theme.trim_suffix("cave"), 0.45)
+			var cut := 3.0 if gr.has("gh") else 0.0
+			var bsrc = Rect2(0, ih * fs, iw, ih * (1.0 - fs) - cut)
+			var bh = h * (bsrc.size.y / ih)
+			var yb = y + h * fs if gr.has("gh") else y + h - 2
 			var lim = cy + vh + 30 - (y0 - GY)
-			var f = false
+			var f = not gr.has("gh")
+			var row := 0
 			while yb < lim:
+				# dải mới: mỗi hàng lệch ngang một chút để đá không xếp thành cột lặp
+				_tile_clip(gt, bsrc, dw, yb, bh, a0, a1, f, seg, dw * fmod(row * 0.37, 1.0) if gr.has("gh") else 0.0)
 				f = not f
-				_tile_clip(gt, bsrc, dw, yb, bh, a0, a1, f, seg)
+				row += 1
 				yb += bh - 1
 		else:
 			draw_rect(Rect2(a0, GY, a1 - a0, cy + vh - GY + 300), base)
@@ -486,7 +495,7 @@ func _ground(cx: float, cy: float, vw: float, vh: float) -> void:
 		if ct and cap.has("dh"):
 			var hk: float = cap.dh
 			var wk: float = hk * cap.w / cap.h
-			draw_texture_rect(ct, Rect2(x0 - float(cap.wall) * wk, top - float(cap.top) * hk, wk, hk), false)
+			_cap_soft(ct, Rect2(x0 - float(cap.wall) * wk, top - float(cap.top) * hk, wk, hk), dir > 0, bot - top + float(cap.top) * hk)
 		elif ct and gr.has("h"):
 			var tk: float = cap.get("tk", 4)
 			var wc: float = cap.w * GRD_H / gr.h / tk
@@ -495,6 +504,27 @@ func _ground(cx: float, cy: float, vw: float, vh: float) -> void:
 			draw_texture_rect(ct, Rect2(dx, top + 4 - float(cap.get("top", 0)) * hc, wc, hc), false)
 		else:
 			draw_rect(Rect2(x0 if dir > 0 else x0 - 3, top + 8, 3, bot - top + 30), Color(0.08, 0.05, 0.02, 0.5))
+
+## mép vách (ảnh góc vách của chủ đề mới): chỉ giữ phần vách đá sát mép, mờ dần vào trong khối đất và ở đáy,
+## để không lộ khung chữ nhật / đường nối với dải cỏ và phần đất lặp (lỗi Rừng Trúc Mây 2.11.0)
+const CAP_SOLID := 0.30
+const CAP_FADE := 0.55
+func _cap_soft(tx: Texture2D, r: Rect2, left_wall: bool, wall_h: float) -> void:
+	var us := [0.0, CAP_SOLID, CAP_FADE] if left_wall else [1.0, 1.0 - CAP_SOLID, 1.0 - CAP_FADE]
+	var vb := clampf(wall_h / r.size.y, 0.35, 1.0)        # đáy vách thật (phần dưới mờ dần)
+	var vs := [0.0, vb * 0.8, minf(1.0, vb + 0.1)]
+	for i in 2:
+		for j in 2:
+			var pts = PackedVector2Array()
+			var uv = PackedVector2Array()
+			var col = PackedColorArray()
+			for c in [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]]:
+				var u: float = us[c[0]]
+				var v: float = vs[c[1]]
+				pts.append(r.position + Vector2(u * r.size.x, v * r.size.y))
+				uv.append(Vector2(u, v))
+				col.append(Color(1, 1, 1, 1.0 if c[0] < 2 and c[1] < 2 else 0.0))
+			draw_polygon(pts, col, uv, tx)
 
 func _spr(k: String, x: float, gyv: float, s: float, ay := 0.95, mod := Color.WHITE) -> void:
 	var a = _ai(k)

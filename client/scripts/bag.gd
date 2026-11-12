@@ -35,7 +35,7 @@ func setup(g: Game) -> void:
 	head.add_child(UI.label("Hành Trang", 30, UI.INK, "title"))
 	tabs = UI.hbox(6)
 	head.add_child(tabs)
-	for k in [["bag", "Túi đồ"], ["char", "Nhân vật"], ["stat", "Chỉ số"], ["skill", "Kỹ năng"]]:
+	for k in [["bag", "Túi đồ"], ["char", "Nhân vật"], ["stat", "Chỉ số"], ["skill", "Kỹ năng"], ["pet", "Thú cưng"]]:
 		var b = UI.button(k[1], UI.SKY, 18)
 		var kk: String = k[0]
 		b.pressed.connect(func(): tab = kk; sel = {}; render())
@@ -97,6 +97,8 @@ func render() -> void:
 		_render_stat(d)
 	elif tab == "skill":
 		_render_skill(d)
+	elif tab == "pet":
+		_render_pet(d)
 	else:
 		_render_char(d)
 
@@ -323,6 +325,125 @@ func _render_char(d: Dictionary) -> void:
 			var sl: String = sel.slot
 			bu.pressed.connect(func(): Net.send({"t": "unequip", "slot": sl}); sel = {})
 			detail.add_child(bu)
+
+# ---------- thú cưng: pet đang theo, chỉ số, trạng thái (đi theo / tấn công / bảo vệ / về nhà) ----------
+const PET_SPN := {"fire": "Rồng Lửa", "ice": "Cáo Băng", "wolf": "Sói Sấm", "turtle": "Rùa Ngọc"}
+const PET_STAGE := ["Non", "Trưởng thành", "Thần thú"]
+const PET_SKN := {"fire": ["Phóng Cầu Lửa", "Phun Lửa", "Hỏa Long Giáng Thế"], "ice": ["Băng Tiễn", "Gió Tuyết", "Bão Băng Chín Đuôi"],
+	"wolf": ["Tia Chớp", "Lôi Độn", "Thiên Lôi Giáng"], "turtle": ["Khiên Ngọc", "Suối Hồi Phục", "Thành Đồng Vách Sắt"]}
+const PET_MODE := [["follow", "Đi theo", "ditheo", "Đi cạnh bạn, không đánh quái."], ["attack", "Tấn công", "tancong", "Tự đánh mọi con quái quanh bạn."],
+	["protect", "Bảo vệ", "baove", "Đánh quái bạn đang đánh và quái đang đánh bạn."], ["home", "Về nhà", "venha", "Cất pet về chuồng, pet biến mất."]]
+
+func _render_pet(d: Dictionary) -> void:
+	var pets: Array = d.get("pets", [])
+	if pets.is_empty():
+		var v0 = UI.vbox(10)
+		v0.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		body.add_child(v0)
+		v0.add_child(UI.label("Bạn chưa có thú cưng.", 22, UI.INK, "bold"))
+		v0.add_child(UI.label("Hạ Ma Long Hắc Vực để nhận trứng, rồi mang tới Bà Ấp Trứng trong Làng để ấp (24 giờ).", 17, Color("5a6b8c"), "semi"))
+		return
+	var on = str(d.get("petOn", ""))
+	var mode = str(d.get("petMode", "protect")) if on != "" else "home"
+	var p: Dictionary = pets[0]
+	for q in pets:
+		if str(q.id) == on:
+			p = q
+	var sp = str(p.sp)
+	var stg = int(p.get("stage", 0))
+	var rt: Dictionary = d.get("pet", {}) if d.get("pet") is Dictionary else {}
+	# cột trái: pet động + tên, sao, cấp, kinh nghiệm
+	var left = UI.vbox(6)
+	left.custom_minimum_size = Vector2(250, 0)
+	body.add_child(left)
+	var pv = SubViewportContainer.new()
+	pv.custom_minimum_size = Vector2(250, 190)
+	pv.stretch = true
+	var vp = SubViewport.new()
+	vp.transparent_bg = true
+	pv.add_child(vp)
+	var pn = Pet.new()
+	pn.mine = true
+	pn.setup([0, sp, stg, 125, 175, 1, 3 if int(rt.get("faint", 0)) > 0 else 0, 1.0, "", 0, 0])
+	pn.show_label = false
+	pn.scale = Vector2(1.8, 1.8)
+	pn.modulate = Color(1, 1, 1, 0.45) if on == "" else Color.WHITE
+	vp.add_child(pn)
+	left.add_child(pv)
+	left.add_child(UI.label("%s  %s" % [str(p.name), "★".repeat(int(p.star)) + "☆".repeat(5 - int(p.star))], 22, UI.INK, "bold"))
+	left.add_child(UI.label("%s · Lv.%d · %s" % [PET_SPN.get(sp, ""), int(p.lv), PET_STAGE[clampi(stg, 0, 2)]], 16, Color("5a6b8c"), "semi"))
+	var need = maxi(1, int(p.get("need", 1)))
+	var bar = ProgressBar.new()
+	bar.custom_minimum_size = Vector2(240, 16)
+	bar.show_percentage = false
+	bar.max_value = need
+	bar.value = int(p.exp)
+	left.add_child(bar)
+	left.add_child(UI.label("Kinh nghiệm %s / %s" % [UI.fmt(int(p.exp)), UI.fmt(need)], 14, Color("5a6b8c"), "semi"))
+	if on == "":
+		left.add_child(UI.label("Đang ở nhà", 16, Color("d9345a"), "bold"))
+	elif int(rt.get("faint", 0)) > 0:
+		left.add_child(UI.label("Đang ngất · hồi sinh sau %d giây" % int(rt.faint), 15, Color("d9345a"), "semi"))
+	elif not rt.is_empty():
+		left.add_child(UI.label("Máu %d / %d" % [int(rt.hp), int(rt.maxHp)], 15, Color("2fa84f"), "semi"))
+	if pets.size() > 1:
+		var sw = UI.hbox(6)
+		left.add_child(sw)
+		for q in pets:
+			if str(q.id) == str(p.id):
+				continue
+			var qid = str(q.id)
+			var bq = UI.button("Đổi: %s Lv.%d" % [str(q.name), int(q.lv)], UI.SKY, 14)
+			bq.pressed.connect(func(): Net.send({"t": "pet_on", "id": qid}))
+			sw.add_child(bq)
+	# cột phải: trạng thái, chỉ số, kỹ năng, trang bị
+	var right = UI.vbox(8)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(right)
+	right.add_child(UI.label("Trạng thái", 20, UI.INK, "bold"))
+	var mr = UI.hbox(8)
+	right.add_child(mr)
+	var mdesc = ""
+	for md in PET_MODE:
+		var k: String = md[0]
+		var cur = k == mode
+		if cur:
+			mdesc = md[3]
+		var b = UI.button(("✔ " if cur else "") + md[1], UI.GOLD if cur else (UI.RED if k == "home" else UI.SKY), 17)
+		b.custom_minimum_size = Vector2(124, 46)
+		b.pressed.connect(func(): if not cur: Net.send({"t": "pet_mode", "mode": k}))
+		mr.add_child(b)
+	right.add_child(UI.label(mdesc + " Gõ chat ditheo, tancong, baove, venha để ra lệnh nhanh.", 14, Color("5a6b8c"), "semi"))
+	right.add_child(UI.hsep())
+	var S: Dictionary = p.get("st", {})
+	var pt: Dictionary = p.get("pt", {})
+	var g = GridContainer.new()
+	g.columns = 2
+	g.add_theme_constant_override("h_separation", 26)
+	g.add_theme_constant_override("v_separation", 4)
+	right.add_child(g)
+	var vals = [["Máu", str(int(S.get("maxHp", 0))), "hp"], ["Sức đánh", str(snapped(float(S.get("atk", 0)), 0.1)), "atk"], ["Giáp", str(snapped(float(S.get("def", 0)), 0.1)), "def"],
+		["Tốc đánh", "x%s" % str(snapped(float(S.get("aspd", 1)), 0.01)), "aspd"], ["Chí mạng", "%d%%" % int(round(float(S.get("crit", 0)) * 100)), "crit"]]
+	for k in vals:
+		g.add_child(UI.label("%s: %s  (%d điểm)" % [k[0], k[1], int(pt.get(k[2], 0))], 16, UI.INK, "semi"))
+	right.add_child(UI.label("Mỗi cấp +3 điểm tự cộng · sao nhân điểm x%s" % str([0.8, 0.9, 1.0, 1.15, 1.3][clampi(int(p.star) - 1, 0, 4)]), 13, Color("5a6b8c"), "semi"))
+	right.add_child(UI.hsep())
+	var sks: Array = PET_SKN.get(sp, ["", "", ""])
+	for i in 3:
+		var unlocked = int(p.lv) >= [10, 40, 80][i]
+		right.add_child(UI.label(("✔ " if unlocked else "✖ ") + str(sks[i]) + ("" if unlocked else " (mở ở cấp %d)" % [10, 40, 80][i]), 15, UI.INK if unlocked else Color("8a93a8"), "semi"))
+	right.add_child(UI.hsep())
+	right.add_child(UI.label("Trang bị pet", 17, UI.INK, "bold"))
+	var eqp: Dictionary = p.get("eq", {}) if p.get("eq") is Dictionary else {}
+	var er = UI.hbox(8)
+	right.add_child(er)
+	var has_eq = false
+	for k in eqp:
+		if eqp[k] is Dictionary:
+			has_eq = true
+			er.add_child(ItemCell.make(eqp[k], false, true, false))
+	if not has_eq:
+		right.add_child(UI.label("Pet chưa có trang bị.", 14, Color("8a93a8"), "semi"))
 
 # ---------- điểm tiềm năng (giống Ngọc Rồng Online: lên cấp được điểm, tự cộng vào chỉ số) ----------
 const PTS := [

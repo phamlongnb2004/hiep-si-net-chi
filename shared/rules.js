@@ -368,6 +368,8 @@ export function normalizeChar(d) {
   // pet (từ 2.9.0): tối đa PET_MAX con, pet đang ra trận, trứng đang ấp
   c.pets = (Array.isArray(c.pets) ? c.pets : []).filter(p => p && PET_SP[p.sp]).slice(0, PET_MAX).map(fixPet);
   if (!c.pets.some(p => p.id === c.petOn)) c.petOn = '';
+  if (!c.pets.some(p => p.id === c.petLast)) c.petLast = c.petOn || '';
+  if (!PET_MODES[c.petMode]) c.petMode = 'protect';
   c.hatch = c.hatch && PET_SP[c.hatch.sp] && +c.hatch.end > 0 ? { sp: c.hatch.sp, start: +c.hatch.start || 0, end: +c.hatch.end, cut: c.hatch.cut ? 1 : 0 } : null;
   // đồ khác phái đang mặc (bản cũ): đưa vào túi giống gear.js
   for (const k of SLOTS) { const it = c.eq[k]; if (it && !isFree(k) && it.cls !== c.cls) { c.eq[k] = null; c.inv.push(it); } }
@@ -413,6 +415,17 @@ export function giftMisc() {
   for (const sp of PET_KEYS) L.push({ k: 'egg:' + sp, n: eggName(sp), max: 30, egg: sp, icon: 'admin-icons/egg/' + sp + '.webp' });
   return L;
 }
+// trạng thái pet (như đệ tử Ngọc Rồng): đi theo (không đánh), tấn công (đánh mọi quái quanh chủ), bảo vệ (đánh quái đang đánh chủ), về nhà (cất pet)
+export const PET_MODES = { follow: 'Đi theo', attack: 'Tấn công', protect: 'Bảo vệ', home: 'Về nhà' };
+// lệnh chat (bỏ dấu, bỏ khoảng trắng): ditheo/follow, tancong/attack, baove/protect, venha/gohome
+export const PET_CMD = { ditheo: 'follow', follow: 'follow', tancong: 'attack', attack: 'attack', baove: 'protect', protect: 'protect', venha: 'home', gohome: 'home', home: 'home' };
+export const petCmd = text => { const k = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase().replace(/[^a-z]/g, ''); return PET_CMD[k] || ''; };
+export const PET_SAY = {
+  follow: ['Vâng chủ nhân, em sẽ theo sát chủ nhân!', 'Em đi theo chủ nhân đây, không đánh quái nữa ạ.'],
+  attack: ['Tuân lệnh! Em sẽ tấn công mọi con quái quanh đây!', 'Xông lên! Quái nào ở gần em cũng không tha!'],
+  protect: ['Chủ nhân yên tâm, kẻ nào đánh chủ nhân em sẽ xử nó!', 'Em sẽ bảo vệ chủ nhân, quái nào đánh chủ nhân là em ra tay!'],
+  home: ['Em về nhà nghỉ đây, khi nào cần cứ gọi em nhé!', 'Chào chủ nhân, em về chuồng đây ạ!']
+};
 export const PET_STAT = { hp: 'Máu', atk: 'Sức đánh', def: 'Giáp', aspd: 'Tốc đánh', crit: 'Chí mạng' };
 // pet chỉ nhận kinh nghiệm theo phần máu quái do chính pet đánh mất; quái cao cấp hơn pet tính như quái đó ở cấp của pet; nhân TUNE.petExp (mặc định 1)
 export const PET_EXP = 1;

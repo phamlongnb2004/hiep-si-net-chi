@@ -549,7 +549,7 @@ export class World extends DurableObject {
       ki: Math.floor(f.ki), maxKi: f.maxKi, dodge: f.dodge, ls: f.ls, pen: f.pen, pt: ch.pt || {}, ptFree: R.ptFree(ch), ptCost: R.resetCost(ch), kc: [0, 1, 2, 3, 4, 5].map(i => R.kiCost(ch.lv, i)),
       cds: f.cds.map(x => +x.toFixed(2)), gcd: +f.gcd.toFixed(2), potCd: +f.potCd.toFixed(2), kpCd: +(f.kpCd || 0).toFixed(2), buffs: f.buffs.map(b => ({ id: b.id, t: +b.t.toFixed(1), max: b.max })),
       stun: f.stunT > 0 ? +f.stunT.toFixed(1) : 0, slow: f.slowT > 0 ? f.slowM : 1, pois: f.pois ? 1 : 0, title: ch.title && ch.title.until > Date.now() ? ch.title.n : '' };
-    if (full) Object.assign(o, { name: ch.name, cls: ch.cls, inv: ch.inv, eq: ch.eq, pets: ch.pets.map(p => ({ ...p, st: R.petStats(p), stage: R.petStage(p.lv), need: R.expNeed(p.lv) })), petOn: ch.petOn || '', hatch: ch.hatch || null, now: Date.now() });
+    if (full) Object.assign(o, { name: ch.name, cls: ch.cls, inv: ch.inv, eq: ch.eq, pets: ch.pets.map(p => ({ ...p, st: R.petStats(p), stage: R.petStage(p.lv), need: R.expNeed(p.lv) })), petOn: ch.petOn || '', petMode: ch.petMode || 'protect', hatch: ch.hatch || null, now: Date.now() });
     if (c.pet) { o.pet = { hp: Math.round(c.pet.hp), maxHp: c.pet.maxHp, faint: +c.pet.faint.toFixed(0), lv: c.pet.lv }; }
     return o;
   }
@@ -604,6 +604,10 @@ export class World extends DurableObject {
       }
       case 'chat': {
         const text = clean(m.text, 120).trim(); if (!text || now - c.lastChat < 700) return; c.lastChat = now;
+        // lệnh cho pet (ditheo/follow, tancong/attack, baove/protect, venha/gohome): không gửi lên kênh chat
+        const pm = !m.all && R.petCmd(text);
+        if (pm) { const r = OPS.pet_mode(c, { mode: pm }); if (r.petSay) this.sendTo(c, r.petSay); else this.sendTo(c, { t: 'log', text: r.msg, col: '#ff9a7a' });
+          if (r.ok) { c.dirty = true; c.bagDirty = true; this.sendMe(c); } return; }
         if (mutedUntil(this, c.uid)) return this.sendTo(c, { t: 'res', op: 'chat', ok: false, msg: 'Bạn đang bị cấm trò chuyện.' });
         const msg = { t: 'chat', id: c.id, n: c.ch.name, text, all: !!m.all };
         chatLog(this, c, c.ch.name, text, m.all ? 'all' : 'map:' + c.map);
@@ -619,8 +623,8 @@ export class World extends DurableObject {
       }
       default: {
         const op = OPS[m.t]; if (!op) return;
-        const r = op(c, m) || { ok: false };
-        this.sendTo(c, { t: 'res', op: m.t, rq: m.rq | 0, ...r });
+        const r = op(c, m) || { ok: false }, petSay = r.petSay; delete r.petSay;
+        this.sendTo(c, { t: 'res', op: m.t, rq: m.rq | 0, ...r }); if (petSay) this.sendTo(c, petSay);
         if (r.ok) { c.dirty = true; c.bagDirty = true; this.sendMe(c); }
         if (m.t === 'forge' && r.win && r.up >= 8) glog(this, 'forge', c, 'Rèn thành công lên +' + r.up);
         // đập đồ lên cao (từ +7): cả máy chủ thấy băng chúc mừng

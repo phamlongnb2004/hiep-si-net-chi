@@ -14,11 +14,14 @@ var nm = ""
 var lv = 1
 var air = false
 var mine = false
+var show_label = true   # tắt khi vẽ trong bảng Thú cưng
 var t = 0.0
 var anim = ""        # động tác chạy một lần (atk/cast) theo sự kiện
 var anim_t = 0.0
 var anim_dur = 0.0
 var moving = false
+var say = ""          # câu pet nói với chủ (lệnh chat), hiện bong bóng trên đầu pet
+var say_t = 0.0
 
 func setup(q: Array) -> void:
 	owner_id = int(q[0])
@@ -54,6 +57,7 @@ func height() -> float:
 
 func _process(dt: float) -> void:
 	t += dt
+	say_t = maxf(0.0, say_t - dt)
 	var d = target - position
 	if d.length() > 500:
 		position = target
@@ -114,6 +118,8 @@ func _draw() -> void:
 		draw_texture_rect(tx, Rect2(-float(a.cx) * W, -H, W, H), false, col)
 	draw_set_transform(Vector2.ZERO)
 	# tên + cấp, thanh máu nhỏ
+	if not show_label:
+		return
 	var f: Font = Data.fonts.get("bold")
 	var lab = "%s Lv.%d" % [nm, lv]
 	var sz = 12
@@ -126,6 +132,16 @@ func _draw() -> void:
 	if hp < 1.0 and act != 3:
 		draw_rect(Rect2(-20, y + 3, 40, 4), Color("0f1422"))
 		draw_rect(Rect2(-20, y + 3, 40 * clampf(hp, 0, 1), 4), Color("5fe08c"))
+	if say_t > 0 and say != "":
+		var fs := 13
+		var sz2 = f.get_multiline_string_size(say, HORIZONTAL_ALIGNMENT_CENTER, 200, fs, 3)
+		var bw = minf(200.0, sz2.x) + 18
+		var bh = sz2.y + 10
+		var al = clampf(say_t / 0.5, 0, 1)
+		var r = Rect2(-bw / 2, y - 16 - bh, bw, bh)
+		draw_style_box(UI.box(Color(0.93, 1, 0.95, 0.95 * al), Color(0.1, 0.45, 0.25, al), 10, 2, false), r)
+		draw_colored_polygon(PackedVector2Array([Vector2(-6, r.end.y - 1), Vector2(6, r.end.y - 1), Vector2(0, r.end.y + 7)]), Color(0.93, 1, 0.95, 0.95 * al))
+		draw_multiline_string(f, Vector2(r.position.x + 9, r.position.y + 5 + fs), say, HORIZONTAL_ALIGNMENT_CENTER, bw - 18, fs, 3, Color(UI.INK, al))
 
 func _ellipse(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts = PackedVector2Array()

@@ -171,8 +171,26 @@ export const OPS = {
   pet_on(c, m) {
     const ch = c.ch, id = String(m.id || '');
     if (id && !ch.pets.some(p => p.id === id)) return { ok: false, msg: 'Không có pet này.' };
-    ch.petOn = id === ch.petOn ? '' : id; if (c.inst) c.inst.syncPet(c);
+    if (ch.petOn) ch.petLast = ch.petOn;
+    ch.petOn = id === ch.petOn ? '' : id; if (ch.petOn) ch.petLast = ch.petOn; if (c.inst) c.inst.syncPet(c);
     return { ok: true, msg: ch.petOn ? 'Pet đã ra trận.' : 'Đã cất pet.' };
+  },
+  // đổi trạng thái pet (nút trong Hành Trang → Thú cưng, hoặc lệnh chat); pet nhắn lại cho chủ
+  pet_mode(c, m) {
+    const ch = c.ch, mode = String(m.mode || '');
+    if (!R.PET_MODES[mode]) return { ok: false, msg: 'Trạng thái không hợp lệ.' };
+    if (!ch.pets.length) return { ok: false, msg: 'Bạn chưa có pet. Ấp trứng ở Bà Ấp Trứng trong Làng.' };
+    let p = ch.pets.find(q => q.id === ch.petOn);
+    if (mode === 'home') {
+      if (!p) return { ok: false, msg: 'Pet đang ở nhà rồi.' };
+      ch.petLast = p.id; ch.petOn = '';
+    } else {
+      if (!p) { p = ch.pets.find(q => q.id === ch.petLast) || ch.pets[0]; ch.petOn = p.id; }
+      ch.petMode = mode; ch.petLast = p.id;
+    }
+    if (c.inst) c.inst.syncPet(c);
+    const L = R.PET_SAY[mode], say = L[Math.floor(Math.random() * L.length)];
+    return { ok: true, mode, petSay: { t: 'chat', id: c.id, n: p.name, text: say, pet: 1, pm: 1, to: ch.name } };
   },
   pet_name(c, m) {
     const ch = c.ch, p = ch.pets.find(q => q.id === String(m.id || '')); if (!p) return { ok: false, msg: 'Không có pet này.' };

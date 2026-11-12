@@ -578,14 +578,22 @@ export class MapInst {
     P.actT = Math.max(0, P.actT - dt); if (P.actT <= 0) P.act = 0;
     P.cd -= dt; for (let i = 0; i < 3; i++) P.sk[i] -= dt;
     // mục tiêu: quái chủ vừa đánh, không thì quái đang đánh chủ (gần chủ)
+    // trạng thái: follow đi theo (không đánh); protect đánh quái chủ đang đánh / quái đang đánh chủ; attack đánh mọi quái quanh chủ
+    const mode = ch.petMode || 'protect', far = mode === 'attack' ? 900 : 520;
     let m = null;
-    if (f.dead <= 0) {
-      if (f.lastTgt) { m = this.mons.find(q => q.id === f.lastTgt && !q.dead); if (!m || Math.abs(m.x - f.x) > 520) { m = null; f.lastTgt = 0; } }
-      if (!m) { let bd = 380; for (const q of this.mons) if (!q.dead && q.tgt === c.id && Math.abs(q.x - f.x) < bd) { bd = Math.abs(q.x - f.x); m = q; } }
+    if (f.dead <= 0 && mode !== 'follow') {
+      if (f.lastTgt) { m = this.mons.find(q => q.id === f.lastTgt && !q.dead); if (!m || Math.abs(m.x - f.x) > far) { m = null; f.lastTgt = 0; } }
+      if (!m) { let bd = mode === 'attack' ? 600 : 380; for (const q of this.mons) if (!q.dead && q.tgt === c.id && Math.abs(q.x - f.x) < bd) { bd = Math.abs(q.x - f.x); m = q; } }
+      if (!m && mode === 'attack') { // quái gần pet nhất, cùng tầng với pet, trong 900px quanh chủ (giữ mục tiêu cũ nếu còn hợp lệ)
+        const ok = q => q && !q.dead && Math.abs(q.x - f.x) < far && Math.abs(q.y - P.y) < 140;
+        const cur = P.tgt ? this.mons.find(q => q.id === P.tgt) : null;
+        if (ok(cur)) m = cur; else { let bd = 1e9; for (const q of this.mons) if (ok(q) && Math.abs(q.x - P.x) < bd) { bd = Math.abs(q.x - P.x); m = q; } }
+      }
     }
+    P.tgt = m ? m.id : 0;
     let goal = f.x - f.face * 52;
     if (m) { const side = P.x <= m.x ? -1 : 1; goal = m.x + side * (m.t.r * .8 + 22); }
-    if (Math.abs(P.x - f.x) > 700 || Math.abs(P.y - f.y) > 400) { P.x = f.x - f.face * 40; P.y = f.y; } // bị bỏ xa: dịch chuyển về cạnh chủ
+    if (Math.abs(P.x - f.x) > far + 180 || Math.abs(P.y - f.y) > 400) { P.x = f.x - f.face * 40; P.y = f.y; } // bị bỏ xa: dịch chuyển về cạnh chủ
     const d = goal - P.x, spd = Math.max(280, f.spd * 1.3);
     if (Math.abs(d) > 6) { P.x += Math.sign(d) * Math.min(Math.abs(d), spd * dt); P.face = d > 0 ? 1 : -1; }
     P.x = clamp(P.x, 40, this.M.w - 40);
