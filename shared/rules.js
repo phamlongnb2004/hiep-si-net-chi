@@ -416,7 +416,9 @@ export function giftMisc() {
 export const PET_STAT = { hp: 'Máu', atk: 'Sức đánh', def: 'Giáp', aspd: 'Tốc đánh', crit: 'Chí mạng' };
 // pet nhận kinh nghiệm như tự đánh quái ngang cấp mình (quái cao cấp hơn không cho pet lên vọt), nhân TUNE.petExp (mặc định 0,5)
 export const PET_EXP = .5;
-export const petExpGain = (e, petLv, monLv) => Math.max(1, Math.round(e * Math.min(1, expNeed(petLv) / Math.max(1, expNeed(monLv))) * (TUNE.petExp != null ? TUNE.petExp : PET_EXP)));
+// e: kinh nghiệm chủ nhận từ con quái (đã nhân phần chia khi đánh chung); quái cao cấp hơn pet: pet nhận như quái đó ở cấp của pet
+export const petExpGain = (e, petLv, type, monLv, elite) => { const full = monExp(type, monLv, elite), same = monExp(type, Math.min(monLv, petLv), elite);
+  return Math.max(1, Math.round(e * (full > 0 ? same / full : 1) * (TUNE.petExp != null ? TUNE.petExp : PET_EXP))); };
 export const PET_MAX = 3, PET_SK_LV = [10, 40, 80], PET_SK_CD = [8, 15, 40], PET_REVIVE = 60, PET_SHARE = .1, PET_PT = 3;
 export const HATCH_MS = 24 * 3600e3, HATCH_CUT = .5, HATCH_GOLD = 2000000;
 export const STAR_MUL = [.8, .9, 1, 1.15, 1.3];
