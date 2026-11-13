@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.12.0",
+  "version": "2.12.2",
   "min": "2.12.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "c6a6212c61068a108e2d1edf8c9e95760c1667d7c3b49978ecdae3a75daccbdb",
-   "size": 91161719
+   "sha256": "c081909db63ea81a53b85ebdc89d51593f2b163e85446ec4a4c16f9314217ff0",
+   "size": 91160615
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "b406097e7d57f7d4ba985bbda0066e336c35caba6ab5ba140863c337f128eb6b",
+   "sha256": "9875ad700105472f595e9580787c986ff297895f0c0db58d21400cf40db8a103",
    "size": 96046660
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "06ce62cfb75f588242143ed232143e1fc4eed8fae9b0a411196de77e17a57502",
-   "size": 93840038
+   "sha256": "1ab88ef78ffd446477e09923671b1c4640f802f3b3361c18a3b738661e114b66",
+   "size": 93839730
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -25,18 +25,16 @@
   }
  },
  "assets": {
-  "version": 36,
+  "version": 37,
   "min_app": "2.12.0",
-  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-36.pck",
+  "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/assets-37.pck",
   "sha256": "efb9097cd8670df4ffe89162e90b86c286fe0b25defeddedeb3c9873bc056c37",
   "size": 69566716
  },
  "changelog": [
-  "Trùm thế giới mới: Hỗn Mang Ma Thần — mỗi giờ giáng thế ở 1 khu bất kì của 1 bản đồ có quái (ngoài Làng), không báo vị trí, phải tự đi tìm",
-  "Cực kì mạnh: không có cấp, máu khổng lồ, 5 chiêu hủy diệt; ít hơn 3 người cùng đánh thì có Khiên Hỗn Mang (chỉ nhận 15% sát thương), dưới 30% máu nổi giận",
-  "Người đánh đòn cuối nhận: Sách Thiên Địa Diệt (80%) hoặc 1 món đồ Thần Thoại ngẫu nhiên (20%)",
-  "Sách Thiên Địa Diệt: phái nào cũng học được (cấp 100), giao dịch được — kĩ năng thứ 7 (phím 7): cột thánh quang 700% sát thương + choáng 1,5 giây",
-  "Đồ Thần Thoại: phái nào cũng mặc, mặc vào đổi hẳn dáng nhân vật (cả khi chạy, nhảy, ngã, leo), 1-2 món hào quang nhẹ, từ 3 món hào quang thần thánh đầy đủ; khung ô đồ lấp lánh"
+  "Di chuyển mượt hơn: quái và người chơi khác không còn đi kiểu giật rồi dừng",
+  "Bị quái đánh văng không còn bị kéo giật ngược về chỗ cũ",
+  "Thêm bảng đo hiệu năng: bấm F3 để xem fps, ping và độ mượt"
  ],
- "updated": "2026-11-12T18:06:46.522Z"
+ "updated": "2026-11-13T07:51:09.928Z"
 }
