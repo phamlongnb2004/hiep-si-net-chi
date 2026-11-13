@@ -15,6 +15,9 @@ var hp_max = 1.0
 var face = 1
 var flags = 0
 var target = Vector2.ZERO
+var ibuf = false   # vị trí do game nội suy theo ảnh chụp máy chủ
+var _px = 0.0
+var _vx = 0.0
 var walk = 0.0
 var t = 0.0
 var flash = 0.0
@@ -90,11 +93,20 @@ func _process(dt: float) -> void:
 		if br_t > 1.9:
 			br_t = -1.0
 	var d = target - position
-	if d.length() > 400:
-		position = target
+	var mv = false
+	if ibuf:
+		# vị trí do game nội suy từ các ảnh chụp (đi đều); đo tốc độ để biết đang bước hay đứng
+		var vx = (position.x - _px) / maxf(dt, 0.001)
+		_px = position.x
+		_vx = lerpf(_vx, vx, minf(1.0, dt * 10.0))
+		mv = absf(_vx) > 12.0 or flags & 64 != 0
+		d = Vector2(_vx * 0.1, 0)
 	else:
-		position += d * min(1.0, dt * 12.0)
-	var mv = absf(d.x) > 0.6 or flags & 64 != 0
+		if d.length() > 400:
+			position = target
+		else:
+			position += d * min(1.0, dt * 12.0)
+		mv = absf(d.x) > 0.6 or flags & 64 != 0
 	walk += dt * (2.0 if mv else 0.4)
 	if not dead() and absf(d.x) > 1.5 and br_t < 0:
 		face = 1 if d.x > 0 else -1

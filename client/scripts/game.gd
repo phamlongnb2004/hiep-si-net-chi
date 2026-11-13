@@ -60,6 +60,7 @@ signal toast(text: String)
 var move_to = -1.0
 var npc_go = ""
 var send_t = 0.0
+var kb_rem = 0.0   # quãng bị đánh văng còn lại (trượt dần)
 var atk_t = 0.0
 var cds = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var gcd = 0.0
@@ -152,8 +153,14 @@ func _on_msg(m: Dictionary) -> void:
 			if ready_map:
 				_snap(m)
 		"pos":
+			if OS.get_environment("HSNC_POSLOG") != "": print("POS ", m, " me=", me.position, " t=", Time.get_ticks_msec())
 			pos_n = int(m.get("pn", pos_n + 1))
-			me.position = Vector2(m.x, m.y)
+			if m.get("kb") and m.has("dx") and not m.get("respawn"):
+				# bị đánh văng: đẩy lùi từ CHỖ MÌNH ĐANG ĐỨNG (trượt trong ~0,15 giây) thay vì kéo về vị trí cũ máy chủ còn giữ
+				# (vị trí máy chủ chậm hơn theo độ trễ mạng -> trước đây bị giật lùi cả trăm điểm mỗi lần trúng đòn)
+				kb_rem += float(m.dx)
+			else:
+				me.position = Vector2(m.x, m.y)
 			last_sent = Vector3(INF, 0, 0)
 			vy = 0
 			climb = []
@@ -304,28 +311,51 @@ func _add_drop(d: Dictionary) -> void:
 	ents.add_child(o)
 	drops[o.id] = o
 
-## người chơi khác: vẽ trễ HB_DELAY giây, nội suy giữa các ảnh chụp (đi đều, không giật kiểu chạy-dừng)
+## người chơi khác và quái: vẽ trễ một chút, nội suy giữa các ảnh chụp (đi đều, không giật kiểu chạy-dừng).
+## Mốc thời gian mỗi ảnh lấy theo nhịp máy chủ (tk, 10 lần/giây) chứ không theo lúc gói tới,
+## nên mạng tới lúc nhanh lúc chậm (ping thấp vẫn có) cũng không làm nhân vật/quái giật.
 const HB_DELAY := 0.2
-func _hbuf_add(h: Hero, p: Vector2) -> void:
+const MB_DELAY := 0.17
+var tk_off = INF     # (giờ máy - tk*0.1) nhỏ nhất trong ~1 giây gần đây: gói tới sớm nhất = trễ mạng thấp nhất
+var tk_os: Array = []
+var snap_st = 0.0    # mốc thời gian (giờ máy) của ảnh chụp đang xử lý
+var dbg_n = 0
+var dbg_starve = 0
+
+func _snap_time(tk: int) -> float:
 	var now_s = Time.get_ticks_msec() / 1000.0
-	var b: Array = h.get_meta("hb", [])
+	var ts = float(tk) * 0.1
+	# nhịp máy chủ có thể nhanh/chậm hơn 100ms một chút: lấy độ lệch nhỏ nhất trong 10 ảnh gần nhất (tự theo kịp)
+	tk_os.append(now_s - ts)
+	while tk_os.size() > 10:
+		tk_os.pop_front()
+	tk_off = tk_os.min()
+	return tk_off + ts
+
+func _hbuf_add(h: Node2D, p: Vector2, st: float = -1.0, key: String = "hb") -> void:
+	var now_s = st if st >= 0.0 else Time.get_ticks_msec() / 1000.0
+	var b: Array = h.get_meta(key, [])
 	if not b.is_empty():
 		var last: Vector2 = b[-1][1]
 		# ảnh chụp lặp lại vị trí cũ khi đang chạy (máy chủ chụp lệch nhịp gửi của người đó): bỏ, nội suy thẳng qua
-		if last.is_equal_approx(p) and h.moving and now_s - float(b[-1][0]) < 0.25:
+		if key == "hb" and last.is_equal_approx(p) and h.get("moving") and now_s - float(b[-1][0]) < 0.25:
 			return
-		if last.distance_to(p) > 300:
+		if last.distance_to(p) > 300 or now_s <= float(b[-1][0]):
 			b.clear()
 	b.append([now_s, p])
 	while b.size() > 8:
 		b.pop_front()
-	h.set_meta("hb", b)
+	h.set_meta(key, b)
 
-func _hbuf_pos(h: Hero, now_s: float) -> void:
-	var b: Array = h.get_meta("hb", [])
+func _hbuf_pos(h: Node2D, now_s: float, key: String = "hb", delay: float = HB_DELAY) -> void:
+	var b: Array = h.get_meta(key, [])
 	if b.is_empty():
 		return
-	var rt = now_s - HB_DELAY
+	var rt = now_s - delay
+	if key == "mb":
+		dbg_n += 1
+		if rt > float(b[-1][0]):
+			dbg_starve += 1
 	if b.size() == 1 or rt <= float(b[0][0]):
 		h.position = b[0][1] if b.size() == 1 or h.position.distance_to(b[0][1]) > 300 else h.position.lerp(b[0][1], 0.3)
 		return
@@ -339,6 +369,7 @@ func _hbuf_pos(h: Hero, now_s: float) -> void:
 
 func _snap(m: Dictionary) -> void:
 	var seen = {}
+	snap_st = _snap_time(int(m.get("tk", 0)))
 	for q in m.p:
 		var id = int(q[0])
 		if id == my_id:
@@ -352,7 +383,7 @@ func _snap(m: Dictionary) -> void:
 			heroes[id] = h
 		h.face = int(q[3])
 		h.moving = int(q[4]) == 1
-		_hbuf_add(h, Vector2(q[1], q[2]))
+		_hbuf_add(h, Vector2(q[1], q[2]), snap_st)
 		h.cls = str(q[6])
 		h.lv = int(q[7])
 		h.nm = str(q[8])
@@ -374,6 +405,8 @@ func _snap(m: Dictionary) -> void:
 		if mo == null:
 			continue
 		mo.target = Vector2(q[1], q[2])
+		mo.ibuf = true
+		_hbuf_add(mo, mo.target, snap_st, "mb")
 		mo.hp = float(q[3])
 		mo.flags = int(q[5])
 		if mo.br_t < 0:
@@ -509,6 +542,7 @@ func _event(e: Array) -> void:
 				mo3.hp = mo3.hp_max
 				mo3.position = Vector2(e[2], e[3])
 				mo3.target = mo3.position
+				mo3.set_meta("mb", [[snap_st, mo3.position]])
 		"ma":  # quái vồ
 			var mo4: Mon = mons.get(int(e[1]))
 			var w5 = _who(int(e[2]))
@@ -1046,7 +1080,22 @@ func _process(dt: float) -> void:
 	var now_s = Time.get_ticks_msec() / 1000.0
 	for h in heroes.values():
 		_hbuf_pos(h, now_s)
+	for mo in mons.values():
+		if mo.ibuf:
+			_hbuf_pos(mo, now_s, "mb", MB_DELAY)
 	_control(dt)
+	if kb_rem != 0.0:
+		var st = signf(kb_rem) * minf(absf(kb_rem), 1100.0 * dt)
+		kb_rem -= st
+		var moved = 0.0
+		while absf(moved) < absf(st):
+			var k = signf(st) * minf(8.0, absf(st) - absf(moved))
+			if not _move_x1(me.position.x + k):
+				kb_rem = 0.0
+				break
+			moved += k
+		if absf(kb_rem) < 0.5:
+			kb_rem = 0.0
 	cam.position = me.position + Vector2(0, -60)
 	cam.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * (fx.shake * 40.0) if fx.shake > 0 else Vector2.ZERO
 	# đứng ở chân dây/thang: gợi ý bấm nhảy để leo

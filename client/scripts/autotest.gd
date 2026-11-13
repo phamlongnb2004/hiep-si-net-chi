@@ -1042,6 +1042,23 @@ func perf_test() -> void:
 			for q in Data.late_loads:
 				print("LATE %s %.1fms" % [q[0], q[1]])
 			Data.late_loads.clear()
+		if OS.get_environment("HSNC_MWATCH") != "" and i % 3 == 2:
+			# đo độ đều của quái đang đi: bước mỗi khung (điểm/giây); giật = nhảy vọt rồi đứng
+			var best: Mon = null
+			for mo in g.mons.values():
+				if not mo.dead() and (best == null or absf(mo.position.x - g.me.position.x) < absf(best.position.x - g.me.position.x)):
+					best = mo
+			if best:
+				var vs = []
+				var px = best.position.x
+				for k in 40:
+					await get_tree().process_frame
+					var dtt = get_process_delta_time()
+					vs.append(int((best.position.x - px) / maxf(dtt, 0.001)))
+					px = best.position.x
+				print("MWATCH starve=%d/%d off=%.3f " % [g.dbg_starve, g.dbg_n, g.tk_off], vs)
+				g.dbg_starve = 0
+				g.dbg_n = 0
 		if OS.get_environment("HSNC_WATCH") != "" and not g.heroes.is_empty():
 			var h = g.heroes.values()[0]
 			var xs = []

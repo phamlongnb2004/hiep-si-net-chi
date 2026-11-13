@@ -78,7 +78,9 @@ export class MapInst {
     // (bản mới gửi pk = số lần đã nhận 'pos'; bản cũ: bỏ qua gói lệch xa trong 1,2 giây) — tránh giật qua lại khi mạng chậm
     if (m.pk != null ? (m.pk | 0) < (c.posN | 0) : (now - (c.posAt || 0) < 1200 && Math.abs(x - f.x) > 40)) return;
     x = clamp(x, 40, this.M.w - 40);
-    const spd = f.spd * R.buffMul(f.buffs, 'spd') * (f.stunT > 0 ? .05 : f.slowT > 0 ? f.slowM : 1), lim = spd * dt * 1.35 + 30 + (f.dashT > 0 ? f.dashLen : 0);
+    // vừa bị đánh văng: ứng dụng mới đẩy lùi từ chỗ nó đang đứng (đi trước vị trí máy chủ một quãng bằng độ trễ mạng) -> nới giới hạn 1 giây
+    const kbG = c.kbAt && now - c.kbAt < 1000 && (m.pk | 0) === (c.posN | 0) ? 260 : 0;
+    const spd = f.spd * R.buffMul(f.buffs, 'spd') * (f.stunT > 0 ? .05 : f.slowT > 0 ? f.slowM : 1), lim = spd * dt * 1.35 + 30 + kbG + (f.dashT > 0 ? f.dashLen : 0);
     let bad = false;
     if (Math.abs(x - f.x) > lim) { x = f.x + Math.sign(x - f.x) * lim; bad = true; }
     // vách: không đi xuyên qua khối đất cao hơn chân mình
@@ -239,7 +241,7 @@ export class MapInst {
   push(c, dx) {
     const f = c.f, dir = Math.sign(dx); let x = f.x;
     for (let s = 0; s < Math.abs(dx); s += 8) { const nx = clamp(x + dir * 8, 40, this.M.w - 40); if (this.gY(nx) < f.y - 6) break; x = nx; }
-    if (x === f.x) return; f.x = x; f.y = Math.min(f.y, this.fY(x, f.y)); this.sendPos(c, { kb: 1 });
+    if (x === f.x) return; const ddx = Math.round(x - f.x); f.x = x; f.y = Math.min(f.y, this.fY(x, f.y)); c.kbAt = Date.now(); this.sendPos(c, { kb: 1, dx: ddx });
   }
   damage(c, d) {
     const f = c.f; if (f.dead > 0) return;
