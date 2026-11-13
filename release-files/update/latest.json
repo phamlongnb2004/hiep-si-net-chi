@@ -1,21 +1,21 @@
 {
  "app": {
-  "version": "2.12.2",
+  "version": "2.12.3",
   "min": "2.12.0",
   "windows": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Setup.exe",
-   "sha256": "c081909db63ea81a53b85ebdc89d51593f2b163e85446ec4a4c16f9314217ff0",
-   "size": 91160615
+   "sha256": "f73d8230d9411c14e9e40ec06870d6de7784c1a0003ea14b14b192424831ebd7",
+   "size": 91162085
   },
   "android": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.apk",
-   "sha256": "9875ad700105472f595e9580787c986ff297895f0c0db58d21400cf40db8a103",
+   "sha256": "7ea1fad797f158a74417a2e63ffd707b61d0349bf4eb8ad4463e8dc214a6ab16",
    "size": 96046660
   },
   "linux": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi-Linux.tar.gz",
-   "sha256": "1ab88ef78ffd446477e09923671b1c4640f802f3b3361c18a3b738661e114b66",
-   "size": 93839730
+   "sha256": "9f9b58cf63ae6fea7b9f9ddaa8afc530d2aa8e3ebd4e5459fb3151751c753f33",
+   "size": 93840515
   },
   "ios": {
    "url": "https://raw.githubusercontent.com/phamlongnb2004/hiep-si-net-chi/downloads/HiepSiNetChi.ipa",
@@ -32,9 +32,9 @@
   "size": 69566716
  },
  "changelog": [
-  "Di chuyển mượt hơn: quái và người chơi khác không còn đi kiểu giật rồi dừng",
-  "Bị quái đánh văng không còn bị kéo giật ngược về chỗ cũ",
-  "Thêm bảng đo hiệu năng: bấm F3 để xem fps, ping và độ mượt"
+  "Nội suy tự co giãn theo độ xóc của mạng: ping cao (100-200ms) không còn làm quái và người khác khựng rồi nhảy",
+  "Di chuyển mượt hơn, bị đánh văng không còn bị kéo giật ngược",
+  "Bấm F3 để xem bảng fps, ping và độ mượt"
  ],
- "updated": "2026-11-13T07:51:09.928Z"
+ "updated": "2026-11-13T08:53:03.571Z"
 }
