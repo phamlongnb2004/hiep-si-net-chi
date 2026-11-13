@@ -318,6 +318,12 @@ func _add_drop(d: Dictionary) -> void:
 ## nên mạng tới lúc nhanh lúc chậm (ping thấp vẫn có) cũng không làm nhân vật/quái giật.
 const HB_DELAY := 0.2
 const MB_DELAY := 0.17
+# độ trễ nội suy tự co giãn theo độ "xóc" của mạng: ping 100-200ms thường kèm gói tới lúc sớm lúc muộn;
+# trễ cố định 0,17s không đủ nên ảnh chụp tới muộn làm quái/người khác đứng khựng rồi nhảy
+var ip_dev: Array = []
+var ip_cur := MB_DELAY
+var hb_delay := HB_DELAY
+var mb_delay := MB_DELAY
 var tk_off = INF     # (giờ máy - tk*0.1) nhỏ nhất trong ~1 giây gần đây: gói tới sớm nhất = trễ mạng thấp nhất
 var tk_os: Array = []
 var snap_st = 0.0    # mốc thời gian (giờ máy) của ảnh chụp đang xử lý
@@ -343,9 +349,11 @@ func _perf_tick(dt: float, proc_ms: float) -> void:
 	pf_proc_max = max(pf_proc_max, proc_ms)
 	if pf_acc < 1.0:
 		return
+	if OS.get_environment("HSNC_PERFLOG") != "":
+		print("PERF fps=%d maxframe=%.0f proc=%.1f corr=%d kb=%d starve=%d/%d mem=%dMB nodes=%d objs=%d" % [pf_frames / pf_acc, pf_max * 1000.0, pf_proc_max, pf_corr, pf_kb, dbg_starve, dbg_n, OS.get_static_memory_usage() / 1048576, Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_COUNT)])
 	if pf_on and pf_lbl:
-		pf_lbl.text = "FPS %d | khung tệ nhất %.0f ms | xử lý tệ nhất %.1f ms\nPing %d ms | thiếu ảnh quái %d/%d | bị kéo vị trí %d | văng %d\nNgười khác %d | quái %d" % [
-			pf_frames / pf_acc, pf_max * 1000.0, pf_proc_max, Net.ping_ms, dbg_starve, dbg_n, pf_corr, pf_kb, heroes.size(), mons.size()]
+		pf_lbl.text = "FPS %d | khung tệ nhất %.0f ms | xử lý tệ nhất %.1f ms\nPing %d ms | thiếu ảnh quái %d/%d | bị kéo vị trí %d | văng %d\nNgười khác %d | quái %d | trễ nội suy %.0f ms" % [
+			pf_frames / pf_acc, pf_max * 1000.0, pf_proc_max, Net.ping_ms, dbg_starve, dbg_n, pf_corr, pf_kb, heroes.size(), mons.size(), mb_delay * 1000.0]
 	pf_acc = 0.0
 	pf_frames = 0
 	pf_max = 0.0
@@ -374,6 +382,16 @@ func _snap_time(tk: int) -> float:
 	while tk_os.size() > 10:
 		tk_os.pop_front()
 	tk_off = tk_os.min()
+	ip_dev.append(now_s - ts - tk_off)
+	while ip_dev.size() > 40:
+		ip_dev.pop_front()
+	var srt = ip_dev.duplicate()
+	srt.sort()
+	var p90: float = srt[maxi(0, int(srt.size() * 0.9) - 1)]
+	var tgt = clampf(p90 + 0.12, MB_DELAY, 0.55)
+	ip_cur = ip_cur + (tgt - ip_cur) * 0.4 if tgt > ip_cur else maxf(tgt, ip_cur - 0.003)
+	mb_delay = ip_cur
+	hb_delay = ip_cur + (HB_DELAY - MB_DELAY)
 	return tk_off + ts
 
 func _hbuf_add(h: Node2D, p: Vector2, st: float = -1.0, key: String = "hb") -> void:
@@ -391,7 +409,9 @@ func _hbuf_add(h: Node2D, p: Vector2, st: float = -1.0, key: String = "hb") -> v
 		b.pop_front()
 	h.set_meta(key, b)
 
-func _hbuf_pos(h: Node2D, now_s: float, key: String = "hb", delay: float = HB_DELAY) -> void:
+func _hbuf_pos(h: Node2D, now_s: float, key: String = "hb", delay: float = -1.0) -> void:
+	if delay < 0.0:
+		delay = hb_delay
 	var b: Array = h.get_meta(key, [])
 	if b.is_empty():
 		return
@@ -1131,7 +1151,7 @@ func _process_main(dt: float) -> void:
 		_hbuf_pos(h, now_s)
 	for mo in mons.values():
 		if mo.ibuf:
-			_hbuf_pos(mo, now_s, "mb", MB_DELAY)
+			_hbuf_pos(mo, now_s, "mb", mb_delay)
 	_control(dt)
 	if kb_rem != 0.0:
 		var st = signf(kb_rem) * minf(absf(kb_rem), 1100.0 * dt)
