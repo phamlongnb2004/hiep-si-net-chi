@@ -423,7 +423,7 @@ VIEWS.items = async function (body) {
     if (!sum.length) return toast('Giỏ quà đang trống.', true);
     const who = G.online ? 'MỌI NGƯỜI đang online trên máy chủ ' + G.srv : G.to.name;
     if (!await confirmBox('Tặng quà', 'Tặng cho ' + who + ': ' + sum.join(', ') + '.', 'Tặng', 'green')) return;
-    const r = await run('give', { ...(G.online ? { online: 1, srv: G.srv } : { uid: G.to.uid, srv: G.to.srv }), gear, books, ...G.misc, note: G.note });
+    const r = await run('give', { ...(G.online ? { online: 1, srv: G.srv } : { uid: G.to.uid, srv: G.to.srv }), gear, books, misc: { ...G.misc }, note: G.note });
     if (!r) return;
     toast(G.online ? 'Đã tặng cho ' + r.n + ' người' + (r.fail.length ? ' (' + r.fail.length + ' người túi đầy)' : '') + '.' : 'Đã tặng: ' + r.got.join(', '));
     if (r.char && G.to) G.to.free = C.max.inv - r.char.inv.length;

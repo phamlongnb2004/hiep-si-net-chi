@@ -339,7 +339,8 @@ const ACT = {
     const gear = Array.isArray(b.gear) ? b.gear.slice(0, 30) : [], books = Array.isArray(b.books) ? b.books.slice(0, 6) : [];
     // vật phẩm khác: b.misc {khóa: số} (bản trang cũ gửi pots/stones/gold/exp ở ngoài; 'pots' cũ = bình máu vừa)
     const MISC = R.giftMisc(), mi = Object.assign({}, b.misc && typeof b.misc === 'object' ? b.misc : {});
-    for (const k of ['pots', 'stones', 'gold', 'exp']) if (b[k] && mi[k] == null) mi[k] = b[k];
+    // trang quản trị gửi mọi khóa ở ngoài (…G.misc): nhận hết khóa có trong danh sách (trứng, sách, đồ Thần Thoại…)
+    for (const x of MISC) if (b[x.k] != null && mi[x.k] == null) mi[x.k] = b[x.k];
     const n = k => { const d = MISC.find(x => x.k === k); return d ? int(mi[k] || 0, 0, d.max) : 0; };
     const eggN = MISC.filter(x => x.egg || x.book || x.myth).reduce((a, x) => a + n(x.k), 0);
     const make = g => {
