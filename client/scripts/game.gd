@@ -155,6 +155,8 @@ func _on_msg(m: Dictionary) -> void:
 		"pos":
 			if OS.get_environment("HSNC_POSLOG") != "": print("POS ", m, " me=", me.position, " t=", Time.get_ticks_msec())
 			pos_n = int(m.get("pn", pos_n + 1))
+			if m.get("kb"): pf_kb += 1
+			elif not m.get("respawn"): pf_corr += 1
 			if m.get("kb") and m.has("dx") and not m.get("respawn"):
 				# bị đánh văng: đẩy lùi từ CHỖ MÌNH ĐANG ĐỨNG (trượt trong ~0,15 giây) thay vì kéo về vị trí cũ máy chủ còn giữ
 				# (vị trí máy chủ chậm hơn theo độ trễ mạng -> trước đây bị giật lùi cả trăm điểm mỗi lần trúng đòn)
@@ -321,6 +323,48 @@ var tk_os: Array = []
 var snap_st = 0.0    # mốc thời gian (giờ máy) của ảnh chụp đang xử lý
 var dbg_n = 0
 var dbg_starve = 0
+# Bảng đo hiệu năng (F3): fps, thời gian khung hình, số ảnh chụp thiếu, số lần bị kéo vị trí / đánh văng
+var pf_on := false
+var pf_lbl: Label = null
+var pf_corr := 0
+var pf_kb := 0
+var pf_acc := 0.0
+var pf_frames := 0
+var pf_max := 0.0
+var pf_proc_max := 0.0
+var pf_t := 0.0
+
+func _perf_tick(dt: float, proc_ms: float) -> void:
+	if not pf_on and pf_lbl == null and OS.get_environment("HSNC_PERFHUD") != "":
+		_perf_toggle()
+	pf_frames += 1
+	pf_acc += dt
+	pf_max = max(pf_max, dt)
+	pf_proc_max = max(pf_proc_max, proc_ms)
+	if pf_acc < 1.0:
+		return
+	if pf_on and pf_lbl:
+		pf_lbl.text = "FPS %d | khung tệ nhất %.0f ms | xử lý tệ nhất %.1f ms\nPing %d ms | thiếu ảnh quái %d/%d | bị kéo vị trí %d | văng %d\nNgười khác %d | quái %d" % [
+			pf_frames / pf_acc, pf_max * 1000.0, pf_proc_max, Net.ping_ms, dbg_starve, dbg_n, pf_corr, pf_kb, heroes.size(), mons.size()]
+	pf_acc = 0.0
+	pf_frames = 0
+	pf_max = 0.0
+	pf_proc_max = 0.0
+
+func _perf_toggle() -> void:
+	pf_on = not pf_on
+	if pf_on and pf_lbl == null:
+		var cl := CanvasLayer.new()
+		cl.layer = 100
+		pf_lbl = Label.new()
+		pf_lbl.position = Vector2(8, 60)
+		pf_lbl.add_theme_font_size_override("font_size", 14)
+		pf_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		pf_lbl.add_theme_constant_override("outline_size", 4)
+		cl.add_child(pf_lbl)
+		add_child(cl)
+	if pf_lbl:
+		pf_lbl.get_parent().visible = pf_on
 
 func _snap_time(tk: int) -> float:
 	var now_s = Time.get_ticks_msec() / 1000.0
@@ -1065,6 +1109,11 @@ func next_target() -> void:
 		focus = L[i][1]
 
 func _process(dt: float) -> void:
+	var pf_t0 := Time.get_ticks_usec()
+	_process_main(dt)
+	_perf_tick(dt, (Time.get_ticks_usec() - pf_t0) / 1000.0)
+
+func _process_main(dt: float) -> void:
 	fade = max(0.0, fade - dt * 2)
 	if not ready_map:
 		return
@@ -1301,6 +1350,7 @@ func _climb(dt: float, iy: float, dx: float) -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		match ev.keycode:
+			KEY_F3: _perf_toggle()
 			KEY_W, KEY_UP, KEY_SPACE, KEY_K: jump()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7: do_skill(ev.keycode - KEY_1)
 			KEY_Q: do_pot()
